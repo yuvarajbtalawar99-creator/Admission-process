@@ -19,13 +19,13 @@ jobs:
     - name: Build Backend
       working-directory: backend
       run: |
-        npm ci
+        npm ci --legacy-peer-deps
         npm run build
 
     - name: Build Frontend
       working-directory: frontend
       run: |
-        npm ci
+        npm ci --legacy-peer-deps
         npm run build
 
     - name: Deploy to AWS
