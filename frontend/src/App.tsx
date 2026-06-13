@@ -19,7 +19,7 @@ const App: React.FC = () => {
         setBackendStatus(res.data);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         setError('Could not connect to the Backend API server.');
         setLoading(false);
       });
