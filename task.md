@@ -1,0 +1,26 @@
+# Tasks
+
+- [x] Fix CORS origin bug in `backend/.env` to allow port 5174
+- [x] Add CSS shimmer animations in `frontend/src/styles/animations.css`
+- [x] Add CSS shimmer animations in `frontend/src/pages/admission/src/index.css`
+- [x] Create reusable skeleton components in `frontend/src/components/common/Skeleton.tsx`
+- [x] Create `LoadingContainer.tsx` in `frontend/src/components/common/LoadingContainer.tsx`
+- [x] Implement `uiSlice.ts` for global loading tracking in Redux
+- [x] Register `ui` reducer in `store.ts`
+- [x] Add Axios interceptors in `frontend/src/services/api.ts` for global loading tracking
+- [x] Create `TopLoadingBar.tsx` in `frontend/src/components/common/TopLoadingBar.tsx`
+- [x] Update `App.tsx` to include `TopLoadingBar`
+- [x] Refactor pages to use skeletons:
+  - [x] `StudentDashboardPage.tsx`
+  - [x] `MarksViewPage.tsx`
+  - [x] `AttendanceViewPage.tsx`
+  - [x] `StudentEnrollmentPage.tsx`
+  - [x] `AdminDashboardPage.tsx`
+- [x] Implement loading states and skeletons in Admission subproject:
+  - [x] Create `LoadingContext.jsx` in `frontend/src/pages/admission/src/context/LoadingContext.jsx`
+  - [x] Add Axios interceptors in `frontend/src/pages/admission/src/api/axios.js`
+  - [x] Create `TopLoadingBar.jsx` in `frontend/src/pages/admission/src/components/TopLoadingBar.jsx`
+  - [x] Create `Skeleton.jsx` in `frontend/src/pages/admission/src/components/Skeleton.jsx`
+  - [x] Create `LoadingContainer.jsx` in `frontend/src/pages/admission/src/components/LoadingContainer.jsx`
+  - [x] Refactor `AdmissionForm.jsx` to use delayed loaders & skeletons
+  - [x] Refactor `StudentDashboard.jsx` to use delayed loaders & skeletons

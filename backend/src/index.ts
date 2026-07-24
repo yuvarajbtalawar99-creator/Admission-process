@@ -8,7 +8,73 @@ async function startServer() {
     // Authenticate database connection
     console.log('Connecting to PostgreSQL database...');
     await sequelize.authenticate();
+    
+    // Split lifecycle: only run schema alteration in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Syncing database schema (development alter)...');
+      await sequelize.sync({ alter: true });
+    } else {
+      console.log('Syncing database schema...');
+      await sequelize.sync();
+    }
+    
+    // Alter PostgreSQL enum values for Principal actions if they are missing
+    try {
+      const enumValues = [
+        'PRINCIPAL_APPROVED_ADMISSION',
+        'PRINCIPAL_REJECTED_ADMISSION',
+        'PRINCIPAL_APPROVED_BUDGET',
+        'PRINCIPAL_REJECTED_BUDGET',
+        'PRINCIPAL_APPROVED_LEAVE',
+        'PRINCIPAL_REJECTED_LEAVE',
+        'PRINCIPAL_APPROVED_CURRICULUM_CHANGE',
+        'PRINCIPAL_REJECTED_CURRICULUM_CHANGE',
+        'PRINCIPAL_APPROVED_EVALUATION',
+        'PRINCIPAL_REJECTED_EVALUATION',
+        'PRINCIPAL_DECIDED_FEE_WAIVER'
+      ];
+      for (const val of enumValues) {
+        await sequelize.query(`ALTER TYPE "enum_audit_logs_action" ADD VALUE IF NOT EXISTS '${val}'`).catch((err: any) => {
+          // ADD VALUE IF NOT EXISTS works in PG, catch dialect errors
+        });
+      }
+      console.log('✓ Audit log enum migration verified.');
+    } catch (e: any) {
+      console.log('ENUM migration skipped:', e.message);
+    }
+
+    // Alter PostgreSQL enum values for Admission Category if they are missing
+    try {
+      const categoryEnumValues = ['C1', '2A', '2B', '3A', '3B'];
+      for (const val of categoryEnumValues) {
+        await sequelize.query(`ALTER TYPE "enum_admission_personal_details_category" ADD VALUE IF NOT EXISTS '${val}'`).catch((err: any) => {
+          // ADD VALUE IF NOT EXISTS works in PG, catch dialect errors
+        });
+      }
+      console.log('✓ Admission category enum migration verified.');
+    } catch (e: any) {
+      console.log('Admission category ENUM migration skipped:', e.message);
+    }
+
+    // Automatically update the department name from 'Information Science & Engineering' to 'Computer Science & Engineering (AIML)' if it exists
+    try {
+      await sequelize.query(`
+        UPDATE "departments" 
+        SET "name" = 'Computer Science & Engineering (AIML)', "code" = 'CSE-AIML' 
+        WHERE "name" = 'Information Science & Engineering' OR "code" = 'ISE'
+      `);
+      console.log('✓ Department name updated to Computer Science & Engineering (AIML) in database.');
+    } catch (e: any) {
+      console.log('Department migration check skipped/failed:', e.message);
+    }
+    
     console.log('Database connection has been established successfully.');
+
+    // Run Database Row-Level Security (RLS) setup if enabled
+    if (process.env.DB_RLS_ENABLED === 'true') {
+      const { dbRlsSetup } = await import('./utils/dbRlsSetup');
+      await dbRlsSetup();
+    }
 
     app.listen(PORT, () => {
       console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);

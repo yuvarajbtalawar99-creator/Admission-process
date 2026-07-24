@@ -1,0 +1,27 @@
+{
+  "name": "jcer-erp-system",
+  "version": "1.0.0",
+  "description": "JCER College ERP System – npm workspaces monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=backend & npm run dev --workspace=frontend & npm run dev --workspace=packages/admission-portal",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:admission": "npm run dev --workspace=packages/admission-portal",
+    "build": "npm run build --workspace=backend & npm run build --workspace=frontend & npm run build --workspace=packages/admission-portal",
+    "build:backend": "npm run build --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "build:admission": "npm run build --workspace=packages/admission-portal",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

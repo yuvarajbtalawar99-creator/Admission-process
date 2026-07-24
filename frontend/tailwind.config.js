@@ -1,7 +1,9 @@
 export default {
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
+    "!./src/**/node_modules/**",
   ],
   theme: {
     extend: {
@@ -14,10 +16,12 @@ export default {
         info: '#0ea5e9',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         'custom': '0 4px 6px rgba(0, 0, 0, 0.1)',
+        'ambient': '0 20px 40px -15px rgba(0, 0, 0, 0.05)',
+        'deep': '0 30px 60px -20px rgba(0, 0, 0, 0.08)',
       },
     },
   },

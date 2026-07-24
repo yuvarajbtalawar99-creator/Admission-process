@@ -5,25 +5,27 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "migrate": "npx ts-node src/migrations/index.ts",
-    "seed": "npx ts-node src/seeds/index.ts",
+    "seed": "tsx src/seeds/index.ts",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@types/cookie-parser": "^1.4.10",
     "aws-sdk": "^2.1565.0",
     "axios": "^1.6.0",
     "bcryptjs": "^2.4.3",
     "bull": "^4.11.4",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
@@ -46,7 +48,9 @@
     "twilio": "^4.10.0",
     "uuid": "^9.0.1",
     "winston": "^3.11.0",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "@jcer/validation": "^1.0.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
@@ -55,8 +59,10 @@
     "@types/jest": "^29.5.8",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/morgan": "^1.9.10",
+    "@types/multer": "^1.4.11",
     "@types/node": "^20.0.0",
     "@types/nodemailer": "^6.4.14",
+    "@types/uuid": "^9.0.8",
     "@typescript-eslint/eslint-plugin": "^6.13.2",
     "@typescript-eslint/parser": "^6.13.2",
     "eslint": "^8.55.0",
@@ -66,6 +72,7 @@
     "ts-jest": "^29.1.1",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.3.3"
   },
   "engines": {

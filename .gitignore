@@ -1,6 +1,15 @@
 # Dependencies
 node_modules/
 */node_modules/
+packages/*/node_modules/
+
+# Nested git repos (admission-portal was previously a git submodule inside frontend)
+# Its code is tracked from the monorepo root — ignore its nested .git folder
+frontend/src/pages/admission/.git/
+# Also ignore admission portal's own node_modules (workspaces handles it)
+frontend/src/pages/admission/node_modules/
+# Ignore the old package-lock from the nested location
+frontend/src/pages/admission/package-lock.json
 
 # Environment variables
 .env

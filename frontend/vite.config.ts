@@ -21,11 +21,16 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:5000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
+      },
+      '/uploads': {
+        target: process.env.VITE_API_URL || 'http://localhost:5000',
+        changeOrigin: true,
       },
     },
   },
