@@ -346,7 +346,7 @@ const AdmissionForm = () => {
                 </div>
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => navigate('/student/dashboard')}
+                        onClick={() => navigate('/admission/dashboard')}
                         className="btn-secondary text-sm flex items-center gap-1.5 py-2 px-3"
                     >
                         <ChevronLeft size={16} />

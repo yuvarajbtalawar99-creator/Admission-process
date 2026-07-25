@@ -1,7 +1,7 @@
 @echo off
 echo ===================================================
-echo Committing and Pushing Project to GitHub
-echo Target URL: https://github.com/vyonlabsofficial-lang/College.git
+echo Committing, Merging, and Pushing to new GitHub Repository
+echo Target URL: https://github.com/yuvarajbtalawar99-creator/sampleErp.git
 echo ===================================================
 echo.
 
@@ -13,21 +13,42 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo Step 1: Staging all updated files...
+echo Step 1: Saving pending changes on current branch...
 git add -A
+git commit -m "Save local progress before merging"
 
-echo Step 2: Committing changes...
-git commit -m "Update project files and implement features"
+echo.
+echo Step 2: Merging branches locally...
+echo Switching to develop and merging feature branch...
+git checkout develop
+git merge feature/Student_Dashboard_Features --no-edit
 
-echo Step 3: Pushing all branches to GitHub...
+echo Switching to main and merging develop...
+git checkout main
+git merge develop --no-edit
+
+echo.
+echo Step 3: Configuring remote repository...
+:: Check if the remote 'upstream' already exists
+git remote get-url upstream >nul 2>nul
+if %errorlevel% neq 0 (
+    echo Renaming current 'origin' to 'upstream'...
+    git remote rename origin upstream
+) else (
+    echo Remote 'upstream' already exists. Removing current 'origin'...
+    git remote remove origin >nul 2>nul
+)
+
+echo Adding new 'origin' pointing to sampleErp...
+git remote add origin https://github.com/yuvarajbtalawar99-creator/sampleErp.git
+
+echo.
+echo Step 4: Pushing all branches to new origin...
 git push -u origin --all
-
-echo Step 4: Pushing tags...
-git push -u origin --tags
 
 echo.
 echo ===================================================
-echo SUCCESS: All updated files pushed successfully!
+echo SUCCESS: All branches merged and pushed successfully!
 echo ===================================================
 echo.
 pause

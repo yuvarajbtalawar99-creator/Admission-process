@@ -120,7 +120,7 @@ const Register = () => {
             if (response.data.success) {
                 toast.success('Registration successful! Redirecting to your portal...');
                 login(response.data.data.token);
-                navigate('/student/dashboard');
+                navigate('/admission/dashboard');
             }
         } catch (error) {
             const fields = error.response?.data?.fields;
@@ -308,7 +308,7 @@ const Register = () => {
 
             <div className="mt-8 pt-6 border-t border-slate-100 text-center">
                 <p className="text-sm text-slate-500 mb-4">
-                    Already have an account? <Link to="/login" className="text-primary-600 font-bold hover:underline">Sign In</Link>
+                    Already have an account? <Link to="/admission/login" className="text-primary-600 font-bold hover:underline">Sign In</Link>
                 </p>
                 <div className="flex items-center justify-center gap-4 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
                     <span className="flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-500" /> Secured by SSL</span>

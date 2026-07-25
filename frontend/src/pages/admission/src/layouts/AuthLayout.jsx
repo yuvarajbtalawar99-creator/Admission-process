@@ -12,13 +12,13 @@ const AuthLayout = () => {
     const fallbackImg = "https://images.unsplash.com/photo-1498243639159-414ccead8c51?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
 
     if (token && user) {
-        if (user.role === 'STUDENT') return <Navigate to="/student/dashboard" replace />;
+        if (user.role === 'STUDENT') return <Navigate to="/admission/dashboard" replace />;
         if (user.role === 'ADMISSION_OFFICER') return <Navigate to="/admin/dashboard" replace />;
         return <Navigate to="/" replace />;
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 font-display flex flex-col">
+        <div className="admission-portal-theme min-h-screen bg-slate-50 font-display flex flex-col">
             {/* Top Navigation Bar */}
             <header className="w-full flex items-center justify-between border-b border-slate-200 bg-white px-6 lg:px-10 py-4 z-50">
   {/* Left Section: Logo image next to the vertical text stack */}

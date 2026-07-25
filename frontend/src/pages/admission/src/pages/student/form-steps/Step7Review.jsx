@@ -592,7 +592,7 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                             Download Acknowledgment PDF
                         </button>
                         <button
-                            onClick={() => navigate('/student/dashboard')}
+                            onClick={() => navigate('/admission/dashboard')}
                             className="flex-1 bg-white border border-slate-200 text-slate-700 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
                         >
                             <ArrowRight size={20} />

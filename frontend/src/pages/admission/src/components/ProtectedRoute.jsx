@@ -6,14 +6,14 @@ const ProtectedRoute = ({ allowedRoles }) => {
     const { user, token } = useAuth();
 
     if (!token) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/admission/login" replace />;
     }
 
     if (allowedRoles && !allowedRoles.includes(user?.role)) {
         // Redirect to their respective dashboards based on role
-        if (user?.role === 'STUDENT') return <Navigate to="/student/dashboard" replace />;
+        if (user?.role === 'STUDENT') return <Navigate to="/admission/dashboard" replace />;
         if (user?.role === 'ADMISSION_OFFICER') return <Navigate to="/admin/dashboard" replace />;
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/admission/login" replace />;
     }
 
     return <Outlet />;

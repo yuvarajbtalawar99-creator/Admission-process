@@ -9,10 +9,18 @@ export const ProtectedLayout: React.FC = () => {
   const location = useLocation();
 
   if (!isAuthenticated) {
+    if (location.pathname.startsWith('/admission')) {
+      return <Navigate to="/admission/login" state={{ from: location }} replace />;
+    }
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   const role = user?.role || '';
+
+  // Admission routes: only STUDENT
+  if (location.pathname.startsWith('/admission') && role !== 'STUDENT') {
+    return <Navigate to="/unauthorized" replace />;
+  }
 
   // Admin routes: only ADMIN or SUPER_ADMIN
   if (location.pathname.startsWith('/admin') && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {

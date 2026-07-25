@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
+import API from '../../services/api';
 
 interface PrincipalAdmissionQueuePageProps {
   defaultStatus?: string;

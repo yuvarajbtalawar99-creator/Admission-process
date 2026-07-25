@@ -137,7 +137,7 @@ const StudentDashboard = () => {
         }
 
         localStorage.setItem('admission_form_step', step.targetStep.toString());
-        navigate('/student/application');
+        navigate('/admission/application');
     };
 
     return (
@@ -455,7 +455,7 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate 
                 {/* Quick Actions */}
                 <div className="lg:col-span-2 space-y-4">
                     <button
-                        onClick={() => navigate('/student/application')}
+                        onClick={() => navigate('/admission/application')}
                         className="w-full bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 transition-all group"
                     >
                         <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors">
@@ -488,7 +488,7 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate 
 
                     {isRejected && (
                         <button
-                            onClick={() => navigate('/student/application')}
+                            onClick={() => navigate('/admission/application')}
                             className="w-full bg-red-600 text-white rounded-2xl p-5 flex items-center gap-4 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all group"
                         >
                             <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">

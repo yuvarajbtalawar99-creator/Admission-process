@@ -36,7 +36,7 @@ const DocumentThumbnail: React.FC<{ field: string; appId: string; label: string;
       setError(false);
       try {
         const res = await API.get(`/admin/admissions/${appId}/documents/${field}`, { responseType: 'blob' });
-        const contentType = res.headers['content-type'] || '';
+        const contentType = String(res.headers['content-type'] || '');
         setIsPdf(contentType.includes('pdf'));
 
         const url = URL.createObjectURL(res.data);
@@ -149,7 +149,7 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
     const fetchBlob = async () => {
       try {
         const res = await API.get(`/admin/admissions/${id}/documents/${previewDoc.field}`, { responseType: 'blob' });
-        const contentType = res.headers['content-type'] || '';
+        const contentType = String(res.headers['content-type'] || '');
         setPreviewPdf(contentType.includes('pdf'));
         const url = URL.createObjectURL(res.data);
         if (active) setPreviewBlobUrl(url);

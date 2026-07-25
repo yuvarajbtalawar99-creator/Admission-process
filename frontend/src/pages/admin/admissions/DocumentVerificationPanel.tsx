@@ -27,7 +27,7 @@ interface DocumentVerificationPanelProps {
 export const DocumentVerificationPanel: React.FC<DocumentVerificationPanelProps> = ({ documents, onDocumentStatusChange }) => {
   const [selectedDoc, setSelectedDoc] = useState<DocumentInfo | null>(null);
 
-  const docList: DocumentInfo[] = [
+  const docList: DocumentInfo[] = ([
     { id: 'photo', name: 'Passport Photo', url: documents.photoUrl, status: 'PENDING' },
     { id: 'signature', name: 'Signature', url: documents.signatureUrl, status: 'PENDING' },
     { id: 'tenth', name: '10th Marksheet', url: documents.tenthMarksheetUrl, status: 'PENDING' },
@@ -37,7 +37,7 @@ export const DocumentVerificationPanel: React.FC<DocumentVerificationPanelProps>
     { id: 'caste', name: 'Caste Certificate', url: documents.casteCertificateUrl, status: 'PENDING' },
     { id: 'domicile', name: 'Domicile Certificate', url: documents.domicileCertificateUrl, status: 'PENDING' },
     { id: 'gap', name: 'Gap Certificate', url: documents.gapCertificateUrl, status: 'PENDING' },
-  ].filter(doc => doc.url !== null && doc.url !== undefined); // Only show uploaded docs
+  ] as DocumentInfo[]).filter(doc => doc.url !== null && doc.url !== undefined); // Only show uploaded docs
 
   return (
     <div className="flex flex-col md:flex-row gap-6 h-[600px]">

@@ -14,7 +14,7 @@ const DEPT_STYLE: Record<string, { pill: string; accent: string }> = {
   'Civil Engineering':                          { pill: 'bg-emerald-100 text-emerald-800', accent: '#16a34a' },
 };
 
-const STATUS_STYLE = {
+const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   PAID:    { bg: 'bg-emerald-100', text: 'text-emerald-700', label: 'Paid' },
   PARTIAL: { bg: 'bg-amber-100',   text: 'text-amber-700',   label: 'Partial' },
   OVERDUE: { bg: 'bg-rose-100',    text: 'text-rose-700',    label: 'Overdue' },

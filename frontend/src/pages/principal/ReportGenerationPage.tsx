@@ -14,7 +14,8 @@ import {
   FolderOpen,
   ArrowRight,
   TrendingUp,
-  ShieldCheck
+  ShieldCheck,
+  ChevronRight
 } from 'lucide-react';
 
 interface StrategicGoal {

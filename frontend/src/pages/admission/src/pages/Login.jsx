@@ -38,7 +38,7 @@ const Login = () => {
             if (response.data.success) {
                 toast.success('Login successful!');
                 login(response.data.data.token);
-                navigate('/student/dashboard');
+                navigate('/admission/dashboard');
             }
         } catch (error) {
             toast.error(error.response?.data?.error || error.response?.data?.message || 'Login failed. Please try again.');
@@ -126,7 +126,7 @@ const Login = () => {
 
             <div className="mt-10 pt-8 border-t border-slate-100 text-center">
                 <p className="text-sm text-slate-500 mb-4">
-                    New admission? <Link to="/register" className="text-primary-600 font-bold hover:underline">Apply Here</Link>
+                    New admission? <Link to="/admission/register" className="text-primary-600 font-bold hover:underline">Apply Here</Link>
                 </p>
                 <div className="flex items-center justify-center gap-4 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
                     <span className="flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-500" /> Secured by SSL</span>

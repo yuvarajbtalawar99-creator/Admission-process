@@ -1,8 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Isolated stylesheet for JCER Admission Portal */
 
-:root {
+.admission-portal-theme {
   /* Core Palette - Stitch Design System */
   --primary: #1241a1;
   --primary-hover: #0d3280;
@@ -32,27 +30,33 @@
 
   /* Radius - Stitch: ROUND_EIGHT */
   --radius: 8px;
+
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
 }
 
-* {
+.admission-portal-theme * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  background-color: var(--bg-main);
+/* Typography inside the theme */
+.admission-portal-theme h1, 
+.admission-portal-theme h2, 
+.admission-portal-theme h3, 
+.admission-portal-theme h4, 
+.admission-portal-theme h5, 
+.admission-portal-theme h6 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--text-main);
-  min-height: 100vh;
-  overflow-x: hidden;
-  line-height: 1.6;
 }
 
 /* Card */
-.card {
+.admission-portal-theme .card {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
@@ -60,13 +64,13 @@ body {
   transition: box-shadow 0.2s ease;
 }
 
-.card:hover {
+.admission-portal-theme .card:hover {
   box-shadow: var(--shadow-md);
 }
 
 /* Legacy aliases */
-.glass-panel,
-.card-premium {
+.admission-portal-theme .glass-panel,
+.admission-portal-theme .card-premium {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
@@ -74,8 +78,8 @@ body {
 }
 
 /* Input */
-.glass-input,
-.input-premium {
+.admission-portal-theme .glass-input,
+.admission-portal-theme .input-premium {
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   color: var(--text-main);
@@ -88,24 +92,24 @@ body {
   line-height: 1.5;
 }
 
-.glass-input:focus,
-.input-premium:focus {
+.admission-portal-theme .glass-input:focus,
+.admission-portal-theme .input-premium:focus {
   border-color: var(--border-focus);
   box-shadow: 0 0 0 3px rgba(18, 65, 161, 0.12);
 }
 
-.glass-input::placeholder,
-.input-premium::placeholder {
+.admission-portal-theme .glass-input::placeholder,
+.admission-portal-theme .input-premium::placeholder {
   color: var(--text-muted);
   opacity: 0.6;
 }
 
-.uppercase::placeholder {
+.admission-portal-theme .uppercase::placeholder {
   text-transform: none !important;
 }
 
 /* Buttons */
-.btn-primary {
+.admission-portal-theme .btn-primary {
   background: var(--primary);
   color: var(--text-inverse);
   border: none;
@@ -121,16 +125,16 @@ body {
   gap: 0.5rem;
 }
 
-.btn-primary:hover {
+.admission-portal-theme .btn-primary:hover {
   background: var(--primary-hover);
 }
 
-.btn-primary:disabled {
+.admission-portal-theme .btn-primary:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.btn-secondary {
+.admission-portal-theme .btn-secondary {
   background: white;
   color: var(--text-main);
   border: 1px solid var(--border-color);
@@ -142,32 +146,32 @@ body {
   transition: background-color 0.2s ease;
 }
 
-.btn-secondary:hover {
+.admission-portal-theme .btn-secondary:hover {
   background: #f8fafc;
 }
 
 /* Layout */
-.container-premium {
+.admission-portal-theme .container-premium {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 1.5rem;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
+/* Scrollbar scoped */
+.admission-portal-theme ::-webkit-scrollbar {
   width: 6px;
 }
 
-::-webkit-scrollbar-track {
+.admission-portal-theme ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
+.admission-portal-theme ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
+.admission-portal-theme ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
@@ -177,11 +181,11 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.animate-fade-in {
+.admission-portal-theme .animate-fade-in {
   animation: fadeIn 0.3s ease forwards;
 }
 
-.animate-slide-up {
+.admission-portal-theme .animate-slide-up {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -190,11 +194,11 @@ body {
   to { transform: scale(1.1); }
 }
 
-.animate-background-zoom {
+.admission-portal-theme .animate-background-zoom {
   animation: zoom-in-slow 20s ease-in-out infinite alternate;
 }
 
-.text-shadow-premium {
+.admission-portal-theme .text-shadow-premium {
   text-shadow: 0 4px 12px rgba(15, 23, 42, 0.4);
 }
 
@@ -204,7 +208,7 @@ body {
   50% { box-shadow: 0 0 0 6px rgba(18, 65, 161, 0); }
 }
 
-.step-pulse {
+.admission-portal-theme .step-pulse {
   animation: stepPulse 2s ease-in-out infinite;
 }
 
@@ -213,21 +217,21 @@ body {
   50% { box-shadow: 0 8px 30px -4px rgba(18, 65, 161, 0.25); }
 }
 
-.step-active-glow {
+.admission-portal-theme .step-active-glow {
   animation: stepGlow 3s ease-in-out infinite;
 }
 
-.step-card {
+.admission-portal-theme .step-card {
   animation: fadeIn 0.4s ease-out both;
 }
 
 /* Review Page Enhancements */
-.review-card {
+.admission-portal-theme .review-card {
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: center;
 }
 
-.review-card:hover {
+.admission-portal-theme .review-card:hover {
   transform: translateY(-4px) scale(1.002);
   box-shadow: 0 20px 40px -15px rgba(18, 65, 161, 0.1);
 }
@@ -238,68 +242,21 @@ body {
   100% { box-shadow: 0 0 0 0 rgba(71, 119, 199, 0); }
 }
 
-.profile-avatar-active {
+.admission-portal-theme .profile-avatar-active {
   animation: profilePulse 2s infinite;
 }
 
-.backdrop-blur-md {
+.admission-portal-theme .backdrop-blur-md {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* ── Print-only / Screen-only visibility controls ────────────────────────── */
-.print-only {
+/* Print-only / Screen-only visibility controls */
+.admission-portal-theme .print-only {
   display: none !important;
 }
-.screen-only {
+.admission-portal-theme .screen-only {
   display: block;
-}
-
-@media (print) {
-  /* Show print layout, hide screen layout */
-  .print-only {
-    display: block !important;
-  }
-  .screen-only {
-    display: none !important;
-  }
-
-  /* Hide all standard UI chrome */
-  .btn-primary,
-  .btn-secondary,
-  button,
-  .no-print,
-  .print-hidden,
-  header,
-  footer,
-  nav {
-    display: none !important;
-  }
-
-  /* Reset page */
-  @page {
-    size: A4 portrait;
-    margin: 12mm 14mm;
-  }
-
-  html, body {
-    background: #ffffff !important;
-    color: #000000 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  /* Avoid page breaks inside sections */
-  .print-only > div > div {
-    break-inside: avoid;
-  }
-}
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text-main);
 }
 
 @keyframes shimmer {
@@ -311,7 +268,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-.animate-shimmer {
+.admission-portal-theme .animate-shimmer {
   background: linear-gradient(
     90deg,
     rgba(226, 232, 240, 0.4) 25%,
@@ -322,7 +279,7 @@ h1, h2, h3, h4, h5, h6 {
   animation: shimmer 1.5s infinite linear;
 }
 
-.dark .animate-shimmer {
+.admission-portal-theme.dark .animate-shimmer {
   background: linear-gradient(
     90deg,
     rgba(38, 38, 38, 0.4) 25%,
@@ -330,4 +287,44 @@ h1, h2, h3, h4, h5, h6 {
     rgba(38, 38, 38, 0.4) 63%
   );
   background-size: 200% 100%;
+}
+
+@media (print) {
+  /* Show print layout, hide screen layout */
+  .admission-portal-theme .print-only {
+    display: block !important;
+  }
+  .admission-portal-theme .screen-only {
+    display: none !important;
+  }
+
+  /* Hide all standard UI chrome */
+  .admission-portal-theme .btn-primary,
+  .admission-portal-theme .btn-secondary,
+  .admission-portal-theme button,
+  .admission-portal-theme .no-print,
+  .admission-portal-theme .print-hidden,
+  .admission-portal-theme header,
+  .admission-portal-theme footer,
+  .admission-portal-theme nav {
+    display: none !important;
+  }
+
+  /* Reset page */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 14mm;
+  }
+
+  .admission-portal-theme {
+    background: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Avoid page breaks inside sections */
+  .admission-portal-theme .print-only > div > div {
+    break-inside: avoid;
+  }
 }

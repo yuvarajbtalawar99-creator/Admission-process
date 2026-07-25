@@ -8,7 +8,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: '#2563eb',
+        primary: {
+          DEFAULT: '#2563eb',
+          50: '#e8eef8',
+          100: '#d1ddf1',
+          200: '#a3bbe3',
+          300: '#7599d5',
+          400: '#4777c7',
+          500: '#1955b9',
+          600: '#1241a1',
+          700: '#0d3280',
+          800: '#092460',
+          900: '#051640',
+        },
         secondary: '#1e40af',
         success: '#16a34a',
         error: '#dc2626',

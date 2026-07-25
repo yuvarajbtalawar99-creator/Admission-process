@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider, useSelector, useDispatch } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
+import { Toaster } from 'react-hot-toast';
 import 'react-toastify/dist/ReactToastify.css';
 import { store, RootState } from './store';
 import API from './services/api';
@@ -18,8 +19,17 @@ import PrincipalLayout from './components/layout/PrincipalLayout';
 import ParentLayout from './components/layout/ParentLayout';
 import TopLoadingBar from './components/common/TopLoadingBar';
 
-// ─── Common ───────────────────────────────────────────────────────────────────
 import LoginPage from './pages/common/LoginPage';
+
+// ─── Admission Portal Imports ────────────────────────────────────────────────
+import { AuthProvider as AdmissionAuthProvider } from './pages/admission/src/context/AuthContext';
+import AdmissionLogin from './pages/admission/src/pages/Login';
+import AdmissionRegister from './pages/admission/src/pages/Register';
+import AdmissionAuthLayout from './pages/admission/src/layouts/AuthLayout';
+import AdmissionDashboardLayout from './pages/admission/src/layouts/DashboardLayout';
+import AdmissionStudentDashboard from './pages/admission/src/pages/student/StudentDashboard';
+import AdmissionForm from './pages/admission/src/pages/student/AdmissionForm';
+import './pages/admission/src/index.css'; // Isolated admission stylesheet
 
 // ─── Student Pages ────────────────────────────────────────────────────────────
 import StudentDashboardPage from './pages/student/StudentDashboardPage';
@@ -135,13 +145,12 @@ const RoleBasedRedirect: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
   const role = user?.role;
 
+  if (role === 'STUDENT') return <Navigate to="/admission/dashboard" replace />;
   if (role === 'ADMIN' || role === 'SUPER_ADMIN') return <Navigate to="/admin/dashboard" replace />;
-  if (role === 'TEACHER') return <Navigate to="/teacher/dashboard" replace />;
-  if (role === 'HOD') return <Navigate to="/hod/dashboard" replace />;
   if (role === 'PRINCIPAL') return <Navigate to="/principal/dashboard" replace />;
-  if (role === 'PARENT') return <Navigate to="/parent/dashboard" replace />;
-  // Default → student
-  return <Navigate to="/student/dashboard" replace />;
+  
+  // Default fallback for other roles
+  return <Navigate to="/unauthorized" replace />;
 };
 
 // ─── Session bootstrap ────────────────────────────────────────────────────────
@@ -194,6 +203,7 @@ export const App: React.FC = () => {
     <Provider store={store}>
       <TopLoadingBar />
       <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover theme="colored" />
+      <Toaster position="top-right" reverseOrder={false} />
       <BrowserRouter>
         <AuthBootstrap>
           <Routes>
@@ -201,9 +211,30 @@ export const App: React.FC = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
+            {/* ── Admission Portal (Public) ── */}
+            <Route element={
+              <AdmissionAuthProvider>
+                <AdmissionAuthLayout />
+              </AdmissionAuthProvider>
+            }>
+              <Route path="/admission/login" element={<AdmissionLogin />} />
+              <Route path="/admission/register" element={<AdmissionRegister />} />
+            </Route>
+
             {/* ── Protected (all authenticated roles) ── */}
             <Route path="/" element={<ProtectedLayout />}>
               <Route index element={<RoleBasedRedirect />} />
+
+              {/* ── Admission Student Portal (Protected) ── */}
+              <Route path="admission" element={
+                <AdmissionAuthProvider>
+                  <AdmissionDashboardLayout />
+                </AdmissionAuthProvider>
+              }>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route path="dashboard" element={<AdmissionStudentDashboard />} />
+                <Route path="application" element={<AdmissionForm />} />
+              </Route>
 
               {/* ── Student Portal ── */}
               <Route path="student" element={<StudentLayout />}>

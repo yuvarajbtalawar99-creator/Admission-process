@@ -24,8 +24,8 @@ const DashboardLayout = () => {
     const getNavItems = () => {
         if (user?.role === 'STUDENT') {
             return [
-                { name: 'Dashboard', path: '/student/dashboard', icon: LayoutDashboard },
-                { name: 'Admission Form', path: '/student/application', icon: FileText },
+                { name: 'Dashboard', path: '/admission/dashboard', icon: LayoutDashboard },
+                { name: 'Admission Form', path: '/admission/application', icon: FileText },
             ];
         } else {
             return [
@@ -38,7 +38,7 @@ const DashboardLayout = () => {
     const navItems = getNavItems();
 
     return (
-        <div className="min-h-screen bg-[#f3f4f6] flex">
+        <div className="admission-portal-theme min-h-screen bg-[#f3f4f6] flex">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
