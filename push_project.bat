@@ -1,6 +1,6 @@
 @echo off
 echo ===================================================
-echo Committing, Merging, and Pushing to new GitHub Repository
+echo Pushing Current Branch to GitHub Repository
 echo Target URL: https://github.com/yuvarajbtalawar99-creator/sampleErp.git
 echo ===================================================
 echo.
@@ -15,20 +15,10 @@ if %errorlevel% neq 0 (
 
 echo Step 1: Saving pending changes on current branch...
 git add -A
-git commit -m "Save local progress before merging"
+git commit -m "Save local progress"
 
 echo.
-echo Step 2: Merging branches locally...
-echo Switching to develop and merging feature branch...
-git checkout develop
-git merge feature/Student_Dashboard_Features --no-edit
-
-echo Switching to main and merging develop...
-git checkout main
-git merge develop --no-edit
-
-echo.
-echo Step 3: Configuring remote repository...
+echo Step 2: Configuring remote repository...
 :: Check if the remote 'upstream' already exists
 git remote get-url upstream >nul 2>nul
 if %errorlevel% neq 0 (
@@ -43,12 +33,12 @@ echo Adding new 'origin' pointing to sampleErp...
 git remote add origin https://github.com/yuvarajbtalawar99-creator/sampleErp.git
 
 echo.
-echo Step 4: Pushing all branches to new origin...
-git push -u origin --all
+echo Step 3: Pushing current branch to new origin...
+git push -u origin HEAD
 
 echo.
 echo ===================================================
-echo SUCCESS: All branches merged and pushed successfully!
+echo SUCCESS: Current branch pushed successfully!
 echo ===================================================
 echo.
 pause
