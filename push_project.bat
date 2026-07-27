@@ -1,7 +1,7 @@
 @echo off
 echo ===================================================
 echo Pushing Current Branch to GitHub Repository
-echo Target URL: https://github.com/yuvarajbtalawar99-creator/sampleErp.git
+echo Target URL: https://github.com/yuvarajbtalawar99-creator/Admission-process.git
 echo ===================================================
 echo.
 
@@ -29,8 +29,8 @@ if %errorlevel% neq 0 (
     git remote remove origin >nul 2>nul
 )
 
-echo Adding new 'origin' pointing to sampleErp...
-git remote add origin https://github.com/yuvarajbtalawar99-creator/sampleErp.git
+echo Adding new 'origin' pointing to Admission-process...
+git remote add origin https://github.com/yuvarajbtalawar99-creator/Admission-process.git
 
 echo.
 echo Step 3: Pushing current branch to new origin...
