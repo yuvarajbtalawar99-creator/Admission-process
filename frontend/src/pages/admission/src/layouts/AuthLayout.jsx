@@ -126,9 +126,8 @@ const AuthLayout = () => {
                 </div>
             </main>
 
-            {/* Footer */}
             <footer className="py-6 px-10 border-t border-slate-200 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
-                <p className="text-xs text-slate-500 font-medium">© 2024 BGS CET ERP Systems. All academic rights reserved.</p>
+                <p className="text-xs text-slate-500 font-medium">© 2026 Jain College of Engineering & Research, Belagavi. All rights reserved.</p>
                 <div className="flex items-center gap-8">
                     <a href="#" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Privacy Policy</a>
                     <a href="#" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Terms</a>

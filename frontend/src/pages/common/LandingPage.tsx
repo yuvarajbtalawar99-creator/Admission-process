@@ -129,13 +129,16 @@ export const LandingPage: React.FC = () => {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-[#0F4C81] dark:text-white font-extrabold text-base sm:text-lg tracking-tight leading-tight uppercase">
+            <div className="flex flex-col justify-center flex-1 space-y-0.5">
+              <h1 className="text-[#0B4F8A] dark:text-white text-base sm:text-lg font-extrabold leading-tight tracking-tight uppercase" style={{ color: isDark ? '#ffffff' : '#0B4F8A' }}>
                 {config.collegeName}
               </h1>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase">
-                Belagavi • VTU Affiliated
-              </span>
+              <p className="text-[9px] sm:text-[10px] md:text-xs text-gray-800 dark:text-slate-300 font-medium leading-snug">
+                (Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)
+              </p>
+              <p className="text-[10px] sm:text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                NBA Accredited Programs – ECE & ME
+              </p>
             </div>
           </div>
         </header>
@@ -185,6 +188,58 @@ export const LandingPage: React.FC = () => {
         backgroundAttachment: 'fixed'
       }}
     >
+      <style>{`
+        @keyframes flowLine {
+          0% {
+            background-position: 100% 0;
+          }
+          100% {
+            background-position: -100% 0;
+          }
+        }
+        .animate-flow-line {
+          background: linear-gradient(90deg, #E2E8F0 0%, #2563EB 25%, #F4B400 50%, #2563EB 75%, #E2E8F0 100%);
+          background-size: 200% 100%;
+          animation: flowLine 3s linear infinite;
+        }
+        .dark .animate-flow-line {
+          background: linear-gradient(90deg, #1E293B 0%, #3B82F6 25%, #F59E0B 50%, #3B82F6 75%, #1E293B 100%);
+          background-size: 200% 100%;
+          animation: flowLine 3s linear infinite;
+        }
+        @keyframes pulseGlow {
+          0%, 100% {
+            box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+            transform: scale(1);
+          }
+          50% {
+            box-shadow: 0 0 14px 4px rgba(37, 99, 235, 0.25);
+            transform: scale(1.05);
+          }
+        }
+        .hover-glow:hover {
+          animation: pulseGlow 1.8s infinite ease-in-out;
+          border-color: #2563EB !important;
+          color: #2563EB !important;
+        }
+        .dark .hover-glow:hover {
+          border-color: #3b82f6 !important;
+          color: #3b82f6 !important;
+        }
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(16px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-slide-up-step {
+          animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
 
       {/* Header */}
       <header className="w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between border-b border-[#E2E8F0] dark:border-slate-800/80 z-10 bg-transparent">
@@ -192,26 +247,20 @@ export const LandingPage: React.FC = () => {
           <div className="w-20 h-20 flex items-center justify-center overflow-hidden">
             <img src="/logo.png" alt="JCER Logo" className="w-full h-full object-contain" />
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-[#0F4C81] dark:text-white font-extrabold text-base sm:text-lg tracking-tight leading-tight uppercase">
+          <div className="flex flex-col justify-center flex-1 space-y-0.5">
+            <h1 className="text-[#0B4F8A] dark:text-white text-base sm:text-lg font-extrabold leading-tight tracking-tight uppercase" style={{ color: isDark ? '#ffffff' : '#0B4F8A' }}>
               {config.collegeName}
             </h1>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium tracking-wide uppercase">
-              Belagavi • VTU Affiliated
-            </span>
+            <p className="text-[9px] sm:text-[10px] md:text-xs text-gray-800 dark:text-slate-350 font-medium leading-snug">
+              (Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)
+            </p>
+            <p className="text-[10px] sm:text-xs font-bold text-indigo-600 dark:text-indigo-400">
+              NBA Accredited Programs – ECE & ME
+            </p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Light/Dark Toggle */}
-          <button
-            onClick={() => setIsDark(!isDark)}
-            className="w-10 h-10 rounded-full flex items-center justify-center border border-[#E2E8F0] dark:border-slate-800 bg-white dark:bg-slate-900/60 text-slate-500 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
-            title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-
           <button
             onClick={handleErpNavigation}
             className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold border border-[#0F4C81]/80 dark:border-slate-700 text-[#0F4C81] dark:text-slate-200 bg-white/40 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all duration-200 shadow-sm cursor-pointer"
@@ -285,14 +334,18 @@ export const LandingPage: React.FC = () => {
             {/* Horizontal steps timeline */}
             <div className="w-full py-6 overflow-x-auto scrollbar-thin">
               <div className="flex items-center justify-between min-w-[700px] px-4 relative">
-                {/* Horizontal connection line */}
-                <div className="absolute top-5 left-10 right-10 h-[2px] bg-slate-200 dark:bg-slate-800 z-0" />
+                {/* Horizontal connection line with flowing gradient animation */}
+                <div className="absolute top-5 left-10 right-10 h-[3px] rounded-full animate-flow-line z-0" />
 
                 {steps.map((step, index) => {
                   const StepIcon = step.icon;
                   return (
-                    <div key={index} className="flex flex-col items-center space-y-3 z-10 flex-1 relative group/step">
-                      <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover/step:border-[#2563EB] group-hover/step:text-[#2563EB] dark:group-hover/step:text-blue-400 transition-all duration-300 shadow-sm">
+                    <div
+                      key={index}
+                      className="flex flex-col items-center space-y-3 z-10 flex-1 relative group/step animate-slide-up-step"
+                      style={{ animationDelay: `${index * 120}ms`, opacity: 0 }}
+                    >
+                      <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover-glow transition-all duration-300 shadow-sm cursor-pointer">
                         <StepIcon className="w-4 h-4" />
                       </div>
                       <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 max-w-[85px] text-center leading-tight">
