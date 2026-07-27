@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../../api/axios';
 import { Loader2, ChevronRight, CheckCircle2, XCircle, Fingerprint, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
+import SelectDropdown from '../../../components/SelectDropdown';
 
 const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
     const [branches, setBranches] = useState([]);
@@ -142,17 +143,18 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
                 {/* Admission Type */}
                 <div className="space-y-1.5">
                     <label className="block text-sm font-medium text-slate-700">Admission Type <span className="text-red-500">*</span></label>
-                    <select
+                    <SelectDropdown
+                        id="admissionType"
                         required
-                        className="input-premium h-11"
                         value={data.admissionType || ''}
-                        onChange={(e) => updateData({ admissionType: e.target.value, cetNumber: '', dcetNumber: '' })}
-                    >
-                        <option value="" disabled>Select admission type...</option>
-                        <option value="KCET">KCET (Karnataka Common Entrance Test)</option>
-                        <option value="DCET">DCET (Diploma Entrance Test)</option>
-                        <option value="MANAGEMENT">Management Quota</option>
-                    </select>
+                        onChange={(val) => updateData({ admissionType: val, cetNumber: '', dcetNumber: '' })}
+                        placeholder="Select admission type..."
+                        options={[
+                            { value: 'KCET', label: 'KCET (Karnataka Common Entrance Test)' },
+                            { value: 'DCET', label: 'DCET (Diploma Entrance Test)' },
+                            { value: 'MANAGEMENT', label: 'Management Quota' },
+                        ]}
+                    />
                     {!data.admissionType && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
@@ -161,17 +163,14 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
                 {/* Preferred Branch */}
                 <div className="space-y-1.5">
                     <label className="block text-sm font-medium text-slate-700">Preferred Branch <span className="text-red-500">*</span></label>
-                    <select
+                    <SelectDropdown
+                        id="branchId"
                         required
-                        className="input-premium h-11"
                         value={data.branchId || ''}
-                        onChange={(e) => updateData({ branchId: e.target.value })}
-                    >
-                        <option value="" disabled>Select preferred engineering branch...</option>
-                        {branches.map(b => (
-                            <option key={b.id} value={b.id}>{b.name} ({b.code})</option>
-                        ))}
-                    </select>
+                        onChange={(val) => updateData({ branchId: val })}
+                        placeholder="Select preferred engineering branch..."
+                        options={branches.map(b => ({ value: b.id, label: `${b.name} (${b.code})` }))}
+                    />
                     {!data.branchId && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}

@@ -70,9 +70,9 @@ const Step3Parent = ({ onNext, onPrev, data, updateData, applicationStatus }) =>
                     )}
                 </div>
 
-                 <div className="space-y-1.5">
+                  <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Father's Mobile No. <span className="text-red-500">*</span></label>
-                    <input required type="tel" name="parentMobile" className="input-premium h-11 uppercase" value={data.parentMobile || data.fatherPhone || ''} onChange={handleChange} placeholder="Enter father's mobile number" />
+                    <input required type="tel" name="parentMobile" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} className="input-premium h-11 uppercase" value={data.parentMobile || data.fatherPhone || ''} onChange={handleChange} placeholder="Enter father's mobile number" />
                     {!(data.parentMobile || data.fatherPhone) && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
@@ -80,7 +80,7 @@ const Step3Parent = ({ onNext, onPrev, data, updateData, applicationStatus }) =>
 
                  <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Mother's Mobile No. <span className="text-red-500">*</span></label>
-                    <input required type="tel" name="motherPhone" className="input-premium h-11 uppercase" value={data.motherPhone || ''} onChange={handleChange} placeholder="Enter mother's mobile number" />
+                    <input required type="tel" name="motherPhone" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} className="input-premium h-11 uppercase" value={data.motherPhone || ''} onChange={handleChange} placeholder="Enter mother's mobile number" />
                     {!data.motherPhone && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
@@ -111,7 +111,7 @@ const Step3Parent = ({ onNext, onPrev, data, updateData, applicationStatus }) =>
                     <label className="text-sm font-medium text-slate-700">Annual Income (₹) <span className="text-red-500">*</span></label>
                     <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                        <input required type="number" min="0" name="annualIncome" className="input-premium h-11" style={{ paddingLeft: '2.2rem' }} value={data.annualIncome || data.fatherAnnualIncome || ''} onChange={handleChange} placeholder="Enter annual income" />
+                        <input required type="number" min="0" name="annualIncome" inputMode="numeric" className="input-premium h-11" style={{ paddingLeft: '2.2rem' }} value={data.annualIncome || data.fatherAnnualIncome || ''} onChange={handleChange} placeholder="Enter annual income" />
                     </div>
                     {!(data.annualIncome || data.fatherAnnualIncome) && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>

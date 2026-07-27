@@ -49,12 +49,12 @@ const Login = () => {
 
     return (
         <div className="w-full animate-fade-in max-w-sm mx-auto lg:mx-0">
-            <div className="mb-10 text-center lg:text-left">
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">Student Login</h2>
-                <p className="text-slate-500">Please enter your credentials to access the system.</p>
+            <div className="mb-6 sm:mb-8 lg:mb-10 text-center lg:text-left">
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">Student Login</h2>
+                <p className="text-sm sm:text-base text-slate-500">Please enter your credentials to access the system.</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                 <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700 flex items-center gap-2" htmlFor="email">
                         <User size={18} className="text-slate-400" />
@@ -66,7 +66,7 @@ const Login = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                        className="w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
                         placeholder="e.g. student.name@college.edu"
                         required
                     />
@@ -87,7 +87,7 @@ const Login = () => {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                            className="w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
                             placeholder="••••••••"
                             required
                         />
@@ -113,7 +113,7 @@ const Login = () => {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-4 rounded-lg shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 sm:py-4 rounded-lg shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2"
                 >
                     {loading ? <Loader2 size={24} className="animate-spin" /> : (
                         <>

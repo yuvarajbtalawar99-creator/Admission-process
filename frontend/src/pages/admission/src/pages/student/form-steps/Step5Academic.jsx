@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import api from '../../../api/axios';
 import { Loader2, ChevronLeft, ChevronRight, School, GraduationCap, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
+import SelectDropdown from '../../../components/SelectDropdown';
 import { BOARD_CONFIG } from '../../../config/boardConfig';
 import { calculatePercentage } from '../../../utils/calculatePercentage';
 
@@ -85,6 +86,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                 pucStream: data.pucStream || undefined,
                 physicsMarks: data.physicsMarks ? parseFloat(data.physicsMarks) : undefined,
                 mathsMarks: data.mathsMarks ? parseFloat(data.mathsMarks) : undefined,
+                chemistryMarks: data.chemistryMarks ? parseFloat(data.chemistryMarks) : undefined,
                 optionalSubject: data.optionalSubject || undefined,
                 optionalMarks: data.optionalMarks ? parseFloat(data.optionalMarks) : undefined,
                 pucMaxMarks: data.pucMaxMarks ? parseFloat(data.pucMaxMarks) : undefined,
@@ -201,18 +203,15 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                         <label className="text-sm font-medium text-slate-700">
                             {field.label} {field.required && <span className="text-red-500">*</span>}
                         </label>
-                        <select
-                            required={field.required}
+                        <SelectDropdown
+                            id={field.name}
                             name={field.name}
-                            className="input-premium h-11 uppercase"
-                            value={subjectMarks[field.name] || ""}
-                            onChange={handleSubjectChange}
-                        >
-                            <option value="" disabled>Select grade...</option>
-                            {field.options.map(opt => (
-                                <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                        </select>
+                            required={field.required}
+                            value={subjectMarks[field.name] || ''}
+                            onChange={(val) => handleSubjectChange({ target: { name: field.name, value: val } })}
+                            placeholder="Select grade..."
+                            options={field.options.map(opt => ({ value: opt, label: opt }))}
+                        />
                     </div>
                 );
             }
@@ -279,13 +278,18 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">Board <span className="text-red-500">*</span></label>
-                        <select required name="sslcBoard" className="input-premium h-11 uppercase" value={data.sslcBoard || ''} onChange={handleBoardChange}>
-                            <option value="" disabled>Select board...</option>
-                            <option value="STATE">State Board</option>
-                            <option value="CBSE">CBSE</option>
-                            <option value="ICSE">ICSE</option>
-                            <option value="OTHER">Other</option>
-                        </select>
+                        <SelectDropdown
+                            id="sslcBoard" name="sslcBoard" required
+                            value={data.sslcBoard || ''}
+                            onChange={(val) => handleBoardChange({ target: { name: 'sslcBoard', value: val } })}
+                            placeholder="Select board..."
+                            options={[
+                                { value: 'STATE', label: 'State Board' },
+                                { value: 'CBSE', label: 'CBSE' },
+                                { value: 'ICSE', label: 'ICSE' },
+                                { value: 'OTHER', label: 'Other' },
+                            ]}
+                        />
                         {!data.sslcBoard && applicationStatus === 'REJECTED' && (
                             <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                         )}
@@ -399,25 +403,33 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">Stream <span className="text-red-500">*</span></label>
-                        <select required name="pucStream" className="input-premium h-11" value={data.pucStream || ''} onChange={handleChange}>
-                            <option value="" disabled>Select stream...</option>
-                            <option value="SCIENCE">Science</option>
-                            <option value="COMMERCE">Commerce</option>
-                            <option value="ARTS">Arts</option>
-                        </select>
+                        <SelectDropdown
+                            id="pucStream" name="pucStream" required
+                            value={data.pucStream || 'SCIENCE'}
+                            onChange={(val) => handleChange({ target: { name: 'pucStream', value: val } })}
+                            placeholder="Select stream..."
+                            options={[
+                                { value: 'SCIENCE', label: 'Science' },
+                            ]}
+                        />
                         {!data.pucStream && applicationStatus === 'REJECTED' && (
                             <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                         )}
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">Board</label>
-                        <select name="pucBoard" className="input-premium h-11 uppercase" value={data.pucBoard || ''} onChange={handleChange}>
-                            <option value="" disabled>Select board...</option>
-                            <option value="STATE">State Board</option>
-                            <option value="CBSE">CBSE</option>
-                            <option value="ICSE">ICSE</option>
-                            <option value="OTHER">Other</option>
-                        </select>
+                        <SelectDropdown
+                            id="pucBoard" name="pucBoard"
+                            value={data.pucBoard || ''}
+                            onChange={(val) => handleChange({ target: { name: 'pucBoard', value: val } })}
+                            placeholder="Select board..."
+                            options={[
+                                { value: 'STATE', label: 'State Board' },
+                                { value: 'CBSE', label: 'CBSE' },
+                                { value: 'ICSE', label: 'ICSE' },
+                                { value: 'OTHER', label: 'Other' },
+                            ]}
+                        />
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">Year of Passing</label>

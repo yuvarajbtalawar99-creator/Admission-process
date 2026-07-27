@@ -85,8 +85,8 @@ const SubmittedView = ({ statusData, fullDetails, onDownloadPDF }) => {
             case 'ENROLLED':
             case 'USN_ASSIGNED':
                 return {
-                    label: 'USN Assigned',
-                    desc: 'Your final VTU USN has been assigned. You are now fully enrolled in the university.',
+                    label: 'Admission Confirmed! 🎉 Congratulations',
+                    desc: 'Your admission has been confirmed. Welcome to Jain College of Engineering & Research! Please carry a copy of your application when visiting the college.',
                     icon: Award,
                     color: 'text-purple-600',
                     bg: 'bg-purple-50',
@@ -257,6 +257,21 @@ const SubmittedView = ({ statusData, fullDetails, onDownloadPDF }) => {
                 <ActivityTimeline timeline={timeline} />
             </div>
 
+            {/* ═══ CARRY APPLICATION NOTICE (shown on admission confirmed) ═══ */}
+            {isApproved && (
+                <div className="flex items-start gap-4 bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 shadow-sm">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
+                        <AlertTriangle size={22} />
+                    </div>
+                    <div className="space-y-1">
+                        <h4 className="text-sm font-black text-amber-900 tracking-tight">📋 Important: Carry Your Application Copy</h4>
+                        <p className="text-sm text-amber-800 font-medium leading-relaxed">
+                            Please carry a printed copy of this admission application when you visit the college for document verification and enrollment formalities. Without it, your process may be delayed.
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* ═══ QUICK ACTIONS ═══ */}
             <div className={`bg-gradient-to-br ${config.gradient} p-10 rounded-[2rem] text-white shadow-2xl relative overflow-hidden group border border-white/5`}>
                 {/* Decorative glow */}
@@ -274,7 +289,7 @@ const SubmittedView = ({ statusData, fullDetails, onDownloadPDF }) => {
                         </h3>
                         <p className="text-white/60 text-sm leading-relaxed max-w-sm font-medium">
                             {isApproved
-                                ? 'Download your admission acknowledgment and keep it safe for future reference.'
+                                ? 'Download your confirmed admission application as a PDF and carry it when visiting the college.'
                                 : isRejected
                                     ? 'Contact the admissions office for clarification or guidance on reapplication.'
                                     : 'Your application is being processed. Keep a copy of your acknowledgment for verification.'
@@ -293,10 +308,10 @@ const SubmittedView = ({ statusData, fullDetails, onDownloadPDF }) => {
                         {(isApproved || !isRejected) && (
                             <button
                                 onClick={onDownloadPDF}
-                                className="w-full sm:w-auto h-14 px-8 bg-white text-slate-900 rounded-2xl flex items-center justify-center gap-3 font-bold shadow-2xl transition-all hover:-translate-y-0.5 active:scale-95"
+                                className="btn-download-pdf w-full sm:w-auto h-14 px-8 bg-white text-slate-900 rounded-2xl flex items-center justify-center gap-3 font-bold shadow-2xl transition-all hover:-translate-y-0.5 active:scale-95"
                             >
                                 <Download size={20} />
-                                {isApproved ? 'Download Acknowledgment' : 'Download PDF'}
+                                {isApproved ? 'Download Confirmed Admission' : 'Download PDF'}
                             </button>
                         )}
                     </div>

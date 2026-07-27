@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import api from '../../../api/axios';
 import { Loader2, ChevronLeft, ChevronRight, Camera, User } from 'lucide-react';
 import toast from 'react-hot-toast';
+import SelectDropdown from '../../../components/SelectDropdown';
 
 const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) => {
     const [loading, setLoading] = useState(false);
@@ -172,7 +173,7 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                         type="file" 
                         ref={fileInputRef} 
                         onChange={handleFileChange} 
-                        accept="image/jpeg, image/png, image/jpg" 
+                        accept="image/*" 
                         className="hidden" 
                     />
                 </div>
@@ -217,12 +218,17 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Gender <span className="text-red-500">*</span></label>
-                    <select required name="gender" className="input-premium h-11 uppercase" value={data.gender || ''} onChange={handleChange}>
-                        <option value="" disabled>Select gender...</option>
-                        <option value="MALE">Male</option>
-                        <option value="FEMALE">Female</option>
-                        <option value="OTHER">Other</option>
-                    </select>
+                    <SelectDropdown
+                        id="gender" name="gender" required
+                        value={data.gender || ''}
+                        onChange={(val) => handleChange({ target: { name: 'gender', value: val } })}
+                        placeholder="Select gender..."
+                        options={[
+                            { value: 'MALE', label: 'Male' },
+                            { value: 'FEMALE', label: 'Female' },
+                            { value: 'OTHER', label: 'Other' },
+                        ]}
+                    />
                     {!data.gender && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
@@ -247,20 +253,25 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Category <span className="text-red-500">*</span></label>
-                    <select required name="category" className="input-premium h-11" value={data.category || ''} onChange={handleChange}>
-                        <option value="" disabled>Select category...</option>
-                        <option value="GEN">GEN (General Merit)</option>
-                        <option value="OBC">OBC (Other Backward Classes)</option>
-                        <option value="C1">Category 1</option>
-                        <option value="2A">Category 2A</option>
-                        <option value="2B">Category 2B</option>
-                        <option value="3A">Category 3A</option>
-                        <option value="3B">Category 3B</option>
-                        <option value="SC">SC (Scheduled Castes)</option>
-                        <option value="ST">ST (Scheduled Tribes)</option>
-                        <option value="EWS">EWS (Economically Weaker Sections)</option>
-                        <option value="SEBC">SEBC (Socially and Educationally Backward Classes)</option>
-                    </select>
+                    <SelectDropdown
+                        id="category" name="category" required
+                        value={data.category || ''}
+                        onChange={(val) => handleChange({ target: { name: 'category', value: val } })}
+                        placeholder="Select category..."
+                        options={[
+                            { value: 'GEN', label: 'GEN (General Merit)' },
+                            { value: 'OBC', label: 'OBC (Other Backward Classes)' },
+                            { value: 'C1', label: 'Category 1' },
+                            { value: '2A', label: 'Category 2A' },
+                            { value: '2B', label: 'Category 2B' },
+                            { value: '3A', label: 'Category 3A' },
+                            { value: '3B', label: 'Category 3B' },
+                            { value: 'SC', label: 'SC (Scheduled Castes)' },
+                            { value: 'ST', label: 'ST (Scheduled Tribes)' },
+                            { value: 'EWS', label: 'EWS (Economically Weaker Sections)' },
+                            { value: 'SEBC', label: 'SEBC (Socially and Educationally Backward Classes)' },
+                        ]}
+                    />
                     {!data.category && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
@@ -268,12 +279,13 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Religion <span className="text-red-500">*</span></label>
-                    <select required name="religion" className="input-premium h-11" value={data.religion || ''} onChange={handleChange}>
-                        <option value="" disabled>Select religion...</option>
-                        {['HINDU', 'MUSLIM', 'CHRISTIAN', 'JAIN', 'SIKH', 'BUDDHIST', 'OTHER'].map(r => (
-                            <option key={r} value={r}>{r}</option>
-                        ))}
-                    </select>
+                    <SelectDropdown
+                        id="religion" name="religion" required
+                        value={data.religion || ''}
+                        onChange={(val) => handleChange({ target: { name: 'religion', value: val } })}
+                        placeholder="Select religion..."
+                        options={['HINDU', 'MUSLIM', 'CHRISTIAN', 'JAIN', 'SIKH', 'BUDDHIST', 'OTHER'].map(r => ({ value: r, label: r }))}
+                    />
                     {!data.religion && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
@@ -281,12 +293,17 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Nationality <span className="text-red-500">*</span></label>
-                    <select required name="nationality" className="input-premium h-11" value={data.nationality || ''} onChange={handleChange}>
-                        <option value="" disabled>Select nationality...</option>
-                        <option value="INDIAN">Indian</option>
-                        <option value="NRI">NRI</option>
-                        <option value="FOREIGN">Foreign</option>
-                    </select>
+                    <SelectDropdown
+                        id="nationality" name="nationality" required
+                        value={data.nationality || ''}
+                        onChange={(val) => handleChange({ target: { name: 'nationality', value: val } })}
+                        placeholder="Select nationality..."
+                        options={[
+                            { value: 'INDIAN', label: 'Indian' },
+                            { value: 'NRI', label: 'NRI' },
+                            { value: 'FOREIGN', label: 'Foreign' },
+                        ]}
+                    />
                     {!data.nationality && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
@@ -294,11 +311,16 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Area Type <span className="text-red-500">*</span></label>
-                    <select required name="areaType" className="input-premium h-11" value={data.areaType || ''} onChange={handleChange}>
-                        <option value="" disabled>Select area type...</option>
-                        <option value="URBAN">Urban</option>
-                        <option value="RURAL">Rural</option>
-                    </select>
+                    <SelectDropdown
+                        id="areaType" name="areaType" required
+                        value={data.areaType || ''}
+                        onChange={(val) => handleChange({ target: { name: 'areaType', value: val } })}
+                        placeholder="Select area type..."
+                        options={[
+                            { value: 'URBAN', label: 'Urban' },
+                            { value: 'RURAL', label: 'Rural' },
+                        ]}
+                    />
                     {!data.areaType && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
@@ -306,11 +328,16 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">Karnataka Resident (7yrs) <span className="text-red-500">*</span></label>
-                    <select required name="studiedInKarnataka" className="input-premium h-11" value={data.studiedInKarnataka !== undefined ? String(data.studiedInKarnataka) : ''} onChange={handleChange}>
-                        <option value="" disabled>Select...</option>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                    </select>
+                    <SelectDropdown
+                        id="studiedInKarnataka" name="studiedInKarnataka" required
+                        value={data.studiedInKarnataka !== undefined ? String(data.studiedInKarnataka) : ''}
+                        onChange={(val) => handleChange({ target: { name: 'studiedInKarnataka', value: val } })}
+                        placeholder="Select..."
+                        options={[
+                            { value: 'true', label: 'Yes' },
+                            { value: 'false', label: 'No' },
+                        ]}
+                    />
                     {!data.studiedInKarnataka && applicationStatus === 'REJECTED' && (
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}

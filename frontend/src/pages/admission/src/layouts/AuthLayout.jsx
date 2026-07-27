@@ -20,32 +20,56 @@ const AuthLayout = () => {
     return (
         <div className="admission-portal-theme min-h-screen bg-slate-50 font-display flex flex-col">
             {/* Top Navigation Bar */}
-            <header className="w-full flex items-center justify-between border-b border-slate-200 bg-white px-6 lg:px-10 py-4 z-50">
-  {/* Left Section: Logo image next to the vertical text stack */}
-  <div className="flex items-center gap-4">
-    <div className="shrink-0">
-      <img src="/jcer.png" alt="JCE Logo" className="h-16 w-auto object-contain" />
-    </div>
-    
-    {/* Text Stack: Title with subtitles stacked neatly underneath */}
-    <div className="flex flex-col justify-center">
-      <h2 className="text-slate-900 text-lg md:text-xl font-bold tracking-tight leading-tight">
-        JAIN COLLEGE OF ENGINEERING AND RESEARCH
-      </h2>
-      <div className="flex flex-col gap-0.5 mt-1">
-        <p className="text-[11px] text-slate-500 font-medium leading-normal">
-          (Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)
-        </p>
-        <p className="text-[11px] text-indigo-600 dark:text-indigo-500 font-bold leading-normal">
-          NBA Accredited Programs - ECE & ME
-        </p>
-      </div>
-    </div>
-  </div>
-</header>
+            <header className="w-full bg-white border-b border-slate-200 shadow-sm z-50">
+              <div className="max-w-7xl mx-auto flex items-center gap-4 sm:gap-6 px-6 py-4">
+                
+                {/* Logo */}
+                <div 
+                  className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 bg-white rounded-full overflow-hidden flex items-center justify-center shadow-sm"
+                  style={{ backgroundColor: '#ffffff' }}
+                >
+                  <img
+                    src="/logo.png"
+                    alt="JCER Logo"
+                    className="w-full h-full object-cover bg-white rounded-full"
+                    style={{ backgroundColor: '#ffffff' }}
+                  />
+                </div>
 
-            <main className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8">
-                <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 bg-white rounded-2xl shadow-3xl overflow-hidden border border-slate-200 min-h-[650px] animate-fade-in text-slate-900">
+                {/* College Details */}
+                <div className="flex flex-col justify-center flex-1 space-y-0.5 sm:space-y-1">
+                  
+                  {/* College Name */}
+                  <h1 
+                    className="text-[#0B4F8A] text-base md:text-xl lg:text-2xl font-extrabold leading-tight tracking-tight uppercase"
+                    style={{ color: '#0B4F8A', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif", fontWeight: '800' }}
+                  >
+                    JAIN COLLEGE OF ENGINEERING & RESEARCH
+                  </h1>
+                  
+                  {/* Approval Line */}
+                  <p 
+                    className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm text-gray-800 font-medium leading-snug"
+                    style={{ color: '#1f2937', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}
+                  >
+                    (Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)
+                  </p>
+                  
+                  {/* Accreditation */}
+                  <p 
+                    className="text-[10px] sm:text-xs md:text-sm lg:text-base font-bold text-indigo-600"
+                    style={{ color: '#4f46e5', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}
+                  >
+                    NBA Accredited Programs – ECE & ME
+                  </p>
+                  
+                </div>
+                
+              </div>
+            </header>
+
+            <main className="flex-1 flex items-center justify-center p-3 sm:p-6 lg:p-8">
+                <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 bg-white rounded-2xl shadow-3xl overflow-hidden border border-slate-200 min-h-0 lg:min-h-[650px] animate-fade-in text-slate-900">
                     
                     {/* Left Side: Visual/Branding Section (HIDDEN ON MOBILE) */}
                     <div className="hidden lg:block relative overflow-hidden bg-slate-900 border-r border-slate-200">
@@ -88,7 +112,7 @@ const AuthLayout = () => {
                                     ))}
                                 </div>
                                 <div className="space-y-0.5">
-                                    <p className="text-sm font-extrabold">Join 50,000+ students today</p>
+                                    <p className="text-sm font-extrabold">Join 5,000+ students today</p>
                                     <p className="text-[11px] text-white/50 font-medium">Trusted by leading academic institutions</p>
                                 </div>
                             </div>
@@ -96,7 +120,7 @@ const AuthLayout = () => {
                     </div>
 
                     {/* Right Side: Form Content (Outlet) */}
-                    <div className="p-8 sm:p-12 lg:p-16 flex flex-col justify-center bg-white relative z-10">
+                    <div className="p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-white relative z-10">
                         <Outlet />
                     </div>
                 </div>

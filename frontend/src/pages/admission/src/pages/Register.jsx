@@ -4,7 +4,7 @@ import { Mail, Lock, Phone, Loader2, Eye, EyeOff, GraduationCap, User, ArrowRigh
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
-import { registerSchema } from '@jcer/validation';
+import { registerSchema } from '../../../../utils/validation.util';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -139,16 +139,16 @@ const Register = () => {
 
     return (
         <div className="w-full animate-fade-in max-w-sm mx-auto lg:mx-0">
-            <div className="mb-10 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-[11px] font-bold uppercase tracking-widest mb-4">
+            <div className="mb-6 sm:mb-8 lg:mb-10 text-center lg:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-[11px] font-bold uppercase tracking-widest mb-3 sm:mb-4">
                     <GraduationCap size={14} />
-                    Admission 2024
+                    Admission 2026
                 </div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-2">Student Registration</h2>
-                <p className="text-slate-500">Create your account to begin the admission process</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">Student Registration</h2>
+                <p className="text-sm sm:text-base text-slate-500">Create your account to begin the admission process</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
                 {/* Name row */}
                 <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
@@ -161,7 +161,7 @@ const Register = () => {
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleChange}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                            className="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
                             placeholder="First"
                             required
                         />
@@ -176,7 +176,7 @@ const Register = () => {
                             name="lastName"
                             value={formData.lastName}
                             onChange={handleChange}
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                            className="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
                             placeholder="Last"
                             required
                         />
@@ -195,7 +195,7 @@ const Register = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                        className="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
                         placeholder="your.email@example.com"
                         required
                     />
@@ -214,6 +214,8 @@ const Register = () => {
                             name="phone"
                             value={formData.phone}
                             onChange={handleChange}
+                            inputMode="numeric"
+                            pattern="[0-9]{10}"
                             className={`w-full px-4 py-3 bg-slate-50 border rounded-lg focus:ring-2 transition-all text-slate-900 placeholder:text-slate-400 ${
                                 phoneError
                                     ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
@@ -250,7 +252,7 @@ const Register = () => {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-lg focus:ring-2 transition-all text-slate-900 placeholder:text-slate-400 ${
+                            className={`w-full px-4 py-2.5 sm:py-3 bg-slate-50 border rounded-lg focus:ring-2 transition-all text-slate-900 placeholder:text-slate-400 ${
                                 passwordError
                                     ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
                                     : formData.password && !passwordError
@@ -286,7 +288,7 @@ const Register = () => {
                         name="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                        className="w-full px-4 py-2.5 sm:py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
                         placeholder="Repeat your password"
                         required
                     />
@@ -295,7 +297,7 @@ const Register = () => {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-4 rounded-lg shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2"
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 sm:py-4 rounded-lg shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2"
                 >
                     {loading ? <Loader2 size={24} className="animate-spin" /> : (
                         <>

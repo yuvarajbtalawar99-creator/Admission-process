@@ -67,7 +67,7 @@ const TIMELINE_STEPS = [
     },
     {
         key: 'usnAssignedAt',
-        label: 'VTU USN Assigned',
+        label: 'Admission Confirmed 🎉',
         icon: Award,
         activeColor: 'text-purple-600',
         activeBg: 'bg-purple-100',
@@ -104,7 +104,17 @@ const ActivityTimeline = ({ timeline = {}, compact = false }) => {
         <div className="space-y-0">
             {stepsToShow.map((step, index) => {
                 const date = timeline[step.key];
-                const isActive = !!date;
+                let isActive = !!date;
+
+                // If the application was rejected and has not been resubmitted yet,
+                // ensure all subsequent steps show as pending/inactive.
+                if (isRejected && !timeline.resubmittedAt) {
+                    const rejectedStepIndex = stepsToShow.findIndex(s => s.key === 'rejectedAt');
+                    if (index > rejectedStepIndex) {
+                        isActive = false;
+                    }
+                }
+
                 const isLast = index === stepsToShow.length - 1;
                 const Icon = step.icon;
 

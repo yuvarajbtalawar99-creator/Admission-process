@@ -2,13 +2,31 @@ import React from 'react';
 import { Check, Lock } from 'lucide-react';
 
 const StepIndicator = ({ steps, currentStep, getStepState }) => {
+    const currentStepLabel = steps[currentStep - 1]?.label || '';
+    const progressPercent = ((currentStep) / steps.length) * 100;
+
     return (
-        <div className="w-full py-4 overflow-x-auto">
-            <div className="flex items-center justify-between relative min-w-[500px] md:min-w-full md:max-w-3xl mx-auto px-4">
+        <div className="w-full py-2 md:py-4">
+            {/* Mobile simplified progress indicator */}
+            <div className="md:hidden w-full px-4">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1.5">
+                    <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600">Step {currentStep} of {steps.length}</span>
+                    <span className="text-primary-600 font-extrabold">{currentStepLabel}</span>
+                </div>
+                <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div 
+                        className="h-full bg-gradient-to-r from-green-500 to-primary-600 transition-all duration-500 ease-out" 
+                        style={{ width: `${progressPercent}%` }}
+                    />
+                </div>
+            </div>
+
+            {/* Desktop stepper */}
+            <div className="hidden md:flex items-center justify-between relative min-w-[500px] md:min-w-full md:max-w-3xl mx-auto px-4">
                 {/* Background line */}
                 <div className="absolute left-4 right-4 top-[18px] h-0.5 bg-slate-200 z-0">
                     <div
-                        className="h-full bg-gradient-to-r from-green-500 to-primary-600 transition-all duration-700 ease-out"
+                        className="h-full bg-gradient-to-r from-green-500 to-primary-600 transition-all duration-700 ease-out animate-flow-line"
                         style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
                     />
                 </div>

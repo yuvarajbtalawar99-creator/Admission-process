@@ -38,7 +38,7 @@ const DashboardLayout = () => {
     const navItems = getNavItems();
 
     return (
-        <div className="admission-portal-theme min-h-screen bg-[#f3f4f6] flex">
+        <div className="admission-portal-theme min-h-screen bg-[#f3f4f6] flex overflow-x-hidden w-full">
             {/* Mobile Sidebar Overlay */}
             {isSidebarOpen && (
                 <div
@@ -57,8 +57,18 @@ const DashboardLayout = () => {
             `}>
                 <div className="h-16 flex items-center px-6 gap-3 border-b border-slate-100">
                     <div className="shrink-0">
-      <img src="/jcer.png" alt="JCE Logo" className="h-14 w-auto object-contain" />
-    </div>
+                      <div 
+                        className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-white"
+                        style={{ backgroundColor: '#ffffff' }}
+                      >
+                        <img 
+                          src="/logo.png" 
+                          alt="JCE Logo" 
+                          className="w-full h-full object-cover bg-white rounded-full" 
+                          style={{ backgroundColor: '#ffffff' }}
+                        />
+                      </div>
+                    </div>
                     <span className="font-bold text-lg text-slate-900 tracking-tight">JCER Admission Portal</span>
                 </div>
 
@@ -118,7 +128,7 @@ const DashboardLayout = () => {
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-[#f3f4f6]">
+            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-x-hidden overflow-y-auto bg-[#f3f4f6]">
                 {/* Top Header — Clean, minimal per Stitch design */}
                 <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-50">
                     <div className="flex items-center gap-4">

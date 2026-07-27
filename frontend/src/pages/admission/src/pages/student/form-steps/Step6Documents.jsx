@@ -2,68 +2,85 @@ import React, { useState } from 'react';
 import api from '../../../api/axios';
 import { Loader2, UploadCloud, CheckCircle, FileText, User, Image, ClipboardIcon, ChevronLeft, ChevronRight, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { compressDocumentImage, validateImageType } from '../../../utils/imageCompressor';
+
+const ACCEPTED_MIME = 'image/jpeg,image/jpg,image/png';
 
 const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStatus }) => {
     const [loading, setLoading] = useState(false);
     const [files, setFiles] = useState({});
+    const [compressing, setCompressing] = useState({});
 
     const DOCS = [
-        { name: 'photo', label: 'Recent Passport Photo', icon: User, note: 'JPG/PNG, max 5MB' },
-        { name: 'signature', label: 'E-Signature / Scanned Sign', icon: ClipboardIcon, note: 'JPG/PNG, max 2MB' },
-        { name: 'sslcMarkscard', label: 'SSLC / 10th Marks Card', icon: FileText, note: 'PDF/JPG, max 5MB' },
-        { 
-            name: 'pucMarkscard', 
-            label: data?.admissionType === 'DCET' ? 'Diploma Marks Card' : 'PUC / 12th Marks Card', 
-            icon: GraduationCap, 
-            note: 'PDF/JPG, max 5MB' 
+        { name: 'photo',           label: 'Recent Passport Photo',            icon: User,         note: 'JPG/PNG, max 500 KB' },
+        { name: 'signature',       label: 'E-Signature / Scanned Sign',        icon: ClipboardIcon, note: 'JPG/PNG, max 200 KB' },
+        { name: 'sslcMarkscard',   label: 'SSLC / 10th Marks Card',            icon: FileText,     note: 'JPG/PNG, max 1 MB' },
+        {
+            name: 'pucMarkscard',
+            label: data?.admissionType === 'DCET' ? 'Diploma Marks Card' : 'PUC / 12th Marks Card',
+            icon: GraduationCap,
+            note: 'JPG/PNG, max 1 MB',
         },
-        { name: 'aadhaar', label: 'Aadhaar Card Copy', icon: FileText, note: 'PDF/JPG, max 5MB' },
-        { 
-            name: 'cetScoreCard', 
-            label: 'Entrance Score Card (CET/DCET)', 
-            icon: FileText, 
-            note: data?.admissionType === 'MANAGEMENT' ? 'PDF/JPG (Optional for Management)' : 'PDF/JPG, max 5MB' 
+        { name: 'aadhaar',          label: 'Aadhaar Card Copy',               icon: FileText,     note: 'JPG/PNG, max 1 MB' },
+        {
+            name: 'cetScoreCard',
+            label: 'Entrance Score Card (CET/DCET)',
+            icon: FileText,
+            note: data?.admissionType === 'MANAGEMENT' ? 'JPG/PNG (Optional for Management)' : 'JPG/PNG, max 1 MB',
         },
-        { name: 'casteCertificate', label: 'Caste Certificate', icon: Image, note: 'PDF/JPG (Optional)' },
-        { name: 'incomeCertificate', label: 'Income Certificate', icon: Image, note: 'PDF/JPG (Optional)' },
-        { name: 'studyCertificate', label: '7 Years Study Certificate', icon: FileText, note: 'PDF/JPG, max 5MB' },
+        { name: 'casteCertificate',  label: 'Caste Certificate',              icon: Image,        note: 'JPG/PNG (Optional)' },
+        { name: 'incomeCertificate', label: 'Income Certificate',             icon: Image,        note: 'JPG/PNG (Optional)' },
+        { name: 'studyCertificate',  label: '7 Years Study Certificate',       icon: FileText,     note: 'JPG/PNG, max 1 MB' },
     ];
 
-    const handleFileChange = (e, docName) => {
+    const handleFileChange = async (e, docName) => {
         const file = e.target.files[0];
-        if (file) {
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error('File size should be less than 5MB');
-                return;
-            }
-            setFiles(prev => ({ ...prev, [docName]: file }));
+        // Reset input so same file can be re-selected after error
+        e.target.value = '';
+
+        if (!file) return;
+
+        // 1. Validate image type (no PDFs)
+        const typeCheck = validateImageType(file);
+        if (!typeCheck.valid) {
+            toast.error(typeCheck.error);
+            return;
+        }
+
+        // 2. Compress automatically in the background
+        setCompressing(prev => ({ ...prev, [docName]: true }));
+        try {
+            const compressed = await compressDocumentImage(file, docName);
+            setFiles(prev => ({ ...prev, [docName]: compressed }));
+            toast.success(`${file.name} compressed & ready`, { duration: 2000 });
+        } catch (err) {
+            toast.error(err.message || 'Compression failed. Please try a different image.');
+        } finally {
+            setCompressing(prev => ({ ...prev, [docName]: false }));
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const isPhotoPresent = files.photo || data?.photo || data?.photoUrl;
-        const isSignaturePresent = files.signature || data?.signature || data?.signatureUrl;
-        const isSslcPresent = files.sslcMarkscard || data?.sslcMarkscard || data?.tenthMarksheetUrl;
-        const isAadhaarPresent = files.aadhaar || data?.aadhaarUrl;
-        const isCetPresent = files.cetScoreCard || data?.cetScoreCard || data?.cetScoreCardUrl;
+        const isPhotoPresent     = files.photo        || data?.photo        || data?.photoUrl;
+        const isSignaturePresent = files.signature    || data?.signature    || data?.signatureUrl;
+        const isSslcPresent      = files.sslcMarkscard || data?.sslcMarkscard || data?.tenthMarksheetUrl;
+        const isAadhaarPresent   = files.aadhaar      || data?.aadhaarUrl;
+        const isCetPresent       = files.cetScoreCard || data?.cetScoreCard || data?.cetScoreCardUrl;
 
         if (!isPhotoPresent || !isSignaturePresent || !isSslcPresent) {
             toast.error('Photo, Signature, and SSLC marks card are required');
             return;
         }
-
         if (!isAadhaarPresent) {
             toast.error('Aadhaar Card is required');
             return;
         }
-
         if (data?.admissionType !== 'MANAGEMENT' && !isCetPresent) {
             toast.error('Entrance Score Card (CET/DCET) is required');
             return;
         }
-
         if (Object.keys(files).length === 0) {
             onNext();
             return;
@@ -71,15 +88,15 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
 
         setLoading(true);
         const API_FIELDS = {
-            photo: 'photo',
-            signature: 'signature',
-            sslcMarkscard: 'tenthMarksheet',
-            pucMarkscard: 'twelfthMarksheet',
-            aadhaar: 'aadhaar',
-            cetScoreCard: 'cetScoreCard',
-            casteCertificate: 'casteCertificate',
+            photo:             'photo',
+            signature:         'signature',
+            sslcMarkscard:     'tenthMarksheet',
+            pucMarkscard:      'twelfthMarksheet',
+            aadhaar:           'aadhaar',
+            cetScoreCard:      'cetScoreCard',
+            casteCertificate:  'casteCertificate',
             incomeCertificate: 'gapCertificate',
-            studyCertificate: 'domicileCertificate'
+            studyCertificate:  'domicileCertificate',
         };
 
         const formData = new FormData();
@@ -89,12 +106,10 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
 
         try {
             const res = await api.post('/student/documents', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
+                headers: { 'Content-Type': 'multipart/form-data' },
             });
-
             if (res.data.success) {
                 toast.success('Documents uploaded successfully!');
-                // Refresh the parent formData so URL fields reflect the DB
                 if (onUploadSuccess) await onUploadSuccess();
                 onNext();
             }
@@ -120,30 +135,44 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {DOCS.map(doc => {
                     const DB_MAP = {
-                        photo: 'photoUrl',
-                        signature: 'signatureUrl',
-                        sslcMarkscard: 'tenthMarksheetUrl',
-                        pucMarkscard: 'twelfthMarksheetUrl',
-                        aadhaar: 'aadhaarUrl',
-                        cetScoreCard: 'cetScoreCardUrl',
-                        casteCertificate: 'casteCertificateUrl',
+                        photo:             'photoUrl',
+                        signature:         'signatureUrl',
+                        sslcMarkscard:     'tenthMarksheetUrl',
+                        pucMarkscard:      'twelfthMarksheetUrl',
+                        aadhaar:           'aadhaarUrl',
+                        cetScoreCard:      'cetScoreCardUrl',
+                        casteCertificate:  'casteCertificateUrl',
                         incomeCertificate: 'gapCertificateUrl',
-                        studyCertificate: 'domicileCertificateUrl',
+                        studyCertificate:  'domicileCertificateUrl',
                     };
-                    const isFileSelected = !!files[doc.name];
-                    const isFileInDb = doc.name === 'aadhaar' ? !!data?.aadhaarUrl : !!(data?.[doc.name] || data?.[DB_MAP[doc.name]]);
-                    const isComplete = isFileSelected || isFileInDb;
-                    const isRequired = ['photo', 'signature', 'sslcMarkscard', 'aadhaar'].includes(doc.name) || 
+                    const isFileSelected  = !!files[doc.name];
+                    const isFileInDb      = doc.name === 'aadhaar'
+                        ? !!data?.aadhaarUrl
+                        : !!(data?.[doc.name] || data?.[DB_MAP[doc.name]]);
+                    const isComplete      = isFileSelected || isFileInDb;
+                    const isCompressing   = !!compressing[doc.name];
+                    const isRequired      = ['photo', 'signature', 'sslcMarkscard', 'aadhaar'].includes(doc.name) ||
                         (doc.name === 'cetScoreCard' && data?.admissionType !== 'MANAGEMENT');
 
                     return (
-                        <div key={doc.name} className={`p-4 rounded-lg border transition-all ${isComplete ? 'bg-green-50 border-green-200' : 'bg-white border-slate-200 hover:border-primary-300'}`}>
+                        <div
+                            key={doc.name}
+                            className={`p-4 rounded-lg border transition-all ${
+                                isComplete
+                                    ? 'bg-green-50 border-green-200'
+                                    : 'bg-white border-slate-200 hover:border-primary-300'
+                            }`}
+                        >
                             <div className="flex items-start justify-between mb-3">
-                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${isComplete ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                                    isComplete ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'
+                                }`}>
                                     {isComplete ? <CheckCircle size={18} /> : <doc.icon size={18} />}
                                 </div>
                                 {isRequired && (
-                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${isComplete ? 'bg-green-100 text-green-700' : 'bg-slate-900 text-white'}`}>
+                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${
+                                        isComplete ? 'bg-green-100 text-green-700' : 'bg-slate-900 text-white'
+                                    }`}>
                                         {isComplete ? 'Uploaded' : 'Required'}
                                     </span>
                                 )}
@@ -152,21 +181,32 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                             <h3 className="text-sm font-semibold text-slate-900 mb-0.5">{doc.label}</h3>
                             <p className="text-xs text-slate-500 mb-3">{doc.note}</p>
 
-                            <label className="block w-full cursor-pointer">
-                                <div className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-dashed transition-colors text-sm ${isComplete ? 'bg-white border-green-200 text-green-600 font-medium' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-primary-300 hover:text-primary-600'}`}>
-                                    <UploadCloud size={16} />
-                                    {isComplete ? 'Update File' : 'Choose File'}
+                            <label className={`block w-full ${isCompressing ? 'cursor-wait' : 'cursor-pointer'}`}>
+                                <div className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border transition-colors text-sm ${
+                                    isCompressing
+                                        ? 'bg-slate-200 border-slate-200 text-slate-500 cursor-wait'
+                                        : isComplete
+                                        ? 'border-dashed bg-white border-green-200 text-green-600 font-medium'
+                                        : 'border-solid bg-slate-800 border-slate-800 text-white hover:bg-slate-900 hover:border-slate-900 font-medium'
+                                }`}>
+                                    {isCompressing
+                                        ? <><Loader2 size={16} className="animate-spin" /> Compressing…</>
+                                        : <><UploadCloud size={16} /> {isComplete ? 'Update File' : 'Choose File'}</>
+                                    }
                                 </div>
                                 <input
                                     type="file"
                                     className="hidden"
-                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    accept={ACCEPTED_MIME}
+                                    disabled={isCompressing}
                                     onChange={(e) => handleFileChange(e, doc.name)}
                                 />
                             </label>
 
                             {!isComplete && isRequired && applicationStatus === 'REJECTED' && (
-                                <p className="text-red-500 text-[11px] font-bold mt-2 animate-pulse text-center">Please upload this document mandatorily</p>
+                                <p className="text-red-500 text-[11px] font-bold mt-2 animate-pulse text-center">
+                                    Please upload this document mandatorily
+                                </p>
                             )}
 
                             {(isFileSelected || isFileInDb) && (
@@ -186,10 +226,15 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                 <button type="button" onClick={onPrev} className="btn-secondary h-10 px-5 flex items-center gap-2">
                     <ChevronLeft size={16} /> Back
                 </button>
-                <button type="submit" disabled={loading} className="btn-primary h-10 px-6 flex items-center gap-2">
-                    {loading ? <Loader2 size={18} className="animate-spin" /> : (
-                        <>Upload & Continue <ChevronRight size={16} /></>
-                    )}
+                <button
+                    type="submit"
+                    disabled={loading || Object.values(compressing).some(Boolean)}
+                    className="btn-primary h-10 px-6 flex items-center gap-2"
+                >
+                    {loading
+                        ? <Loader2 size={18} className="animate-spin" />
+                        : <>Upload & Continue <ChevronRight size={16} /></>
+                    }
                 </button>
             </div>
         </form>

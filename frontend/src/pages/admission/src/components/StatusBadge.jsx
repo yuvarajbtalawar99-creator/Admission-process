@@ -41,7 +41,7 @@ const StatusBadge = ({ status }) => {
         case 'ENROLLED':
         case 'USN_ASSIGNED':
             color = 'bg-indigo-50 text-indigo-700 border border-indigo-200';
-            label = 'USN Assigned';
+            label = 'Admission Confirmed';
             break;
         default:
             label = status?.replace(/_/g, ' ') || 'Unknown';

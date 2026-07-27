@@ -118,7 +118,7 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
         const signatureUrl = docs.signatureUrl ? getPhotoUrl(docs.signatureUrl) : '';
 
         // Standardize base URL to resolve public assets correctly in popup windows
-        const absoluteLogoUrl = window.location.origin + '/jcer.png';
+        const absoluteLogoUrl = window.location.origin + '/logo.png';
 
         return `
             <!DOCTYPE html>
@@ -128,21 +128,30 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Admission Application Form</title>
                 <style>
+                    @page {
+                        size: A4;
+                        margin: 10mm 15mm;
+                    }
                     * {
                         margin: 0;
                         padding: 0;
                         box-sizing: border-box;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     body {
                         font-family: 'Times New Roman', Times, serif;
                         background: white;
-                        padding: 20px;
+                        padding: 10px;
                         color: #000;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     .application-form {
-                        max-width: 210mm;
+                        width: 100% !important;
+                        max-width: 100% !important;
                         margin: 0 auto;
-                        padding: 15px 20px;
+                        padding: 0;
                         background: white;
                     }
                     
@@ -157,6 +166,7 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                         align-items: center;
                         justify-content: space-between;
                         gap: 15px;
+                        width: 100%;
                     }
                     .logo-box {
                         width: 80px;
@@ -170,9 +180,35 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                         flex-shrink: 0;
                     }
                     .logo-box img {
+                        display: block !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        object-fit: contain !important;
+                    }
+                    /* Watermark */
+                    .watermark {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 400px;
+                        height: 400px;
+                        opacity: 0.08;
+                        pointer-events: none;
+                        z-index: 0;
+                    }
+                    .watermark img {
                         width: 100%;
                         height: 100%;
                         object-fit: contain;
+                    }
+                    @media print {
+                        .watermark {
+                            position: fixed;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                        }
                     }
                     .header-text {
                         flex: 1;
@@ -180,31 +216,31 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                         padding: 0 10px;
                     }
                     .header-text h1 {
-                        font-size: 16pt;
+                        font-size: 14pt;
                         font-weight: bold;
                         color: #1a3c6e;
                         margin: 0;
                         letter-spacing: 0.5px;
-                        white-space: nowrap;
+                        white-space: normal;
                     }
                     .header-text h2 {
-                        font-size: 13pt;
+                        font-size: 11pt;
                         font-weight: bold;
                         color: #1a3c6e;
-                        margin: 6px 0;
-                        border: 2px solid #1a3c6e;
+                        margin: 4px 0;
+                        border: 1.5px solid #1a3c6e;
                         display: inline-block;
-                        padding: 2px 15px;
+                        padding: 1px 12px;
                     }
                     .header-text p {
-                        font-size: 11pt;
+                        font-size: 9.5pt;
                         color: #333;
-                        margin: 3px 0 0;
+                        margin: 2px 0 0;
                     }
                     .photo-box {
                         flex-shrink: 0;
-                        width: 100px;
-                        height: 120px;
+                        width: 80px;
+                        height: 100px;
                         border: 2px solid #1a3c6e;
                         overflow: hidden;
                         display: flex;
@@ -213,9 +249,10 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                         background: #fafafa;
                     }
                     .photo-box img {
-                        width: 100%;
-                        height: 100%;
-                        object-fit: cover;
+                        display: block !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        object-fit: cover !important;
                     }
                     .photo-placeholder {
                         font-size: 10px;
@@ -238,20 +275,24 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                     }
                     .section {
                         margin-bottom: 12px;
-                        page-break-inside: avoid;
-                        break-inside: avoid;
                     }
                     .section-title {
-                        background: #1a3c6e;
+                        background: #000000;
                         color: white;
                         padding: 5px 12px;
                         font-size: 11pt;
                         font-weight: bold;
                         letter-spacing: 0.5px;
+                        page-break-after: avoid;
+                        break-after: avoid;
                     }
                     .section-content {
                         border: 1px solid #dde1e8;
                         border-top: none;
+                    }
+                    .section-content tr {
+                        page-break-inside: avoid;
+                        break-inside: avoid;
                     }
                     .section-content table {
                         width: 100%;
@@ -314,6 +355,8 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                         justify-content: space-between;
                         margin: 25px 0 10px;
                         padding: 0 20px;
+                        page-break-inside: avoid;
+                        break-inside: avoid;
                     }
                     .signature-item {
                         text-align: center;
@@ -360,14 +403,17 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                 </style>
             </head>
             <body>
+                <div class="watermark"><img src="${absoluteLogoUrl}" alt="" /></div>
                 <div class="application-form">
                     <div class="header">
                         <div class="header-top">
                             <div class="logo-box"><img src="${absoluteLogoUrl}" alt="JCER Logo" /></div>
                             <div class="header-text">
                                 <h1>JAIN COLLEGE OF ENGINEERING AND RESEARCH</h1>
+                                <p style="font-size: 8px; font-weight: 500; margin: 1px 0; color: #475569;">(Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)</p>
+                                <p style="font-size: 8px; font-weight: bold; margin: 1px 0 4px; color: #4f46e5;">NBA Accredited Programs - ECE & ME</p>
                                 <h2>ADMISSION APPLICATION FORM</h2>
-                                <p>Academic Session 2024-2025</p>
+                                <p>Academic Session 2026-2027</p>
                             </div>
                             <div class="photo-box">
                                 ${photoUrl ? `<img src="${photoUrl}" alt="Passport Photo" />` : `<span class="photo-placeholder">PASSPORT<br>PHOTO</span>`}
@@ -519,7 +565,7 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                         <p>This is a draft copy. Application No: ${details?.applicationNumber || 'PENDING'} · Printed on: ${new Date().toLocaleString('en-IN')}</p>
                         <div class="footer-divider"></div>
                         <p>Need help? Our admissions team is ready to guide you through the process.</p>
-                        <p class="footer-contact">Contact: admissions@university.edu | +91-XXXX-XXXXXX</p>
+                        <p class="footer-contact">Contact: 099448693987 | principal@jcer.in</p>
                     </div>
                 </div>
             </body>
@@ -534,10 +580,11 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
             printWindow.document.close();
             printWindow.focus();
             
-            // Wait for images to load then print
+            // Print immediately and close the window afterwards
             setTimeout(() => {
                 printWindow.print();
-            }, 500);
+                printWindow.close();
+            }, 50);
         } else {
             toast.error('Please allow popups to print the application.');
         }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../../api/axios';
 import { Loader2, ChevronLeft, ChevronRight, Home, MapPin, Check } from 'lucide-react';
+import SelectDropdown from '../../../components/SelectDropdown';
 import toast from 'react-hot-toast';
 
 const KARNATAKA_CITIES_REGISTRY = [
@@ -47,7 +48,23 @@ const KARNATAKA_CITIES_REGISTRY = [
 
 const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) => {
     const [loading, setLoading] = useState(false);
-    const [sameAsCurrent, setSameAsCurrent] = useState(data.sameAsCurrent === true || data.sameAsCurrent === 'true');
+    const [sameAsCurrent, setSameAsCurrent] = useState(() => {
+        if (data.sameAsCurrent !== undefined) {
+            return data.sameAsCurrent === true || data.sameAsCurrent === 'true';
+        }
+        const hasCurrent = data.Address || data.currentAddressLine1;
+        const hasPermanent = data.permanentAddress || data.permanentAddressLine1;
+        if (hasCurrent && hasCurrent === hasPermanent) {
+            const hasCurrentCity = data.City || data.currentCity;
+            const hasPermanentCity = data.permanentCity;
+            const hasCurrentPincode = data.Pincode || data.currentPincode;
+            const hasPermanentPincode = data.permanentPincode;
+            if (hasCurrentCity && hasCurrentCity === hasPermanentCity && hasCurrentPincode && hasCurrentPincode === hasPermanentPincode) {
+                return true;
+            }
+        }
+        return false;
+    });
     const [districts, setDistricts] = useState([]);
     
     const [lastPincode, setLastPincode] = useState('');
@@ -92,6 +109,23 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
             setSameAsCurrent(data.sameAsCurrent === true || data.sameAsCurrent === 'true');
         }
     }, [data.sameAsCurrent]);
+
+    // Auto-lookup pincode on data load to populate Taluk and District
+    useEffect(() => {
+        const pincode = data.Pincode || data.currentPincode;
+        if (pincode && /^\d{6}$/.test(pincode) && pincode !== lastPincode && districts.length > 0) {
+            setLastPincode(pincode);
+            lookupPincode(pincode, false);
+        }
+    }, [data.Pincode, data.currentPincode, districts]);
+
+    useEffect(() => {
+        const permPincode = data.permanentPincode;
+        if (permPincode && /^\d{6}$/.test(permPincode) && permPincode !== lastPermanentPincode && districts.length > 0) {
+            setLastPermanentPincode(permPincode);
+            lookupPincode(permPincode, true);
+        }
+    }, [data.permanentPincode, districts]);
 
     const matchDistrict = (districtName) => {
         if (!districtName) return '';
@@ -360,7 +394,7 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
                         {!(data.City || data.currentCity) && applicationStatus === 'REJECTED' && (
                             <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                         )}
-                        <p className="text-[10px] text-slate-400 font-medium">* Fill pincode to automatically detect city, taluk, and district.</p>
+                        <p className="text-[10px] text-blue-600 font-medium">* Fill pincode to automatically detect city, taluk, and district.</p>
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">Taluk <span className="text-red-500">*</span></label>
@@ -371,12 +405,13 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
                     </div>
                     <div className="space-y-1.5">
                         <label className="text-sm font-medium text-slate-700">District <span className="text-red-500">*</span></label>
-                        <select required name="DistrictId" className="input-premium h-11 uppercase" value={data.DistrictId || ''} onChange={handleChange}>
-                            <option value="" disabled>Select district...</option>
-                            {districts.map(district => (
-                                <option key={district.id} value={district.id}>{district.name}</option>
-                            ))}
-                        </select>
+                        <SelectDropdown
+                            id="DistrictId" name="DistrictId" required
+                            value={data.DistrictId || ''}
+                            onChange={(val) => handleChange({ target: { name: 'DistrictId', value: val } })}
+                            placeholder="Select district..."
+                            options={districts.map(d => ({ value: d.id, label: d.name }))}
+                        />
                         {!data.DistrictId && applicationStatus === 'REJECTED' && (
                             <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                         )}
@@ -387,7 +422,7 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
                         {!(data.Pincode || data.currentPincode) && applicationStatus === 'REJECTED' && (
                             <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                         )}
-                        <p className="text-[10px] text-slate-400 font-medium">* Entering pincode will autofill city, taluk, and district.</p>
+                        <p className="text-[10px] text-blue-600 font-medium">* Entering pincode will autofill city, taluk, and district.</p>
                     </div>
                 </div>
             </div>
@@ -431,7 +466,7 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
                             {!(data.permanentCity) && applicationStatus === 'REJECTED' && (
                                 <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                             )}
-                            <p className="text-[10px] text-slate-400 font-medium">* Fill pincode to automatically detect city, taluk, and district.</p>
+                            <p className="text-[10px] text-blue-600 font-medium">* Fill pincode to automatically detect city, taluk, and district.</p>
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-700">Taluk <span className="text-red-500">*</span></label>
@@ -440,14 +475,15 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
                                 <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                             )}
                         </div>
-                        <div className="space-y-1.5">
+                         <div className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-700">District <span className="text-red-500">*</span></label>
-                            <select required name="permanentDistrictId" className="input-premium h-11 uppercase" value={data.permanentDistrictId || ''} onChange={handleChange}>
-                                <option value="" disabled>Select district...</option>
-                                {districts.map(district => (
-                                    <option key={district.id} value={district.id}>{district.name}</option>
-                                ))}
-                            </select>
+                            <SelectDropdown
+                                id="permanentDistrictId" name="permanentDistrictId" required
+                                value={data.permanentDistrictId || ''}
+                                onChange={(val) => handleChange({ target: { name: 'permanentDistrictId', value: val } })}
+                                placeholder="Select district..."
+                                options={districts.map(d => ({ value: d.id, label: d.name }))}
+                            />
                             {!data.permanentDistrictId && applicationStatus === 'REJECTED' && (
                                 <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                             )}
@@ -458,7 +494,7 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
                             {!(data.permanentPincode) && applicationStatus === 'REJECTED' && (
                                 <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                             )}
-                            <p className="text-[10px] text-slate-400 font-medium">* Entering pincode will autofill city, taluk, and district.</p>
+                            <p className="text-[10px] text-blue-600 font-medium">* Entering pincode will autofill city, taluk, and district.</p>
                         </div>
                     </div>
                 )}
