@@ -82,7 +82,7 @@ cd Admission-process
 ---
 
 ### 🐳 Option A: Run Using Docker Compose (Easiest & Quickest)
-If you have Docker installed, you can spin up the database, Redis cache, backend, frontend, and admission portal simultaneously with a single command:
+If you have Docker installed, you can spin up the database, Redis cache, backend, and frontend simultaneously with a single command:
 
 1. **Start the containers:**
    ```bash
@@ -90,8 +90,7 @@ If you have Docker installed, you can spin up the database, Redis cache, backend
    ```
 2. **Verify services are running:**
    - **Backend API:** `http://localhost:5000`
-   - **Frontend App:** `http://localhost:5173`
-   - **Admission Portal:** `http://localhost:5174`
+   - **Frontend App & Portals:** `http://localhost:5173` (Includes Landing Page, Student Admission Portal, Admin & Principal Dashboards)
    - **PostgreSQL Database:** Port `5432`
    - **Redis Cache:** Port `6379`
 
