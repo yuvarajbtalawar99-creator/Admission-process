@@ -7,6 +7,7 @@ export interface UserSession {
   name: string;
   profileImage: string;
   mustChangePassword?: boolean;
+  system?: 'ERP' | 'ADMISSION';
   firstName?: string;
   lastName?: string;
   phone?: string;

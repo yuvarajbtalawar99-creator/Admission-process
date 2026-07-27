@@ -45,5 +45,19 @@
       "@styles/*": ["./src/styles/*"]
     }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/pages/admin/ExamSchedulePage.tsx",
+    "src/pages/admin/FeeCollectionReportPage.tsx",
+    "src/pages/admin/FeeManagementPage.tsx",
+    "src/pages/admin/IDCardGenerationPage.tsx",
+    "src/pages/admin/TimetableCreationPage.tsx",
+    "src/pages/admin/users/StudentManagementPage.tsx",
+    "src/pages/admin/users/TeacherManagementPage.tsx",
+    "src/pages/admin/users/HodManagementPage.tsx",
+    "src/pages/admin/users/ParentManagementPage.tsx",
+    "src/components/layout/StudentLayout.tsx"
+  ]
 }

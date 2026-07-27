@@ -28,6 +28,7 @@ export interface AdmissionApplication {
   rejectionReasonCode?: string;
   reviewedBy?: string;
   submittedAt: string | null;
+  resubmittedAt?: string | null;
   reviewedAt: string | null;
   approvedByAdminId?: string | null;
   approvalRemarks?: string | null;
@@ -125,6 +126,7 @@ export interface AdmissionStats {
   registered: number;
   draft?: number;
   submitted: number;
+  resubmitted?: number;
   underReview: number;
   approved: number;
   rejected: number;

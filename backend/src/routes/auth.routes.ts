@@ -4,7 +4,7 @@ import { authMiddleware } from '../middleware/auth.middleware';
 import { authLimiter, refreshLimiter } from '../middleware/rateLimit.middleware';
 import { validateRequest } from '../middleware/validation.middleware';
 import { changePasswordSchema } from '../validators/auth.validator';
-import { loginSchema, registerSchema } from '@jcer/validation';
+import { loginSchema, registerSchema } from '../validators/auth.zod';
 
 const router = express.Router();
 

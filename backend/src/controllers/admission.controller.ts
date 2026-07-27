@@ -60,6 +60,19 @@ export const getFullDetails = async (
   }
 };
 
+/** GET /api/student/admission/step/:stepName */
+export const getStepData = async (
+  req: AuthRequest, res: Response, next: NextFunction
+): Promise<any> => {
+  try {
+    const { stepName } = req.params;
+    const data = await admissionService.getStepData(req.user!.id, stepName);
+    return res.json({ success: true, data });
+  } catch (err) {
+    return next(err);
+  }
+};
+
 /** POST /api/student/create  (Step 1) */
 export const saveStep1 = async (
   req: AuthRequest, res: Response, next: NextFunction

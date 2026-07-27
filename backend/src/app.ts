@@ -1,7 +1,8 @@
-import express, { Application, Request, Response, NextFunction } from 'express';
+import express, { Application, Request, Response, RequestHandler } from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import path from 'path';
+import compression from 'compression';
 
 import { corsConfig } from './middleware/corsConfig.middleware';
 import { globalLimiter } from './middleware/rateLimit.middleware';
@@ -10,16 +11,16 @@ import { idempotencyMiddleware } from './middleware/idempotency.middleware';
 import { errorHandler } from './middleware/errorHandler.middleware';
 
 import authRoutes from './routes/auth.routes';
-import studentRoutes from './routes/student.routes';
+import systemRoutes from './routes/system.routes';
 import adminRoutes from './routes/admin.routes';
 import adminOfficeRouter from './routes/admin-office.routes';
 import { getBranches } from './controllers/admission.controller';
 import { studentRouter, applicationRouter, adminAdmissionRouter } from './routes/admission.routes';
 import principalRoutes from './routes/principal.routes';
-import hodRoutes from './routes/hod.routes';
-import feeRoutes from './routes/fee.routes';
-import grievanceRoutes from './routes/grievance.routes';
 const app: Application = express();
+
+const compressionMiddleware = compression();
+app.use((req, res, next) => compressionMiddleware(req, res, next));
 
 // Trust first proxy hop (e.g. Nginx, Load Balancer)
 app.set('trust proxy', 1);
@@ -32,16 +33,16 @@ app.use(helmet({
 // 1. CORS Configuration (Perimeter Defense)
 app.use(corsConfig);
 
-// 2. Rate Limiting (Perimeter Defense)
-app.use('/api', globalLimiter);
+// 2. Body & Cookie Parsers (Must run before logging, rate limiting, and routing)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
 // 3. Structured Request Logging (Correlation ID & Latency tracking)
 app.use(loggingMiddleware);
 
-// 4. Body & Cookie Parsers (Must run before idempotency and routing)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(cookieParser());
+// 4. Rate Limiting (Perimeter Defense)
+app.use('/api', globalLimiter);
 
 // 5. Idempotency Guard (Mutation double-submit protection)
 app.use('/api', idempotencyMiddleware);
@@ -60,14 +61,19 @@ app.get('/api', (_req: Request, res: Response) => {
 });
 // ── API Routes ────────────────────────────────────────────────────────────────
 
-// Auth
-app.use('/api/auth', authRoutes);
+const v1Router = express.Router();
+
+// Auth routes
+v1Router.use('/auth', authRoutes);
+
+// System routes
+v1Router.use('/system', systemRoutes);
 
 // Branches list (public-ish, used by admission Step 1)
-app.get('/api/branches', getBranches as any);
+v1Router.get('/branches', getBranches as any);
 
 // Districts list (used by admission Step 4 dropdown)
-app.get('/api/address/districts', (_req: Request, res: Response) => {
+v1Router.get('/address/districts', (_req: Request, res: Response) => {
   return res.json({
     success: true,
     data: [
@@ -105,32 +111,27 @@ app.get('/api/address/districts', (_req: Request, res: Response) => {
   });
 });
 
-// Existing student ERP routes (attendance, marks, etc.)
-app.use('/api/students', studentRoutes);
-app.use('/api/fees', feeRoutes);
-app.use('/api/grievances', grievanceRoutes);
+// Student admission endpoints
+v1Router.use('/student', studentRouter);
 
-// ─── Admission System ────────────────────────────────────────────────────────
-// Student form steps:  /api/student/create  /api/student/personal  etc.
-app.use('/api/student', studentRouter);
+// Application endpoints
+v1Router.use('/application', applicationRouter);
 
-// Application endpoints: /api/application/full-details  /api/application/download-pdf
-app.use('/api/application', applicationRouter);
+// Admin admission management
+v1Router.use('/admin', adminAdmissionRouter);
 
-// Admin admission management: /api/admin/admissions  /api/admin/admissions/:id
-app.use('/api/admin', adminAdmissionRouter);
+// Admin office endpoints
+v1Router.use('/admin', adminOfficeRouter);
 
-// Admin office (HODs, Parents, Notifications, Tickets)
-app.use('/api/admin', adminOfficeRouter);
-
-// Admin dashboard + profile: /api/admin/stats  /api/admin/profile
-app.use('/api/admin', adminRoutes);
+// Admin dashboard + profile routes
+v1Router.use('/admin', adminRoutes);
 
 // Principal Dashboard routes
-app.use('/api/principal', principalRoutes);
+v1Router.use('/principal', principalRoutes);
 
-// HOD Dashboard routes
-app.use('/api/hod', hodRoutes);
+// Mount the v1 router to both versioned and legacy base paths
+app.use('/api', v1Router);
+app.use('/api/v1', v1Router);
 
 // ── Global 404 handler ────────────────────────────────────────────────────────
 app.use((_req: Request, res: Response) => {

@@ -11,6 +11,7 @@ import Student from '../models/Student';
 import RejectionReason from '../models/RejectionReason';
 import db from '../config/database';
 import { ForbiddenException } from '../utils/error.util';
+import redisService from './redis.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -22,31 +23,39 @@ async function generateApplicationNumber(): Promise<string> {
   return `APP-${year}-${seq}`;
 }
 
-// Step index for frontend status bar
-const STEP_MAP: Record<string, number> = {
-  DRAFT: 1,
-  SUBMITTED: 7,
-  UNDER_REVIEW: 7,
-  APPROVED: 7,
-  REJECTED: 7,
-  ENROLLED: 7,
-};
+
 
 // ─── Full detail loader ──────────────────────────────────────────────────────
 
 async function loadFullAdmission(admission: Admission) {
-  // Eager-load all associations
-  return Admission.findByPk(admission.id, {
-    include: [
-      { model: User, as: 'user', attributes: ['id', 'email', 'firstName', 'lastName', 'phone', 'profileImage'] },
-      { model: Department, as: 'branch' },
-      { model: AdmissionPersonalDetail, as: 'studentpersonaldetails' },
-      { model: AdmissionParentDetail, as: 'studentparentdetails' },
-      { model: AdmissionAddress, as: 'studentaddress' },
-      { model: AdmissionAcademicDetail, as: 'studentacademicdetails' },
-      { model: AdmissionDocument, as: 'studentdocuments' },
-    ],
-  });
+  const [
+    user,
+    branch,
+    personal,
+    parent,
+    address,
+    academic,
+    documents
+  ] = await Promise.all([
+    User.findByPk(admission.userId, { attributes: ['id', 'email', 'firstName', 'lastName', 'phone', 'profileImage'] }),
+    admission.branchId ? Department.findByPk(admission.branchId) : Promise.resolve(null),
+    AdmissionPersonalDetail.findOne({ where: { admissionId: admission.id } }),
+    AdmissionParentDetail.findOne({ where: { admissionId: admission.id } }),
+    AdmissionAddress.findOne({ where: { admissionId: admission.id } }),
+    AdmissionAcademicDetail.findOne({ where: { admissionId: admission.id } }),
+    AdmissionDocument.findOne({ where: { admissionId: admission.id } }),
+  ]);
+
+  const rawAdmission = admission.get({ plain: true });
+  rawAdmission.user = user ? (user.toJSON ? user.toJSON() : user) : null;
+  rawAdmission.branch = branch ? (branch.toJSON ? branch.toJSON() : branch) : null;
+  rawAdmission.studentpersonaldetails = personal ? (personal.toJSON ? personal.toJSON() : personal) : null;
+  rawAdmission.studentparentdetails = parent ? (parent.toJSON ? parent.toJSON() : parent) : null;
+  rawAdmission.studentaddress = address ? (address.toJSON ? address.toJSON() : address) : null;
+  rawAdmission.studentacademicdetails = academic ? (academic.toJSON ? academic.toJSON() : academic) : null;
+  rawAdmission.studentdocuments = documents ? (documents.toJSON ? documents.toJSON() : documents) : null;
+
+  return rawAdmission;
 }
 
 function serializeAdmission(admission: any): any {
@@ -72,6 +81,7 @@ function serializeAdmission(admission: any): any {
     acad.pucStream = acad.twelfthStream;
     acad.physicsMarks = acad.physicsMarks;
     acad.mathsMarks = acad.mathsMarks;
+    acad.chemistryMarks = acad.chemistryMarks;
     acad.optionalSubject = acad.optionalSubject;
     acad.optionalMarks = acad.optionalMarks;
     acad.pucMaxMarks = acad.twelfthMaxMarks;
@@ -162,6 +172,21 @@ function computeStepStatus(admission: any) {
 // ─── Service Methods ─────────────────────────────────────────────────────────
 
 class AdmissionService {
+  public async invalidateCache(userId: string): Promise<void> {
+    await Promise.all([
+      redisService.deleteCache(`admission:status:${userId}`),
+      redisService.deleteCache(`admission:full:${userId}`),
+      redisService.deleteCache('admin:stats'),
+    ]);
+  }
+
+  public async invalidateCacheByAdmissionId(admissionId: string): Promise<void> {
+    const admission = await Admission.findByPk(admissionId, { attributes: ['userId'] });
+    if (admission) {
+      await this.invalidateCache(admission.userId);
+    }
+  }
+
   private checkEditable(admission: Admission): void {
     if (admission.status !== 'DRAFT') {
       throw new ForbiddenException('Admission already submitted');
@@ -204,18 +229,119 @@ class AdmissionService {
     return serializeAdmission(full);
   }
 
+  /** Lazy-loads step-specific details for individual form step rendering */
+  async getStepData(userId: string, stepName: string): Promise<any> {
+    const admission = await this.getOrCreate(userId);
+    
+    switch (stepName) {
+      case 'admission':
+      case 'details': {
+        const data = await Admission.findOne({
+          where: { id: admission.id },
+          attributes: ['id', 'userId', 'applicationNumber', 'admissionType', 'branchId', 'aadhaar', 'cetNumber', 'dcetNumber', 'applicationStatus']
+        });
+        return data;
+      }
+      case 'personal': {
+        const personal = await AdmissionPersonalDetail.findOne({
+          where: { admissionId: admission.id },
+          attributes: ['id', 'admissionId', 'firstName', 'middleName', 'lastName', 'caste', 'dateOfBirth', 'gender', 'category', 'religion', 'nationality', 'studiedInKarnataka', 'areaType']
+        });
+        const docs = await AdmissionDocument.findOne({
+          where: { admissionId: admission.id },
+          attributes: ['photoUrl']
+        });
+        const result = personal ? (personal.toJSON ? personal.toJSON() : JSON.parse(JSON.stringify(personal))) : {};
+        result.photoUrl = docs?.photoUrl || null;
+        return result;
+      }
+      case 'parent': {
+        const data = await AdmissionParentDetail.findOne({
+          where: { admissionId: admission.id },
+          attributes: ['id', 'admissionId', 'fatherName', 'fatherPhone', 'fatherEmail', 'fatherOccupation', 'motherName', 'motherPhone', 'motherOccupation', 'fatherAnnualIncome']
+        });
+        return data;
+      }
+      case 'address': {
+        const data = await AdmissionAddress.findOne({
+          where: { admissionId: admission.id },
+          attributes: ['id', 'admissionId', 'currentAddressLine1', 'currentCity', 'currentState', 'currentPincode', 'permanentAddressLine1', 'permanentCity', 'permanentState', 'permanentPincode']
+        });
+        return data;
+      }
+      case 'academic': {
+        const academic = await AdmissionAcademicDetail.findOne({
+          where: { admissionId: admission.id },
+          attributes: [
+            'id', 'admissionId', 'tenthSchool', 'tenthBoard', 'tenthPassingYear', 'tenthRegisterNumber', 'tenthMarksObtained', 'tenthMaxMarks', 'tenthPercentage', 'tenthAttempts', 'tenthSubjectMarks',
+            'twelfthSchool', 'twelfthBoard', 'twelfthPassingYear', 'twelfthRegisterNumber', 'twelfthStream', 'physicsMarks', 'mathsMarks', 'chemistryMarks', 'optionalSubject', 'optionalMarks', 'twelfthMaxMarks', 'twelfthAggregate', 'twelfthPercentage', 'twelfthAttempts',
+            'diplomaUniversity', 'diplomaYear', 'diplomaRegisterNumber', 'diplomaFinalYearMaxMarks', 'diplomaFinalYearObtained', 'diplomaPercentage', 'diplomaAttempts',
+            'cetScore', 'cetRank', 'cetYear', 'hasGap', 'gapReason'
+          ]
+        });
+        if (academic) {
+          const data = (academic.toJSON ? academic.toJSON() : JSON.parse(JSON.stringify(academic))) as any;
+          // Apply legacy mappings for compatibility
+          data.sslcSchool = data.tenthSchool;
+          data.sslcBoard = data.tenthBoard;
+          data.sslcYear = data.tenthPassingYear;
+          data.sslcRegisterNumber = data.tenthRegisterNumber;
+          data.sslcMarksObtained = data.tenthMarksObtained;
+          data.sslcMaxMarks = data.tenthMaxMarks;
+          data.sslcPercentage = data.tenthPercentage;
+          data.sslcAttempts = data.tenthAttempts;
+
+          data.pucSchool = data.twelfthSchool;
+          data.pucBoard = data.twelfthBoard;
+          data.pucYear = data.twelfthPassingYear;
+          data.pucRegisterNumber = data.twelfthRegisterNumber;
+          data.pucStream = data.twelfthStream;
+          data.pucMaxMarks = data.twelfthMaxMarks;
+          data.pucAggregate = data.twelfthAggregate;
+          data.pucPercentage = data.twelfthPercentage;
+          data.pucAttempts = data.twelfthAttempts;
+          return data;
+        }
+        return null;
+      }
+      case 'documents': {
+        const data = await AdmissionDocument.findOne({
+          where: { admissionId: admission.id },
+          attributes: ['id', 'admissionId', 'photoUrl', 'signatureUrl', 'tenthMarksheetUrl', 'twelfthMarksheetUrl', 'cetScoreCardUrl', 'aadhaarUrl', 'casteCertificateUrl', 'domicileCertificateUrl', 'gapCertificateUrl']
+        });
+        return data;
+      }
+      default:
+        throw new Error('Invalid step name');
+    }
+  }
+
   /** Returns step completion status for the StepIndicator component */
   async getStepStatus(userId: string): Promise<any> {
+    const cacheKey = `admission:status:${userId}`;
+    const cached = await redisService.getCache(cacheKey);
+    if (cached) return cached;
+
     const admission = await this.getOrCreate(userId);
     const full = await loadFullAdmission(admission);
-    return computeStepStatus(full);
+    const result = computeStepStatus(full);
+
+    await redisService.setCache(cacheKey, result, 300); // 5 mins TTL
+    return result;
   }
 
   /** Returns full details for Step 7 review & SubmittedView */
   async getFullDetails(userId: string): Promise<any> {
+    const cacheKey = `admission:full:${userId}`;
+    const cached = await redisService.getCache(cacheKey);
+    if (cached) return cached;
+
     const admission = await this.getOrCreate(userId);
     const full = await loadFullAdmission(admission);
-    return serializeAdmission(full);
+    const result = serializeAdmission(full);
+
+    await redisService.setCache(cacheKey, result, 300); // 5 mins TTL
+    return result;
   }
 
   // ── Step 1: Admission Details ─────────────────────────────────────────────
@@ -236,6 +362,7 @@ class AdmissionService {
       cetNumber: payload.cetNumber || null,
       dcetNumber: payload.dcetNumber || null,
     });
+    await this.invalidateCache(userId);
     return admission.id;
   }
 
@@ -250,6 +377,7 @@ class AdmissionService {
     } else {
       await AdmissionPersonalDetail.create({ admissionId: admission.id, ...payload });
     }
+    await this.invalidateCache(userId);
     return admission.id;
   }
 
@@ -264,6 +392,7 @@ class AdmissionService {
     } else {
       await AdmissionParentDetail.create({ admissionId: admission.id, ...payload });
     }
+    await this.invalidateCache(userId);
     return admission.id;
   }
 
@@ -278,6 +407,7 @@ class AdmissionService {
     } else {
       await AdmissionAddress.create({ admissionId: admission.id, ...payload });
     }
+    await this.invalidateCache(userId);
     return admission.id;
   }
 
@@ -305,6 +435,7 @@ class AdmissionService {
       twelfthStream: payload.pucStream,
       physicsMarks: payload.physicsMarks,
       mathsMarks: payload.mathsMarks,
+      chemistryMarks: payload.chemistryMarks,
       optionalSubject: payload.optionalSubject,
       optionalMarks: payload.optionalMarks,
       twelfthMaxMarks: payload.pucMaxMarks,
@@ -330,6 +461,7 @@ class AdmissionService {
     } else {
       await AdmissionAcademicDetail.create({ admissionId: admission.id, ...dbPayload });
     }
+    await this.invalidateCache(userId);
     return admission.id;
   }
 
@@ -344,6 +476,7 @@ class AdmissionService {
     } else {
       await AdmissionDocument.create({ admissionId: admission.id, ...fileUrls });
     }
+    await this.invalidateCache(userId);
     return admission.id;
   }
 
@@ -381,6 +514,7 @@ class AdmissionService {
         verificationRemarks: null,
       }, { transaction });
       await transaction.commit();
+      await this.invalidateCache(userId);
       return admission.id;
     } catch (error) {
       await transaction.rollback();
@@ -436,12 +570,21 @@ class AdmissionService {
     if (status && status !== 'ALL' && status !== 'HISTORY') {
       if (status === 'QUEUE') {
         where.applicationStatus = { [Op.in]: ['SUBMITTED', 'UNDER_REVIEW'] };
+        where.resubmittedAt = null;
+        where.rejectionReason = null;
+        where.rejectionReasonCode = null;
       } else if (status === 'RESUBMITTED') {
         where.applicationStatus = 'SUBMITTED';
-        where.resubmittedAt = { [Op.ne]: null };
+        where[Op.or] = [
+          { resubmittedAt: { [Op.ne]: null } },
+          { rejectionReason: { [Op.ne]: null } },
+          { rejectionReasonCode: { [Op.ne]: null } }
+        ];
       } else if (status === 'SUBMITTED') {
         where.applicationStatus = 'SUBMITTED';
         where.resubmittedAt = null;
+        where.rejectionReason = null;
+        where.rejectionReasonCode = null;
       } else if (status === 'APPROVED') {
         // Verified tab: verified by Admin, but not yet signed off by Principal
         where.applicationStatus = 'APPROVED';
@@ -480,9 +623,6 @@ class AdmissionService {
           : {}),
       },
       { model: Department, as: 'branch', required: false },
-      { model: AdmissionPersonalDetail, as: 'studentpersonaldetails', required: false },
-      { model: AdmissionAcademicDetail, as: 'studentacademicdetails', required: false },
-      { model: AdmissionDocument, as: 'studentdocuments', required: false },
     ];
 
     let order: any[] = [['createdAt', 'DESC']];
@@ -600,9 +740,15 @@ class AdmissionService {
 
         let dobDate: Date | null = null;
         if (personal?.dateOfBirth) {
-          const parts = personal.dateOfBirth.split('/');
-          if (parts.length === 3) {
-            dobDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+          if ((personal.dateOfBirth as unknown) instanceof Date) {
+            dobDate = (personal.dateOfBirth as unknown) as Date;
+          } else if (typeof personal.dateOfBirth === 'string') {
+            const parts = personal.dateOfBirth.split('/');
+            if (parts.length === 3) {
+              dobDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+            } else {
+              dobDate = new Date(personal.dateOfBirth);
+            }
           }
         }
 
@@ -617,7 +763,7 @@ class AdmissionService {
             departmentId: admission.branchId!,
             semester: admission.admissionType === 'DCET' ? 3 : 1,
             dateOfBirth: dobDate,
-            address: addr ? [addr.currentAddressLine1, addr.currentAddressLine2, addr.currentCity, addr.currentState, addr.currentPincode].filter(Boolean).join(', ') : '',
+            address: addr ? [addr.currentAddressLine1, addr.currentCity, addr.currentState, addr.currentPincode].filter(Boolean).join(', ') : '',
             fatherName: parent?.fatherName || '',
             motherName: parent?.motherName || '',
             parentPhone: parent?.fatherPhone || '',
@@ -662,6 +808,7 @@ class AdmissionService {
       }
 
       await transaction.commit();
+      await this.invalidateCacheByAdmissionId(id);
       return generatedUsn;
     } catch (error) {
       await transaction.rollback();
@@ -680,26 +827,63 @@ class AdmissionService {
       verificationRemarks?: string;
     }
   ): Promise<void> {
-    const admission = await Admission.findByPk(id);
-    if (!admission) throw new Error('Application not found');
-    
-    await admission.update({
-      documentsVerified: payload.documentsVerified ?? admission.documentsVerified,
-      feesVerified: payload.feesVerified ?? admission.feesVerified,
-      eligibilityVerified: payload.eligibilityVerified ?? admission.eligibilityVerified,
-      verificationRemarks: payload.verificationRemarks !== undefined ? payload.verificationRemarks : admission.verificationRemarks,
-      verifiedByAdminId: adminUserId,
-      verifiedAt: new Date(),
-    });
+    const transaction = await db.transaction();
+    try {
+      const admission = await Admission.findByPk(id, { transaction, lock: true });
+      if (!admission) throw new Error('Application not found');
+      
+      await admission.update({
+        documentsVerified: payload.documentsVerified ?? admission.documentsVerified,
+        feesVerified: payload.feesVerified ?? admission.feesVerified,
+        eligibilityVerified: payload.eligibilityVerified ?? admission.eligibilityVerified,
+        verificationRemarks: payload.verificationRemarks !== undefined ? payload.verificationRemarks : admission.verificationRemarks,
+        verifiedByAdminId: adminUserId,
+        verifiedAt: new Date(),
+      }, { transaction });
+
+      await transaction.commit();
+      await this.invalidateCacheByAdmissionId(id);
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
   }
 
   /** Admin: stats for dashboard */
   async getDashboardStats(): Promise<any> {
-    const [total, draftCount, submitted, underReview, approvedCount, approvedByPrincipalCount, rejected, enrolled] = await Promise.all([
+    const cacheKey = 'admin:stats';
+    const cached = await redisService.getCache(cacheKey);
+    if (cached) return cached;
+
+    const [total, draftCount, submitted, resubmitted, underReview, approvedCount, _approvedByPrincipalCount, rejected, enrolled] = await Promise.all([
       Admission.count(),
       Admission.count({ where: { applicationStatus: 'DRAFT' } }),
-      Admission.count({ where: { applicationStatus: 'SUBMITTED' } }),
-      Admission.count({ where: { applicationStatus: 'UNDER_REVIEW' } }),
+      Admission.count({
+        where: {
+          applicationStatus: 'SUBMITTED',
+          resubmittedAt: null,
+          rejectionReason: null,
+          rejectionReasonCode: null
+        }
+      }),
+      Admission.count({
+        where: {
+          applicationStatus: 'SUBMITTED',
+          [Op.or]: [
+            { resubmittedAt: { [Op.ne]: null } },
+            { rejectionReason: { [Op.ne]: null } },
+            { rejectionReasonCode: { [Op.ne]: null } }
+          ]
+        }
+      }),
+      Admission.count({
+        where: {
+          applicationStatus: 'UNDER_REVIEW',
+          resubmittedAt: null,
+          rejectionReason: null,
+          rejectionReasonCode: null
+        }
+      }),
       Admission.count({ where: { applicationStatus: 'APPROVED', approvedByAdminId: null } }),
       Admission.count({ where: { applicationStatus: 'APPROVED', approvedByAdminId: { [Op.ne]: null } } }),
       Admission.count({ where: { applicationStatus: 'REJECTED' } }),
@@ -716,17 +900,21 @@ class AdmissionService {
       limit: 5,
     });
 
-    return { 
+    const result = { 
       total, 
       registered: draftCount, // compatibility fallback
       draft: draftCount, 
       submitted, 
+      resubmitted,
       underReview, 
       approved: approvedCount, 
       rejected, 
-      enrolled: approvedByPrincipalCount, 
+      enrolled, 
       recent 
     };
+
+    await redisService.setCache(cacheKey, result, 300); // 5 mins TTL
+    return result;
   }
 }
 

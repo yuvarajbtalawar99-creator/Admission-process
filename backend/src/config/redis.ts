@@ -74,7 +74,7 @@ if (process.env.NODE_ENV !== 'test') {
 
   redisClient = {
     get: async (key: string) => {
-      if (useInMemory) return memoryClient.get(key);
+      if (useInMemory || !client.isReady) return memoryClient.get(key);
       try {
         return await client.get(key);
       } catch (err) {
@@ -82,7 +82,7 @@ if (process.env.NODE_ENV !== 'test') {
       }
     },
     setex: async (key: string, seconds: number, value: string) => {
-      if (useInMemory) return memoryClient.setex(key, seconds, value);
+      if (useInMemory || !client.isReady) return memoryClient.setex(key, seconds, value);
       try {
         // In node-redis v4, setex is set with options
         return await client.set(key, value, { EX: seconds });
@@ -91,7 +91,7 @@ if (process.env.NODE_ENV !== 'test') {
       }
     },
     del: async (key: string) => {
-      if (useInMemory) return memoryClient.del(key);
+      if (useInMemory || !client.isReady) return memoryClient.del(key);
       try {
         return await client.del(key);
       } catch (err) {

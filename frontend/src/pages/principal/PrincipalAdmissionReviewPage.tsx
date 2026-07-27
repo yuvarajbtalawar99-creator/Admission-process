@@ -35,7 +35,7 @@ const DocumentThumbnail: React.FC<{ field: string; appId: string; label: string;
       setLoading(true);
       setError(false);
       try {
-        const res = await API.get(`/admin/admissions/${appId}/documents/${field}`, { responseType: 'blob' });
+        const res = await API.get(`/principal/admissions/${appId}/documents/${field}`, { responseType: 'blob' });
         const contentType = String(res.headers['content-type'] || '');
         setIsPdf(contentType.includes('pdf'));
 
@@ -123,7 +123,8 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const details = await admissionService.getApplication(id);
+      const res = await API.get(`/principal/admissions/${id}`);
+      const details = res.data.data as AdmissionApplication;
       setApp(details);
       setRemarks(details.approvalRemarks || '');
     } catch (e: any) {
@@ -148,7 +149,7 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
     let active = true;
     const fetchBlob = async () => {
       try {
-        const res = await API.get(`/admin/admissions/${id}/documents/${previewDoc.field}`, { responseType: 'blob' });
+        const res = await API.get(`/principal/admissions/${id}/documents/${previewDoc.field}`, { responseType: 'blob' });
         const contentType = String(res.headers['content-type'] || '');
         setPreviewPdf(contentType.includes('pdf'));
         const url = URL.createObjectURL(res.data);
@@ -401,14 +402,14 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
               <h3 className="font-bold text-neutral-800 dark:text-neutral-150">Uploaded Documents</h3>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              <DocumentThumbnail field="photoUrl" appId={app.id} label="Passport Photo" onClick={() => setPreviewDoc({ field: 'photoUrl', label: 'Passport Photo' })} />
-              <DocumentThumbnail field="signatureUrl" appId={app.id} label="Candidate Signature" onClick={() => setPreviewDoc({ field: 'signatureUrl', label: 'Candidate Signature' })} />
-              <DocumentThumbnail field="tenthMarksheetUrl" appId={app.id} label="10th Marksheet" onClick={() => setPreviewDoc({ field: 'tenthMarksheetUrl', label: '10th Marksheet' })} />
-              <DocumentThumbnail field="twelfthMarksheetUrl" appId={app.id} label={isLateral ? "Diploma Marks Card" : "12th Marksheet"} onClick={() => setPreviewDoc({ field: 'twelfthMarksheetUrl', label: isLateral ? "Diploma Marks Card" : "12th Marksheet" })} />
-              <DocumentThumbnail field="aadhaarUrl" appId={app.id} label="Aadhaar Card" onClick={() => setPreviewDoc({ field: 'aadhaarUrl', label: 'Aadhaar Card' })} />
-              <DocumentThumbnail field="domicileCertificateUrl" appId={app.id} label="Domicile/Study Cert" onClick={() => setPreviewDoc({ field: 'domicileCertificateUrl', label: 'Domicile/Study Certificate' })} />
+              <DocumentThumbnail field="photo" appId={app.id} label="Passport Photo" onClick={() => setPreviewDoc({ field: 'photo', label: 'Passport Photo' })} />
+              <DocumentThumbnail field="signature" appId={app.id} label="Candidate Signature" onClick={() => setPreviewDoc({ field: 'signature', label: 'Candidate Signature' })} />
+              <DocumentThumbnail field="tenthMarksheet" appId={app.id} label="10th Marksheet" onClick={() => setPreviewDoc({ field: 'tenthMarksheet', label: '10th Marksheet' })} />
+              <DocumentThumbnail field="twelfthMarksheet" appId={app.id} label={isLateral ? "Diploma Marks Card" : "12th Marksheet"} onClick={() => setPreviewDoc({ field: 'twelfthMarksheet', label: isLateral ? "Diploma Marks Card" : "12th Marksheet" })} />
+              <DocumentThumbnail field="aadhaar" appId={app.id} label="Aadhaar Card" onClick={() => setPreviewDoc({ field: 'aadhaar', label: 'Aadhaar Card' })} />
+              <DocumentThumbnail field="domicileCertificate" appId={app.id} label="Domicile/Study Cert" onClick={() => setPreviewDoc({ field: 'domicileCertificate', label: 'Domicile/Study Certificate' })} />
               {app.admissionType === 'KCET' && (
-                <DocumentThumbnail field="cetScoreCardUrl" appId={app.id} label="KCET Rank Card" onClick={() => setPreviewDoc({ field: 'cetScoreCardUrl', label: 'KCET Rank Card' })} />
+                <DocumentThumbnail field="cetScoreCard" appId={app.id} label="KCET Rank Card" onClick={() => setPreviewDoc({ field: 'cetScoreCard', label: 'KCET Rank Card' })} />
               )}
             </div>
           </div>

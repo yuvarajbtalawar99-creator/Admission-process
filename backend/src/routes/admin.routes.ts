@@ -25,14 +25,9 @@ router.post('/credentials/bulk-dispatch', adminController.bulkDispatchCredential
 // User Management (Students, Teachers, HODs, Principals, Parents)
 router.get('/users/students', userManagementController.getStudents);
 router.put('/users/students/:id', userManagementController.updateStudent);
-router.get('/users/teachers', userManagementController.getTeachers);
-router.put('/users/teachers/:id', userManagementController.updateTeacher);
-router.get('/users/hods', userManagementController.getHODs);
 router.get('/users/principals', userManagementController.getPrincipals);
-router.get('/users/parents', userManagementController.getParents);
 
 // Settings and Logs
-router.get('/reports/fees', adminController.getFeeReport);
 router.get('/logs', adminController.getAuditLogs);
 router.get('/settings', adminController.getSettings);
 router.put('/settings', adminController.updateSettings);

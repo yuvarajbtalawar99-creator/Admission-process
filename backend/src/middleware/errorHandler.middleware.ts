@@ -49,14 +49,14 @@ export const errorHandler = (
     });
     errorResponse = { 
       error: message,
-      fields: err.fields || undefined
+      fields: (err as any).fields || undefined
     };
   }
 
   // Include detailed error messages and stack trace in development
   if (process.env.NODE_ENV !== 'production') {
     errorResponse.stack = err.stack;
-    errorResponse.details = err.details || err.errors || undefined;
+    errorResponse.details = (err as any).details || (err as any).errors || undefined;
     // For database/internal errors in dev, we can expose the actual message
     if (!isOperational) {
       errorResponse.error = err.message;

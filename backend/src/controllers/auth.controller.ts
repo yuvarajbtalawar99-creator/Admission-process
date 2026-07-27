@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import sequelize from '../config/database';
 import User from '../models/User';
+import Student from '../models/Student';
 import Admission from '../models/Admission';
 import authService from '../services/auth.service';
 import securityEvents from '../services/securityEvents.service';
@@ -14,10 +16,24 @@ const cookieOptions = {
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
 };
 
-export const login = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
-  const ipAddress = req.ip;
-  const userAgent = req.headers['user-agent'];
+const getUserPayload = async (user: User) => {
+  const student = user.role === 'STUDENT' ? await Student.findOne({ where: { userId: user.id } }) : null;
+  const admission = user.role === 'STUDENT' ? await Admission.findOne({ where: { userId: user.id } }) : null;
+  const system = (user.role === 'STUDENT' && (!admission || admission.applicationStatus !== 'ENROLLED') && !student)
+    ? 'ADMISSION'
+    : 'ERP';
+  return {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: `${user.firstName} ${user.lastName}`,
+    profileImage: user.profileImage,
+    mustChangePassword: user.mustChangePassword,
+    system,
+  };
+};
 
+export const login = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { email, password } = req.body;
 
@@ -58,14 +74,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       success: true,
       data: {
         token: accessToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: `${user.firstName} ${user.lastName}`,
-          profileImage: user.profileImage,
-          mustChangePassword: user.mustChangePassword,
-        },
+        user: await getUserPayload(user),
       },
     });
   } catch (error) {
@@ -96,14 +105,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
       success: true,
       data: {
         token: sessionData.accessToken,
-        user: {
-          id: sessionData.user.id,
-          email: sessionData.user.email,
-          role: sessionData.user.role,
-          name: `${sessionData.user.firstName} ${sessionData.user.lastName}`,
-          profileImage: sessionData.user.profileImage,
-          mustChangePassword: sessionData.user.mustChangePassword,
-        },
+        user: await getUserPayload(sessionData.user),
       },
     });
   } catch (error) {
@@ -154,15 +156,7 @@ export const status = async (req: Request, res: Response): Promise<any> => {
     return res.status(200).json({
       success: true,
       data: {
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: `${user.firstName} ${user.lastName}`,
-          profileImage: user.profileImage,
-          status: user.status,
-          mustChangePassword: user.mustChangePassword
-        }
+        user: await getUserPayload(user),
       }
     });
   } catch (error) {
@@ -313,3 +307,4 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
     return next(error);
   }
 };
+

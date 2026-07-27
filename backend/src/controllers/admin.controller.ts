@@ -6,9 +6,7 @@ import Admin from '../models/Admin';
 import Student from '../models/Student';
 import Department from '../models/Department';
 import Fee from '../models/Fee';
-import FeePayment from '../models/FeePayment';
 import Admission from '../models/Admission';
-import AdmissionPersonalDetail from '../models/AdmissionPersonalDetail';
 import AuditLog from '../models/AuditLog';
 import securityEvents from '../services/securityEvents.service';
 import db from '../config/database';
@@ -31,7 +29,7 @@ export const getStats = async (
 
 /** GET /api/admin/dashboard — Real-time dashboard full data */
 export const getDashboardData = async (
-  req: AuthRequest, res: Response, next: NextFunction
+  _req: AuthRequest, res: Response, next: NextFunction
 ): Promise<any> => {
   try {
     const today = new Date();
@@ -184,7 +182,7 @@ export const dispatchCredentials = async (
 
 /** GET /api/admin/credentials/pending */
 export const getPendingCredentials = async (
-  req: AuthRequest, res: Response, next: NextFunction
+  _req: AuthRequest, res: Response, next: NextFunction
 ): Promise<any> => {
   try {
     // Find all ENROLLED students whose User.username does NOT match Student.enrollmentNumber
@@ -277,7 +275,7 @@ export const bulkDispatchCredentials = async (
 
 /** GET /api/admin/logs - Fetch audit logs */
 export const getAuditLogs = async (
-  req: AuthRequest, res: Response, next: NextFunction
+  _req: AuthRequest, res: Response, next: NextFunction
 ): Promise<any> => {
   try {
     const logs = await AuditLog.findAll({
@@ -317,7 +315,7 @@ export const getAuditLogs = async (
 
 /** GET /api/admin/settings - Mock settings fetching */
 export const getSettings = async (
-  req: AuthRequest, res: Response, next: NextFunction
+  _req: AuthRequest, res: Response, next: NextFunction
 ): Promise<any> => {
   try {
     return res.json({
@@ -354,85 +352,11 @@ export const updateSettings = async (
   }
 };
 
-/** GET /api/admin/reports/fees - Real fee report data from database */
-export const getFeeReport = async (
-  req: AuthRequest, res: Response, next: NextFunction
-): Promise<any> => {
-  try {
-    const fees = await Fee.findAll({
-      include: [
-        {
-          model: Student,
-          as: 'student',
-          include: [
-            {
-              model: User,
-              as: 'user',
-              attributes: ['firstName', 'lastName'],
-            },
-            {
-              model: Department,
-              as: 'department',
-              attributes: ['name'],
-            }
-          ]
-        }
-      ]
-    });
 
-    // Calculate department aggregates for the chart
-    // We want: [{ dept: string, collected: number, pending: number, color: string }]
-    const depts = await Department.findAll();
-    const colors = ['#d97706', '#e11d48', '#16a34a', '#7C3AED', '#3b82f6', '#8b5cf6'];
-    const deptChartData = depts.map((d, index) => {
-      const deptFees = fees.filter(f => f.student?.departmentId === d.id);
-      const collected = deptFees.reduce((sum, f) => sum + parseFloat(f.paidAmount as any || 0), 0);
-      const total = deptFees.reduce((sum, f) => sum + parseFloat(f.totalAmount as any || 0), 0);
-      const pending = total - collected;
-      return {
-        dept: d.code,
-        collected,
-        pending: pending > 0 ? pending : 0,
-        color: colors[index % colors.length]
-      };
-    });
-
-    // Map to FeeRecord format
-    const records = fees.map(f => {
-      const student = f.student;
-      const user = student?.user;
-      const branchName = student?.department?.name || 'Unknown';
-      const paid = parseFloat(f.paidAmount as any || 0);
-      const total = parseFloat(f.totalAmount as any || 0);
-      const pending = total - paid;
-      return {
-        id: f.id,
-        rollNo: student?.enrollmentNumber || 'N/A',
-        name: user ? `${user.firstName} ${user.lastName || ''}`.trim() : 'N/A',
-        dept: branchName,
-        totalFee: total,
-        paid,
-        pending: pending > 0 ? pending : 0,
-        lastPaid: f.dueDate ? new Date(f.dueDate).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '—',
-        status: f.status === 'PAID' ? 'PAID' : (paid > 0 ? 'PARTIAL' : 'OVERDUE')
-      };
-    });
-
-    return res.json({
-      success: true,
-      data: {
-        deptChartData,
-        records
-      }
-    });
-  } catch (err) {
-    return next(err);
-  }
-};
 
 /** GET /api/admin/analytics - Real analytics data from database */
 export const getAnalyticsData = async (
-  req: AuthRequest, res: Response, next: NextFunction
+  _req: AuthRequest, res: Response, next: NextFunction
 ): Promise<any> => {
   const transaction = await db.transaction({ readOnly: true });
   try {

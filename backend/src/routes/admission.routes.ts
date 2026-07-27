@@ -17,6 +17,7 @@ studentRouter.use(authorizeRoles('STUDENT'));
 
 studentRouter.get('/my-admission', admissionController.getMyAdmission);
 studentRouter.get('/step-status', admissionController.getStepStatus);
+studentRouter.get('/admission/step/:stepName', admissionController.getStepData);
 
 // Form steps
 studentRouter.post('/create', admissionController.saveStep1);         // Step 1

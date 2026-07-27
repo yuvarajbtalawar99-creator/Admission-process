@@ -2,6 +2,7 @@ import express from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { authorizeRoles } from '../middleware/rbac.middleware';
 import * as principalController from '../controllers/principal.controller';
+import * as admissionController from '../controllers/admission.controller';
 
 const router = express.Router();
 
@@ -12,7 +13,11 @@ router.use(authorizeRoles('PRINCIPAL'));
 router.get('/dashboard', principalController.getDashboardData);
 
 // Admissions
+router.get('/admissions/stats', principalController.getAdmissionsStats);
+router.get('/admissions/list', principalController.listAdmissions);
 router.get('/admissions/pending', principalController.getPendingAdmissions);
+router.get('/admissions/:id/documents/:field', admissionController.viewAdmissionDocument);
+router.get('/admissions/:id', principalController.getAdmissionById);
 router.put('/admissions/:id/decide', principalController.decideAdmission);
 router.put('/admissions/bulk/approve', principalController.bulkApproveAdmissions);
 

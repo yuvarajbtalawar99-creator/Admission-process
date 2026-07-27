@@ -1,8 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth.middleware';
-import { ForbiddenError } from '../utils/error.util';
 import Student from '../models/Student';
-import User from '../models/User';
 import Parent from '../models/Parent';
 
 // Role-to-Permissions Matrix mapping roles to allowed operations

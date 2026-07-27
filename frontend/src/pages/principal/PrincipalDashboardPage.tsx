@@ -130,12 +130,12 @@ export const PrincipalDashboardPage: React.FC = () => {
   const { kpis, criticalActions, departmentPerformance, insights, performanceTrends, upcomingEvents } = data;
 
   const cards = [
-    { label: 'Total Students', value: kpis.students.toLocaleString(), sub: kpis.students > 0 ? '↑ 5% from last year' : 'No students enrolled', color: '#D97706', icon: Users },
+    { label: 'Total Students', value: kpis.students.toLocaleString(), sub: kpis.students > 0 ? 'Enrolled students' : 'No enrolled students', color: '#D97706', icon: Users },
     { label: 'Total Faculty', value: kpis.faculty.toString(), sub: kpis.faculty > 0 ? 'Active faculty registry' : 'No faculty registered', color: '#7C3AED', icon: GraduationCap },
-    { label: 'Overall Pass Rate', value: kpis.passRate > 0 ? `${kpis.passRate}%` : '0%', sub: kpis.passRate > 0 ? '↑ 2% YoY increase' : 'No exam records', color: '#16A34A', icon: Activity },
-    { label: 'Average CGPA', value: kpis.avgCgpa > 0 ? kpis.avgCgpa.toString() : '0.0', sub: kpis.avgCgpa > 0 ? '↑ 0.3 grade points' : 'No performance records', color: '#2563EB', icon: Sparkles },
-    { label: 'Placements Rate', value: kpis.placementRate > 0 ? `${kpis.placementRate}%` : '0%', sub: kpis.placementRate > 0 ? '↑ 5% all-time high' : 'No placement records', color: '#EC4899', icon: ArrowUpRight },
-    { label: 'Revenue Oversight', value: kpis.revenue || '₹0', sub: kpis.revenue !== '₹0' && kpis.revenue !== '₹0.0K' ? 'Fee collection revenue' : 'No fee collections', color: '#059669', icon: DollarSign },
+    { label: 'Overall Pass Rate', value: kpis.passRate > 0 ? `${kpis.passRate}%` : '—', sub: kpis.passRate > 0 ? 'Based on latest results' : 'No exam records yet', color: '#16A34A', icon: Activity },
+    { label: 'Average CGPA', value: kpis.avgCgpa > 0 ? kpis.avgCgpa.toString() : '—', sub: kpis.avgCgpa > 0 ? 'Institution-wide average' : 'No performance records', color: '#2563EB', icon: Sparkles },
+    { label: 'Placements Rate', value: kpis.placementRate > 0 ? `${kpis.placementRate}%` : '—', sub: kpis.placementRate > 0 ? 'Placement records' : 'No placement records', color: '#EC4899', icon: ArrowUpRight },
+    { label: 'Revenue Oversight', value: kpis.revenue !== '₹0' ? kpis.revenue : '—', sub: kpis.revenue !== '₹0' ? 'Fee collection revenue' : 'No fee collections', color: '#059669', icon: DollarSign },
   ];
 
   return (
@@ -159,7 +159,7 @@ export const PrincipalDashboardPage: React.FC = () => {
           </div>
         </div>
         <div className="flex gap-2">
-          <Link to="/principal/approvals" className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm transition-all hover:opacity-90 flex items-center gap-1.5" style={{ backgroundColor: '#D97706' }}>
+          <Link to="/principal/admissions" className="px-4 py-2 rounded-xl text-xs font-bold text-white shadow-sm transition-all hover:opacity-90 flex items-center gap-1.5" style={{ backgroundColor: '#D97706' }}>
             <ClipboardList className="w-3.5 h-3.5" />
             Approvals Queue
           </Link>
@@ -201,31 +201,37 @@ export const PrincipalDashboardPage: React.FC = () => {
             {criticalActions.reduce((acc, a) => acc + (a.count ? 1 : 0), 0)} High Attention Items
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-          {criticalActions.map((action) => (
-            <div key={action.id} className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800 flex flex-col justify-between hover:border-neutral-300 dark:hover:border-neutral-700 transition-all">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wide ${
-                    action.priority === 'HIGH' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
-                  }`}>
-                    {action.priority} PRIORITY
-                  </span>
-                  {action.count > 0 && (
-                    <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
-                      {action.count}
+        {criticalActions.length === 0 ? (
+          <div className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800 text-center">
+            <p className="text-xs font-semibold text-neutral-400">No critical actions at this time.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+            {criticalActions.map((action) => (
+              <div key={action.id} className="p-4 rounded-2xl bg-neutral-50 dark:bg-neutral-800/40 border border-neutral-100 dark:border-neutral-800 flex flex-col justify-between hover:border-neutral-300 dark:hover:border-neutral-700 transition-all">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`px-2 py-0.5 rounded text-[8px] font-black tracking-wide ${
+                      action.priority === 'HIGH' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400'
+                    }`}>
+                      {action.priority} PRIORITY
                     </span>
-                  )}
+                    {action.count > 0 && (
+                      <span className="w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center">
+                        {action.count}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="text-xs font-black text-neutral-800 dark:text-neutral-200 mt-1">{action.title}</h4>
+                  <p className="text-[10px] text-neutral-400 font-medium mt-1 leading-normal">{action.description}</p>
                 </div>
-                <h4 className="text-xs font-black text-neutral-800 dark:text-neutral-200 mt-1">{action.title}</h4>
-                <p className="text-[10px] text-neutral-400 font-medium mt-1 leading-normal">{action.description}</p>
+                <Link to={action.link} className="w-full mt-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-[10px] font-bold text-center block transition-colors">
+                  {action.actionText}
+                </Link>
               </div>
-              <Link to={action.link} className="w-full mt-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-white rounded-xl text-[10px] font-bold text-center block transition-colors">
-                {action.actionText}
-              </Link>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -286,7 +292,9 @@ export const PrincipalDashboardPage: React.FC = () => {
               💡 INSIGHTS & SYSTEM ALERTS
             </h3>
             <div className="space-y-2">
-              {insights.map((insight, idx) => (
+              {insights.length === 0 ? (
+                <p className="text-xs text-neutral-400 font-semibold text-center py-2">No insights available yet.</p>
+              ) : insights.map((insight, idx) => (
                 <div key={idx} className="p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800/50 flex items-start gap-2">
                   <span className="text-xs text-neutral-600 dark:text-neutral-300 font-bold leading-relaxed">{insight}</span>
                 </div>
@@ -301,7 +309,9 @@ export const PrincipalDashboardPage: React.FC = () => {
               📅 UPCOMING EVENTS & DEADLINES
             </h3>
             <div className="space-y-2.5">
-              {upcomingEvents.map((evt, idx) => (
+              {upcomingEvents.length === 0 ? (
+                <p className="text-xs text-neutral-400 font-semibold text-center py-2">No upcoming events.</p>
+              ) : upcomingEvents.map((evt, idx) => (
                 <div key={idx} className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800/40 rounded-xl border border-neutral-100 dark:border-neutral-800/50">
                   <span className="text-xs font-black text-neutral-800 dark:text-neutral-200">{evt.title}</span>
                   <span className="text-[10px] font-black bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 px-2.5 py-1 rounded-lg">
@@ -320,36 +330,42 @@ export const PrincipalDashboardPage: React.FC = () => {
           <h3 className="font-extrabold text-neutral-900 dark:text-white text-sm">📈 PERFORMANCE TRENDS (Last 6 Months)</h3>
           <p className="text-[11px] text-neutral-400 mt-0.5 font-semibold">Continuous evaluation index (Pass Rate, CGPA growth & Placement curve)</p>
         </div>
-        <div className="relative w-full h-[280px] mt-6">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={performanceTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorPass" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#16A34A" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#16A34A" stopOpacity={0}/>
-                </linearGradient>
-                <linearGradient id="colorPlacement" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#EC4899" stopOpacity={0.2}/>
-                  <stop offset="95%" stopColor="#EC4899" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(0,0,0,0.04)" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 11, fontWeight: 700 }} />
-              <YAxis domain={[50, 100]} axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 11, fontWeight: 700 }} tickFormatter={(val) => `${val}%`} />
-              <RechartsTooltip 
-                contentStyle={{ 
-                  backgroundColor: 'rgba(26, 26, 26, 0.95)', 
-                  borderRadius: '16px', 
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
-                  color: '#fff'
-                }} 
-              />
-              <Area type="monotone" dataKey="passRate" stroke="#16A34A" strokeWidth={3} fillOpacity={1} fill="url(#colorPass)" name="Pass Rate" />
-              <Area type="monotone" dataKey="placementRate" stroke="#EC4899" strokeWidth={3} fillOpacity={1} fill="url(#colorPlacement)" name="Placement Rate" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {performanceTrends.length === 0 ? (
+          <div className="flex items-center justify-center h-[200px]">
+            <p className="text-sm text-neutral-400 font-semibold">No performance trend data available yet.</p>
+          </div>
+        ) : (
+          <div className="relative w-full h-[280px] mt-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={performanceTrends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorPass" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#16A34A" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#16A34A" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorPlacement" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#EC4899" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#EC4899" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="0" vertical={false} stroke="rgba(0,0,0,0.04)" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 11, fontWeight: 700 }} />
+                <YAxis domain={[50, 100]} axisLine={false} tickLine={false} tick={{ fill: '#a3a3a3', fontSize: 11, fontWeight: 700 }} tickFormatter={(val) => `${val}%`} />
+                <RechartsTooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(26, 26, 26, 0.95)', 
+                    borderRadius: '16px', 
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
+                    color: '#fff'
+                  }} 
+                />
+                <Area type="monotone" dataKey="passRate" stroke="#16A34A" strokeWidth={3} fillOpacity={1} fill="url(#colorPass)" name="Pass Rate" />
+                <Area type="monotone" dataKey="placementRate" stroke="#EC4899" strokeWidth={3} fillOpacity={1} fill="url(#colorPlacement)" name="Placement Rate" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
     </div>
   );

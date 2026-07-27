@@ -45,13 +45,25 @@ const FILTER_TABS: { key: FilterKey; label: string; activeStyle: string }[] = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const StudentEnrollmentPage: React.FC = () => {
+interface StudentEnrollmentPageProps {
+  /** Optional initial filter. Accepts any AdmissionStatus or 'ALL' | 'QUEUE' | 'RESUBMITTED'. */
+  defaultStatus?: string;
+}
+
+export const StudentEnrollmentPage: React.FC<StudentEnrollmentPageProps> = ({ defaultStatus }) => {
+  // Map caller-supplied defaultStatus to an internal FilterKey
+  const resolveDefaultFilter = (): FilterKey => {
+    if (!defaultStatus || defaultStatus === 'QUEUE') return 'SUBMITTED';
+    if (defaultStatus === 'RESUBMITTED') return 'UNDER_REVIEW';
+    const key = defaultStatus as FilterKey;
+    return key;
+  };
   const [applications, setApplications] = useState<AdmissionApplication[]>([]);
   const [total, setTotal]               = useState(0);
   const [totalPages, setTotalPages]     = useState(1);
   const [loading, setLoading]           = useState(true);
   const [submitting, setSubmitting]     = useState(false);
-  const [filter, setFilter]             = useState<FilterKey>('ALL');
+  const [filter, setFilter]             = useState<FilterKey>(resolveDefaultFilter());
   const [search, setSearch]             = useState('');
   const [page, setPage]                 = useState(1);
   const [selected, setSelected]         = useState<AdmissionApplication | null>(null);

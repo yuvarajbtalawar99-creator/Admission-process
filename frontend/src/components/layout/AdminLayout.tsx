@@ -23,21 +23,21 @@ import {
   User,
   Shield,
   AlertCircle,
-  Megaphone,
   Mail,
   Send,
   MessageSquare,
-  Settings,
-  Activity,
   XCircle,
   RefreshCw
 } from 'lucide-react';
 import admissionService from '../../services/admission.service';
 
+import { filterMenuItems } from '../../utils/feature.util';
+
 interface MenuItem {
   name: string;
   path: string;
   icon: React.ElementType;
+  feature?: string;
   badge?: number;
 }
 
@@ -52,33 +52,54 @@ export const AdminLayout: React.FC = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark') ||
-             localStorage.getItem('theme') === 'dark';
-    }
-    return false;
+  const [features, setFeatures] = useState<Record<string, boolean>>({
+    admission: true,
+    admin: true,
+    principal: true,
+    student: false,
+    teacher: false,
+    hod: false,
+    parent: false,
+    fees: false,
+    library: false,
+    placement: false,
+    hostel: false,
+    grievances: false,
   });
+
+  useEffect(() => {
+    fetch('/api/system/config')
+      .then(res => res.json())
+      .then(json => {
+        if (json.success && json.data?.features) {
+          setFeatures(json.data.features);
+        }
+      })
+      .catch(err => console.warn('Unable to load deployment features list in AdminLayout:', err));
+  }, []);
+
+  const [isDark, setIsDark] = useState(false);
 
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   
   const [pendingCount, setPendingCount] = useState(0);
+  const [resubmittedCount, setResubmittedCount] = useState(0);
+  const [rejectedCount, setRejectedCount] = useState(0);
+  const [verifiedCount, setVerifiedCount] = useState(0);
 
   useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDark]);
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('theme', 'light');
+  }, []);
 
   useEffect(() => {
     const fetchCount = () => {
       admissionService.getStats().then(stats => {
         setPendingCount(stats.submitted + stats.underReview);
+        setResubmittedCount(stats.resubmitted || 0);
+        setRejectedCount(stats.rejected || 0);
+        setVerifiedCount(stats.approved || 0);
       }).catch(err => console.error('Error loading sidebar stats:', err));
     };
 
@@ -127,45 +148,26 @@ export const AdminLayout: React.FC = () => {
       title: 'Admissions',
       items: [
         { name: 'Application Queue', path: '/admin/admissions/queue', icon: ClipboardList, badge: pendingCount > 0 ? pendingCount : undefined },
-        { name: 'Resubmitted', path: '/admin/admissions/resubmitted', icon: RefreshCw },
-        { name: 'Rejected / Corrections', path: '/admin/admissions/rejected', icon: XCircle },
-        { name: 'Verified', path: '/admin/admissions/verified', icon: FileCheck2 },
+        { name: 'Resubmitted', path: '/admin/admissions/resubmitted', icon: RefreshCw, badge: resubmittedCount > 0 ? resubmittedCount : undefined },
+        { name: 'Rejected / Corrections', path: '/admin/admissions/rejected', icon: XCircle, badge: rejectedCount > 0 ? rejectedCount : undefined },
+        { name: 'Verified', path: '/admin/admissions/verified', icon: FileCheck2, badge: verifiedCount > 0 ? verifiedCount : undefined },
         { name: 'History', path: '/admin/admissions/history', icon: CalendarDays },
       ],
     },
     {
       title: 'User Management',
       items: [
-        { name: 'Students', path: '/admin/users/students', icon: Users },
-        { name: 'Teachers', path: '/admin/users/teachers', icon: Users },
-        { name: 'HODs', path: '/admin/users/hods', icon: Users },
+        { name: 'Applicants', path: '/admin/users/students', icon: Users },
         { name: 'Principals', path: '/admin/users/principals', icon: Shield },
-        { name: 'Parents', path: '/admin/users/parents', icon: Users },
       ],
     },
-    {
-      title: 'Communications',
-      items: [
-        { name: 'Notifications', path: '/admin/notifications', icon: Bell },
-        { name: 'Messages', path: '/admin/messages', icon: MessageSquare },
-        { name: 'Announcements', path: '/admin/announcements', icon: Megaphone },
-      ],
-    },
-    {
-      title: 'Settings',
-      items: [
-        { name: 'System Settings', path: '/admin/settings/system', icon: Settings },
-        { name: 'Audit Logs', path: '/admin/settings/logs', icon: Activity },
-        { name: 'Onboarding (Bulk)', path: '/admin/credentials/bulk', icon: KeyRound },
-      ],
-    },
+
   ];
 
   const subNavTabs = [
     { name: 'Dashboard', path: '/admin/dashboard' },
     { name: 'Admissions Queue', path: '/admin/admissions/queue' },
-    { name: 'Students', path: '/admin/users/students' },
-    { name: 'Onboarding', path: '/admin/credentials/bulk' },
+    { name: 'Applicants', path: '/admin/users/students' },
   ];
 
   const pageTitles: Record<string, string> = {
@@ -177,20 +179,20 @@ export const AdminLayout: React.FC = () => {
     '/admin/admissions/verified': 'Verified Admissions',
     '/admin/admissions/approved': 'Approved Admissions',
     '/admin/admissions/history': 'Admission History',
-    '/admin/users/students': 'Students Management',
-    '/admin/users/teachers': 'Teachers Management',
-    '/admin/users/hods': 'HODs Management',
+    '/admin/users/students': 'Applicants Management',
     '/admin/users/principals': 'Principals Management',
-    '/admin/users/parents': 'Parents Management',
     '/admin/notifications': 'Notifications',
-    '/admin/messages': 'Messages',
     '/admin/announcements': 'Announcements',
     '/admin/settings/system': 'System Settings',
     '/admin/settings/logs': 'Audit Logs',
-    '/admin/credentials/bulk': 'Bulk Credential Generation',
   };
 
-  const getPageTitle = () => pageTitles[location.pathname] || 'Admin Portal';
+  const getPageTitle = () => {
+    if (location.pathname.startsWith('/admin/admissions/review/')) {
+      return 'Admission Review Workspace';
+    }
+    return pageTitles[location.pathname] || 'Admin Portal';
+  };
 
   return (
     <div className="min-h-screen max-w-full overflow-x-hidden flex text-neutral-900 dark:text-neutral-100 transition-colors duration-300 font-sans pb-6 pr-6">
@@ -201,9 +203,13 @@ export const AdminLayout: React.FC = () => {
         {/* Top: Logo + Nav */}
         <div className="flex flex-col w-full">
           <Link to="/admin/dashboard" className="flex items-center space-x-3 px-2 mb-6 hover:opacity-95 transition-all">
-            <div className="w-14 h-14 rounded-full overflow-hidden flex items-center justify-center shadow-md flex-shrink-0 bg-white border border-neutral-200/50 dark:border-neutral-800/40">
-              <img src="/jcer.png" alt="JCER Logo" className="w-full h-full object-cover" />
-            </div>
+          <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+  <img
+    src="/logo.png"
+    alt="JCER Logo"
+    className="w-full h-full object-cover"
+  />
+</div>
             <div className="flex flex-col">
               <span className="font-bold text-lg tracking-wider uppercase text-neutral-900 dark:text-white">JCER ERP</span>
               <span className="text-[12px] font-extrabold -mt-0.5" style={{ color: '#7C3AED' }}>Admin Portal</span>
@@ -212,7 +218,7 @@ export const AdminLayout: React.FC = () => {
 
           {/* Grouped Navigation */}
           <nav className="flex flex-col space-y-4 overflow-y-auto max-h-[calc(100vh-290px)] pr-1 select-none">
-            {menuGroups.map((group) => (
+            {filterMenuItems(menuGroups, features).map((group) => (
               <div key={group.title} className="flex flex-col space-y-1">
                 <span className="px-3 text-[10px] font-bold tracking-wider text-neutral-400 dark:text-neutral-500 uppercase">
                   {group.title}
@@ -314,13 +320,6 @@ export const AdminLayout: React.FC = () => {
             <button className="w-9 h-9 rounded-full flex items-center justify-center header-dark-btn shadow-sm hover:scale-[1.05] active:scale-[0.95] relative cursor-pointer">
               <Bell className="w-4 h-4" />
               <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-rose-500 rounded-full" />
-            </button>
-            <button
-              onClick={() => setIsDark(!isDark)}
-              className="w-9 h-9 rounded-full flex items-center justify-center header-dark-btn shadow-sm hover:scale-[1.05] active:scale-[0.95] cursor-pointer"
-              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            >
-              {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
 
             {/* Profile Dropdown */}

@@ -110,13 +110,13 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen w-full flex flex-col justify-center items-center p-4 sm:p-6 relative font-sans text-neutral-900 selection:bg-indigo-500/30 overflow-x-hidden">
       
-      {/* Background Image Container */}
+      {/* Background Image Container with slight blur */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0" 
-        style={{ backgroundImage: 'url("/collegepic.png")' }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0 blur-[3px] scale-105" 
+        style={{ backgroundImage: 'url("/college.png")' }}
       />
       {/* Slightly blue/indigo dark overlay for readability and premium aesthetic */}
-      <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/90 via-blue-950/70 to-indigo-900/50 backdrop-blur-[2px] z-0"></div>
+      <div className="absolute inset-0 bg-gradient-to-tr from-slate-950/80 via-blue-950/60 to-indigo-900/40 z-0"></div>
       
       {toast && (
         <Toast
@@ -129,11 +129,15 @@ export const LoginPage: React.FC = () => {
       {/* Global Header Section */}
       <div className="w-full max-w-4xl text-center space-y-4 mb-6 z-10 hidden sm:block">
         <div className="flex justify-center">
-          <div className="w-[130px] h-[130px] bg-white rounded-full flex items-center justify-center pointer-events-none select-none shadow-md overflow-hidden">
-            <img 
-              src="/jcer.png" 
-              alt="JCER Logo" 
-              className="w-[130%] h-[130%] object-contain" 
+          <div 
+            className="w-[100px] h-[100px] rounded-full bg-white overflow-hidden flex items-center justify-center shadow-sm"
+            style={{ backgroundColor: '#ffffff' }}
+          >
+            <img
+              src="/logo.png"
+              alt="JCER Logo"
+              className="w-full h-full object-cover bg-white rounded-full"
+              style={{ backgroundColor: '#ffffff' }}
             />
           </div>
         </div>
@@ -156,8 +160,16 @@ export const LoginPage: React.FC = () => {
       {/* Mobile-Only Header Layout */}
       <div className="w-full text-center space-y-3 mb-6 z-10 sm:hidden">
         <div className="flex justify-center">
-          <div className="w-[80px] h-[80px] bg-white/10 backdrop-blur-md rounded-xl p-2 border border-white/20">
-            <img src="/jcer.png" alt="JCER Logo" className="w-full h-full object-contain" />
+          <div 
+            className="w-[80px] h-[80px] rounded-full bg-white overflow-hidden flex items-center justify-center shadow-sm"
+            style={{ backgroundColor: '#ffffff' }}
+          >
+            <img 
+              src="/logo.png" 
+              alt="JCER Logo" 
+              className="w-full h-full object-cover bg-white rounded-full" 
+              style={{ backgroundColor: '#ffffff' }}
+            />
           </div>
         </div>
         <div className="px-2 space-y-1">

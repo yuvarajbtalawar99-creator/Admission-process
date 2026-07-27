@@ -65,7 +65,7 @@ export async function seed(exitOnComplete = false) {
     });
 
     // Principal User
-    const principalUser = await User.create({
+    await User.create({
       username: 'principal1',
       email: 'principal@college.com',
       passwordHash: 'password123',
@@ -113,14 +113,14 @@ export async function seed(exitOnComplete = false) {
     });
     console.log('✓ Admin profile created.');
 
-    const teacher = await Teacher.create({
+    await Teacher.create({
       userId: teacherUser.id,
       departmentId: cse.id,
       designation: 'Associate Professor',
       joiningDate: new Date('2020-08-01'),
     });
 
-    const hodProfile = await HOD.create({
+    await HOD.create({
       userId: hodUser.id,
       departmentId: cse.id,
       tenureStartDate: new Date('2022-01-01'),

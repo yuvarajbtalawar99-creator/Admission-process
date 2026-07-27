@@ -180,6 +180,7 @@ Admission.init(
       { fields: ['userId'] },
       { fields: ['applicationStatus'] },
       { fields: ['applicationNumber'] },
+      { fields: ['branchId'] },
     ],
   }
 );

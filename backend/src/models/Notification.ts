@@ -72,6 +72,9 @@ Notification.init(
     sequelize: db,
     tableName: 'notifications',
     timestamps: true,
+    indexes: [
+      { fields: ['targetUserId'] },
+    ],
   }
 );
 

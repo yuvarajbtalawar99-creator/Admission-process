@@ -34,7 +34,7 @@ async function startServer() {
         'PRINCIPAL_DECIDED_FEE_WAIVER'
       ];
       for (const val of enumValues) {
-        await sequelize.query(`ALTER TYPE "enum_audit_logs_action" ADD VALUE IF NOT EXISTS '${val}'`).catch((err: any) => {
+        await sequelize.query(`ALTER TYPE "enum_audit_logs_action" ADD VALUE IF NOT EXISTS '${val}'`).catch(() => {
           // ADD VALUE IF NOT EXISTS works in PG, catch dialect errors
         });
       }
@@ -47,7 +47,7 @@ async function startServer() {
     try {
       const categoryEnumValues = ['C1', '2A', '2B', '3A', '3B'];
       for (const val of categoryEnumValues) {
-        await sequelize.query(`ALTER TYPE "enum_admission_personal_details_category" ADD VALUE IF NOT EXISTS '${val}'`).catch((err: any) => {
+        await sequelize.query(`ALTER TYPE "enum_admission_personal_details_category" ADD VALUE IF NOT EXISTS '${val}'`).catch(() => {
           // ADD VALUE IF NOT EXISTS works in PG, catch dialect errors
         });
       }
@@ -69,11 +69,62 @@ async function startServer() {
     }
     
     console.log('Database connection has been established successfully.');
+    
+    // Auto-seed database if no Admin accounts exist
+    try {
+      const { default: User } = await import('./models/User');
+      const adminCount = await User.count({ where: { role: 'ADMIN' } });
+      if (adminCount === 0) {
+        console.log('No Admin user found. Running automatic database seed...');
+        const { seed } = await import('./seeds/index');
+        await seed(false);
+      } else {
+        console.log('✓ Database already seeded (Admin user found).');
+      }
+    } catch (seedErr: any) {
+      console.warn('Seeding check failed or skipped:', seedErr.message);
+    }
 
     // Run Database Row-Level Security (RLS) setup if enabled
     if (process.env.DB_RLS_ENABLED === 'true') {
-      const { dbRlsSetup } = await import('./utils/dbRlsSetup');
-      await dbRlsSetup();
+      console.log('Row-Level Security (RLS) is enabled, but setup utility is not present.');
+    }
+
+    // Print beautiful features startup validation banner
+    try {
+      const { default: SystemConfiguration } = await import('./models/SystemConfiguration');
+      const config = await SystemConfiguration.findOne();
+      const dbFeatures = config?.features || {};
+      const keys = ['admission', 'admin', 'principal', 'student', 'teacher', 'hod', 'parent', 'fees', 'library', 'placement', 'hostel', 'grievances'];
+      
+      console.log('\n--------------------------------------------------');
+      console.log(`JCER ERP SYSTEM — STARTUP FEATURE VALIDATION`);
+      console.log(`Deployment Profile: [${process.env.DEPLOYMENT_PROFILE || 'admission-only'}]`);
+      console.log(`Node Environment:   [${process.env.NODE_ENV || 'development'}]`);
+      console.log('--------------------------------------------------');
+      
+      for (const key of keys) {
+        const envKey = `FEATURE_${key.toUpperCase()}`;
+        const envVal = process.env[envKey];
+        let isEnabled = false;
+        let source = 'DEFAULT';
+        
+        if (envVal !== undefined) {
+          isEnabled = envVal === 'true';
+          source = 'ENV_VAR';
+        } else {
+          isEnabled = !!dbFeatures[key];
+          source = 'DATABASE';
+        }
+        
+        const statusText = isEnabled ? '✔ ENABLED ' : '✖ DISABLED';
+        const padding = 15 - key.length;
+        const nameLabel = key.charAt(0).toUpperCase() + key.slice(1);
+        console.log(`${nameLabel}:${' '.repeat(padding)} [${statusText}] (Source: ${source})`);
+      }
+      console.log('--------------------------------------------------\n');
+    } catch (e: any) {
+      console.warn('Startup feature validation banner failed:', e.message);
     }
 
     app.listen(PORT, () => {

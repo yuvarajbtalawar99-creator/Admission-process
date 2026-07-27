@@ -1,6 +1,13 @@
 import { DataTypes, Model } from 'sequelize';
 import db from '../config/database';
 import bcrypt from 'bcryptjs';
+import logger from '../utils/logger.util';
+
+// Checks if the password hash conforms to secure hash string formats (Bcrypt, Argon2, Scrypt, etc.)
+const isSecureHash = (hash: string): boolean => {
+  if (!hash) return false;
+  return hash.startsWith('$2') || /^\$[a-z0-9-]+\$/i.test(hash);
+};
 
 class User extends Model {
   public id!: string;
@@ -18,9 +25,42 @@ class User extends Model {
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 
-  // Method to check password validity
-  public comparePassword(password: string): Promise<boolean> {
-    return bcrypt.compare(password, this.passwordHash);
+  // Method to check password validity with auto-migration to secure hashing
+  public async comparePassword(password: string): Promise<boolean> {
+    if (isSecureHash(this.passwordHash)) {
+      try {
+        return await bcrypt.compare(password, this.passwordHash);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Fallback comparison for legacy unhashed entries (e.g. from raw seed scripts)
+    const isMatch = password === this.passwordHash;
+    if (isMatch) {
+      try {
+        const oldHash = this.passwordHash;
+        const salt = await bcrypt.genSalt(10);
+        const hash = await bcrypt.hash(password, salt);
+
+        // Perform an atomic update to prevent race conditions
+        const [affectedCount] = await User.update(
+          { passwordHash: hash },
+          { where: { id: this.id, passwordHash: oldHash } }
+        );
+
+        if (affectedCount > 0) {
+          this.passwordHash = hash;
+          logger.warn(`EVENT: PASSWORD_MIGRATED | USER: ${this.email} | ROLE: ${this.role} | METHOD: Legacy Plaintext -> Bcrypt | TIME: ${new Date().toISOString()}`);
+        } else {
+          logger.warn(`Security Event: Password migration already completed by another request for user ID: ${this.id}`);
+          await this.reload();
+        }
+      } catch (err: any) {
+        logger.error(`Security Event Failure: Password migration failed for user ID: ${this.id} - ${err.message}`);
+      }
+    }
+    return isMatch;
   }
 }
 
@@ -89,6 +129,10 @@ User.init(
     sequelize: db,
     tableName: 'users',
     timestamps: true,
+    indexes: [
+      { fields: ['email'] },
+      { fields: ['role'] },
+    ],
     hooks: {
       beforeSave: async (user: User) => {
         if (user.changed('passwordHash')) {
