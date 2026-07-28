@@ -9,7 +9,9 @@ export type AdmissionStatus =
   | 'UNDER_REVIEW'  // admin is reviewing
   | 'APPROVED'      // admin approved
   | 'REJECTED'      // admin rejected
-  | 'ENROLLED';     // fully enrolled in ERP (locked)
+  | 'ENROLLED'      // fully enrolled in ERP (locked)
+  | 'CANCELLATION_REQUESTED' // student requested cancellation
+  | 'CANCELLED';    // admission cancelled
 
 export type AdmissionType = 'KCET' | 'DCET' | 'MANAGEMENT';
 
@@ -39,6 +41,17 @@ class Admission extends Model {
   // Approval Accountability
   public approvedByAdminId!: string | null;
   public approvalRemarks!: string | null;
+
+  // Cancellation Accountability
+  public cancellationReason!: string | null;
+  public cancellationRemarks!: string | null;
+  public cancellationRequestedAt!: Date | null;
+  public cancellationRequestedById!: string | null;
+  public cancellationApprovedAt!: Date | null;
+  public cancellationApprovedById!: string | null;
+  public cancellationRejectedAt!: Date | null;
+  public cancellationRejectedById!: string | null;
+  public cancellationAdminRemarks!: string | null;
 
   public reviewedBy!: string | null;  // legacy admin userId
   public reviewedAt!: Date | null;
@@ -109,7 +122,7 @@ Admission.init(
       allowNull: true,
     },
     applicationStatus: {
-      type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'ENROLLED'),
+      type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'ENROLLED', 'CANCELLATION_REQUESTED', 'CANCELLED'),
       allowNull: false,
       defaultValue: 'DRAFT',
     },
@@ -174,6 +187,42 @@ Admission.init(
     },
     resubmittedAt: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    cancellationReason: {
+      type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    cancellationRemarks: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    cancellationRequestedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    cancellationRequestedById: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    cancellationApprovedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    cancellationApprovedById: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    cancellationRejectedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    cancellationRejectedById: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    cancellationAdminRemarks: {
+      type: DataTypes.TEXT,
       allowNull: true,
     },
   },

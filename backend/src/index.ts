@@ -191,6 +191,14 @@ async function startServer() {
         console.warn('Pre-cast migration for admission_documents.feesPaidReceiptUrl skipped:', e.message);
       }
 
+      // Pre-cast: ensure admissions applicationStatus enum has CANCELLATION_REQUESTED and CANCELLED
+      try {
+        await sequelize.query(`ALTER TYPE "enum_admissions_applicationStatus" ADD VALUE IF NOT EXISTS 'CANCELLATION_REQUESTED'`);
+        await sequelize.query(`ALTER TYPE "enum_admissions_applicationStatus" ADD VALUE IF NOT EXISTS 'CANCELLED'`);
+      } catch (e: any) {
+        console.warn('Pre-cast migration for admissions applicationStatus enum skipped:', e.message);
+      }
+
       console.log('Syncing database schema (development alter)...');
       await sequelize.sync({ alter: true });
     } else {

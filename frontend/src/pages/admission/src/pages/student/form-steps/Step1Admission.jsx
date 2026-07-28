@@ -312,11 +312,11 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
                 )}
             </div>
 
-            <div className="flex justify-end items-center pt-6 border-t border-slate-100 mt-8">
+            <div className="flex justify-end items-center pt-4 sm:pt-6 border-t border-slate-100 mt-6 sm:mt-8 sticky bottom-0 bg-white/95 backdrop-blur-md p-3 sm:p-0 -mx-4 -mb-4 sm:mx-0 sm:mb-0 sm:static sm:bg-transparent z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:shadow-none">
                 <button 
                     type="submit" 
                     disabled={isFormDisabled} 
-                    className={`btn-primary h-11 px-8 ${isFormDisabled ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
+                    className={`btn-primary min-h-[44px] h-11 px-8 w-full sm:w-auto flex items-center justify-center ${isFormDisabled ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
                 >
                     {loading ? <Loader2 size={18} className="animate-spin" /> : (
                         <span className="flex items-center gap-2">

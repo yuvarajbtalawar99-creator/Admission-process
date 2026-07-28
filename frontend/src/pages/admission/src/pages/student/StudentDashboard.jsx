@@ -87,6 +87,7 @@ const StudentDashboard = () => {
             applicationStatus={applicationStatus}
             timeline={timeline}
             navigate={navigate}
+            refetch={refetch}
         />;
     }
 
@@ -335,7 +336,30 @@ const StudentDashboard = () => {
 //  SUBMITTED STATUS DASHBOARD (Inner Component)
 // ═══════════════════════════════════════════════
 
-const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate }) => {
+const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate, refetch }) => {
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelRemarks, setCancelRemarks] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleCancelSubmit = async () => {
+        if (!cancelReason) return;
+        setIsSubmitting(true);
+        try {
+            const res = await api.post('/student/cancellation-request', { reason: cancelReason, remarks: cancelRemarks });
+            if (res.data.success) {
+                toast.success('Admission cancellation request submitted successfully');
+                setShowCancelModal(false);
+                setCancelReason('');
+                setCancelRemarks('');
+                if (refetch) refetch();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Failed to submit cancellation request');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     const getStatusMeta = (status) => {
         switch (status) {
@@ -353,6 +377,10 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate 
                 return { label: 'Admission Confirmed 🎉', icon: Award, color: 'text-purple-600', bg: 'bg-purple-100', desc: 'Congratulations! Your admission has been confirmed. Please carry your application copy when visiting the college.' };
             case 'REJECTED':
                 return { label: 'Application Rejected', icon: XCircle, color: 'text-red-600', bg: 'bg-red-100', desc: 'Your application was not approved.' };
+            case 'CANCELLATION_REQUESTED':
+                return { label: 'Cancellation Requested', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100', desc: 'Your request for admission cancellation is under review.' };
+            case 'CANCELLED':
+                return { label: 'Admission Cancelled', icon: XCircle, color: 'text-red-600', bg: 'bg-red-100', desc: 'Your admission has been cancelled.' };
             default:
                 return { label: 'Processing', icon: Clock, color: 'text-slate-600', bg: 'bg-slate-100', desc: 'Your application is being processed.' };
         }
@@ -362,11 +390,11 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate 
     const StatusIcon = meta.icon;
     const isApproved = applicationStatus === 'ADMISSION_CONFIRMED' || applicationStatus === 'APPROVED' || applicationStatus === 'ENROLLED' || applicationStatus === 'USN_ASSIGNED';
     const isRejected = applicationStatus === 'REJECTED';
+    const isCancelled = applicationStatus === 'CANCELLED';
 
     const handleDownloadPDF = async () => {
         await downloadAdmissionPDF(api, toast);
     };
-
 
     return (
         <div className="animate-fade-in space-y-8 pb-16 max-w-4xl mx-auto">
@@ -378,7 +406,7 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate 
 
             {/* Status Hero Card */}
             <div className={`relative overflow-hidden p-8 rounded-2xl border-2 ${
-                isRejected ? 'border-red-200 bg-red-50' :
+                isRejected || isCancelled ? 'border-red-200 bg-red-50' :
                 isApproved ? 'border-emerald-200 bg-emerald-50' :
                 'border-slate-200 bg-white'
             }`}>
@@ -444,65 +472,186 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate 
 
                 {/* Quick Actions */}
                 <div className="lg:col-span-2 space-y-4">
-                    <button
-                        onClick={() => navigate('/admission/application')}
-                        className="w-full bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 transition-all group"
-                    >
-                        <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors">
-                            <Eye size={22} />
+                    {isCancelled ? (
+                        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 space-y-4 text-slate-900">
+                            <div className="flex items-center gap-3 border-b border-red-100 pb-3">
+                                <XCircle className="text-red-650" size={20} />
+                                <h3 className="text-sm font-bold text-red-950 uppercase tracking-wide">Cancellation Details</h3>
+                            </div>
+                            <div className="space-y-3.5 text-xs">
+                                <div>
+                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Cancellation Date</p>
+                                    <p className="font-bold text-red-800 mt-1">
+                                        {stepStatus?.cancellationApprovedAt 
+                                            ? new Date(stepStatus.cancellationApprovedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) 
+                                            : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                    </p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Reason</p>
+                                    <p className="font-bold text-red-800 mt-1">{stepStatus?.cancellationReason || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Cancelled By</p>
+                                    <p className="font-bold text-red-800 mt-1">Administrator</p>
+                                </div>
+                                {stepStatus?.cancellationRemarks && (
+                                    <div>
+                                        <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Student Remarks</p>
+                                        <p className="font-bold text-red-800 mt-1 italic">"{stepStatus.cancellationRemarks}"</p>
+                                    </div>
+                                )}
+                                {stepStatus?.cancellationAdminRemarks && (
+                                    <div>
+                                        <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">Admin Remarks</p>
+                                        <p className="font-bold text-red-800 mt-1 italic">"{stepStatus.cancellationAdminRemarks}"</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        <div className="text-left">
-                            <p className="font-bold text-slate-900 text-sm">View Application</p>
-                            <p className="text-xs text-slate-400">Review your submitted details</p>
-                        </div>
-                        <ArrowRight size={16} className="ml-auto text-slate-300 group-hover:text-primary-600 transition-colors" />
-                    </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => navigate('/admission/application')}
+                                className="w-full bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 transition-all group"
+                            >
+                                <div className="w-12 h-12 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors">
+                                    <Eye size={22} />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-bold text-slate-900 text-sm">View Application</p>
+                                    <p className="text-xs text-slate-400">Review your submitted details</p>
+                                </div>
+                                <ArrowRight size={16} className="ml-auto text-slate-300 group-hover:text-primary-600 transition-colors" />
+                            </button>
 
-                    {(isApproved || !isRejected) && (
-                        <button
-                            onClick={handleDownloadPDF}
-                            className="w-full bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 transition-all group"
-                        >
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                <Download size={22} />
+                            {(isApproved || !isRejected) && (
+                                <button
+                                    onClick={handleDownloadPDF}
+                                    className="w-full bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 transition-all group"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                        <Download size={22} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-bold text-slate-900 text-sm">
+                                            {isApproved ? 'Download Confirmed Admission' : 'Download PDF'}
+                                        </p>
+                                        <p className="text-xs text-slate-400">{isApproved ? 'Your confirmed admission as a PDF' : 'Get a copy of your application'}</p>
+                                    </div>
+                                    <ArrowRight size={16} className="ml-auto text-slate-300 group-hover:text-blue-600 transition-colors" />
+                                </button>
+                            )}
+
+                            {isRejected && (
+                                <button
+                                    onClick={() => navigate('/admission/application')}
+                                    className="w-full bg-red-650 text-white rounded-2xl p-5 flex items-center gap-4 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all group"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                                        <Activity size={22} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-bold text-sm">Edit & Resubmit</p>
+                                        <p className="text-xs text-red-100">Correct your application now</p>
+                                    </div>
+                                    <ArrowRight size={16} className="ml-auto text-red-200 group-hover:translate-x-1 transition-transform" />
+                                </button>
+                            )}
+
+                            {applicationStatus === 'ENROLLED' && (
+                                <button
+                                    onClick={() => setShowCancelModal(true)}
+                                    className="w-full bg-red-50 border border-red-200 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-red-300 transition-all group"
+                                >
+                                    <div className="w-12 h-12 rounded-xl bg-red-100 text-red-600 flex items-center justify-center group-hover:bg-red-650 group-hover:text-white transition-colors">
+                                        <XCircle size={22} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="font-bold text-red-900 text-sm">Request Admission Cancellation</p>
+                                        <p className="text-xs text-red-500">Submit a request to cancel your admission</p>
+                                    </div>
+                                    <ArrowRight size={16} className="ml-auto text-red-300 group-hover:text-red-600 transition-colors" />
+                                </button>
+                            )}
+
+                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                                    <LifeBuoy size={22} />
+                                </div>
+                                <div className="text-left">
+                                    <p className="font-bold text-slate-900 text-sm">Need Help?</p>
+                                    <p className="text-xs text-slate-400">Contact admissions office</p>
+                                </div>
                             </div>
-                            <div className="text-left">
-                                <p className="font-bold text-slate-900 text-sm">
-                                    {isApproved ? 'Download Confirmed Admission' : 'Download PDF'}
-                                </p>
-                                <p className="text-xs text-slate-400">{isApproved ? 'Your confirmed admission as a PDF' : 'Get a copy of your application'}</p>
-                            </div>
-                            <ArrowRight size={16} className="ml-auto text-slate-300 group-hover:text-blue-600 transition-colors" />
-                        </button>
+                        </>
                     )}
+                </div>
+            </div>
 
-                    {isRejected && (
-                        <button
-                            onClick={() => navigate('/admission/application')}
-                            className="w-full bg-red-600 text-white rounded-2xl p-5 flex items-center gap-4 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all group"
-                        >
-                            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                                <Activity size={22} />
-                            </div>
-                            <div className="text-left">
-                                <p className="font-bold text-sm">Edit & Resubmit</p>
-                                <p className="text-xs text-red-100">Correct your application now</p>
-                            </div>
-                            <ArrowRight size={16} className="ml-auto text-red-200 group-hover:translate-x-1 transition-transform" />
-                        </button>
-                    )}
-
-                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
-                            <LifeBuoy size={22} />
+            {/* Cancellation Request Modal */}
+            {showCancelModal && (
+                <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 space-y-6 shadow-2xl animate-fade-in">
+                        <div className="space-y-2">
+                            <h3 className="text-lg font-bold text-slate-900">Request Admission Cancellation</h3>
+                            <p className="text-xs text-slate-500">Please provide the reason for cancelling your admission. This request will be reviewed by the administration.</p>
                         </div>
-                        <div className="text-left">
-                            <p className="font-bold text-slate-900 text-sm">Need Help?</p>
-                            <p className="text-xs text-slate-400">Contact admissions office</p>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Reason for Cancellation <span className="text-red-500">*</span></label>
+                                <select
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    className="w-full text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none focus:border-primary-500 focus:bg-white transition-colors"
+                                >
+                                    <option value="">Select a reason</option>
+                                    <option value="Joined Another College">Joined Another College</option>
+                                    <option value="Financial Reasons">Financial Reasons</option>
+                                    <option value="Personal Reasons">Personal Reasons</option>
+                                    <option value="Wrong Course Selected">Wrong Course Selected</option>
+                                    <option value="Relocation">Relocation</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-1.5">Remarks / Additional Details</label>
+                                <textarea
+                                    value={cancelRemarks}
+                                    onChange={(e) => setCancelRemarks(e.target.value)}
+                                    rows={4}
+                                    placeholder="Provide any additional comments here..."
+                                    className="w-full text-xs font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-4 focus:outline-none focus:border-primary-500 focus:bg-white transition-colors resize-none"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowCancelModal(false);
+                                    setCancelReason('');
+                                    setCancelRemarks('');
+                                }}
+                                disabled={isSubmitting}
+                                className="px-4 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCancelSubmit}
+                                disabled={isSubmitting || !cancelReason}
+                                className="px-4 py-2 bg-red-650 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-colors shadow-md shadow-red-600/10 flex items-center gap-1.5"
+                            >
+                                {isSubmitting ? (
+                                    <>Submitting...</>
+                                ) : (
+                                    <>Submit Request</>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

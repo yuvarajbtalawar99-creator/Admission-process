@@ -37,6 +37,7 @@ import AdmissionQueuePage from './pages/admin/admissions/AdmissionQueuePage';
 import AdmissionReviewPage from './pages/admin/admissions/AdmissionReviewPage';
 import PrincipalManagementPage from './pages/admin/users/PrincipalManagementPage';
 import StudentsDashboardPage from './pages/admin/admissions/StudentsDashboardPage';
+import CancellationRequestsPage from './pages/admin/admissions/CancellationRequestsPage';
 import AdminNotificationsPage from './pages/admin/communications/AdminNotificationsPage';
 import AdminAnnouncementsPage from './pages/admin/communications/AdminAnnouncementsPage';
 import AdminAnalyticsPage from './pages/admin/analytics/AdminAnalyticsPage';
@@ -192,6 +193,7 @@ export const App: React.FC = () => (
               <Route path="admissions/rejected"    element={<AdmissionQueuePage defaultStatus="REJECTED" />} />
               <Route path="admissions/verified"    element={<AdmissionQueuePage defaultStatus="APPROVED" />} />
               <Route path="admissions/approved"    element={<AdmissionQueuePage defaultStatus="ENROLLED" />} />
+              <Route path="admissions/cancellations" element={<CancellationRequestsPage />} />
               <Route path="admissions/history"     element={<AdmissionQueuePage defaultStatus="ALL" />} />
               <Route path="admissions/review/:id"  element={<AdmissionReviewPage />} />
 
@@ -218,6 +220,7 @@ export const App: React.FC = () => (
               <Route path="admissions/rejected"    element={<PrincipalAdmissionQueuePage defaultStatus="REJECTED" />} />
               <Route path="admissions/history"     element={<PrincipalAdmissionQueuePage defaultStatus="ALL" />} />
               <Route path="admissions/review/:id"  element={<PrincipalAdmissionReviewPage />} />
+              <Route path="students"               element={<StudentsDashboardPage readOnly={true} />} />
               <Route path="analytics"              element={<CollegeAnalyticsPage />} />
               <Route path="reports"                element={<ReportGenerationPage />} />
               <Route path="profile"                element={<PrincipalProfilePage />} />

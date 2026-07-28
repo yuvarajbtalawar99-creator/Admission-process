@@ -5,6 +5,7 @@ import admissionService from '../services/admission.service';
 import securityEvents from '../services/securityEvents.service';
 import AuditLog from '../models/AuditLog';
 import AdmissionDocument from '../models/AdmissionDocument';
+import Admission from '../models/Admission';
 
 interface AuthRequest extends Request {
   user?: { id: string; role: string };
@@ -512,6 +513,177 @@ export const getAdminStats = async (
   try {
     const stats = await admissionService.getDashboardStats();
     return res.json({ success: true, data: stats });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+/** POST /api/student/cancellation-request */
+export const requestAdmissionCancellation = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<any> => {
+  try {
+    const { reason, remarks } = req.body;
+    if (!reason) {
+      return res.status(400).json({ error: 'Cancellation reason is required' });
+    }
+
+    const admission = await Admission.findOne({ where: { userId: req.user!.id } });
+    if (!admission) {
+      return res.status(404).json({ error: 'Admission application not found' });
+    }
+
+    if (admission.applicationStatus !== 'ENROLLED') {
+      return res.status(403).json({ error: 'Only confirmed admissions can be cancelled' });
+    }
+
+    admission.applicationStatus = 'CANCELLATION_REQUESTED';
+    admission.cancellationReason = reason;
+    admission.cancellationRemarks = remarks || null;
+    admission.cancellationRequestedAt = new Date();
+    admission.cancellationRequestedById = req.user!.id;
+    await admission.save();
+
+    await AuditLog.create({
+      userId: req.user!.id,
+      action: 'ADMISSION_STATUS_CHANGE',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        admissionId: admission.id,
+        action: 'ADMISSION_CANCELLATION_REQUESTED',
+        reason,
+        remarks: remarks || '',
+        performedBy: req.user!.id,
+      },
+    });
+
+    return res.json({ success: true, message: 'Cancellation request submitted successfully' });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+/** POST /api/admin/admissions/:id/cancellation-process */
+export const processCancellationRequest = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { action, remarks } = req.body; // action: 'APPROVE' | 'REJECT'
+
+    if (!action || (action !== 'APPROVE' && action !== 'REJECT')) {
+      return res.status(400).json({ error: 'Valid action (APPROVE or REJECT) is required' });
+    }
+
+    const admission = await Admission.findByPk(id);
+    if (!admission) {
+      return res.status(404).json({ error: 'Admission application not found' });
+    }
+
+    if (admission.applicationStatus !== 'CANCELLATION_REQUESTED') {
+      return res.status(400).json({ error: 'Admission application is not in Cancellation Requested status' });
+    }
+
+    if (action === 'APPROVE') {
+      admission.applicationStatus = 'CANCELLED';
+      admission.cancellationApprovedAt = new Date();
+      admission.cancellationApprovedById = req.user!.id;
+      admission.cancellationAdminRemarks = remarks || null;
+      await admission.save();
+
+      await AuditLog.create({
+        userId: req.user!.id,
+        action: 'ADMISSION_STATUS_CHANGE',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        details: {
+          admissionId: id,
+          action: 'ADMISSION_CANCELLATION_APPROVED',
+          remarks: remarks || '',
+          performedBy: req.user!.id,
+        },
+      });
+
+      return res.json({ success: true, message: 'Admission cancellation approved successfully' });
+    } else {
+      // Revert back to ENROLLED (Admission Confirmed)
+      admission.applicationStatus = 'ENROLLED';
+      admission.cancellationRejectedAt = new Date();
+      admission.cancellationRejectedById = req.user!.id;
+      admission.cancellationAdminRemarks = remarks || null;
+      await admission.save();
+
+      await AuditLog.create({
+        userId: req.user!.id,
+        action: 'ADMISSION_STATUS_CHANGE',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        details: {
+          admissionId: id,
+          action: 'ADMISSION_CANCELLATION_REJECTED',
+          remarks: remarks || '',
+          performedBy: req.user!.id,
+        },
+      });
+
+      return res.json({ success: true, message: 'Admission cancellation request rejected' });
+    }
+  } catch (err) {
+    return next(err);
+  }
+};
+
+/** POST /api/admin/admissions/:id/cancellation-direct */
+export const directCancelAdmission = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { reason, remarks } = req.body;
+
+    if (!reason) {
+      return res.status(400).json({ error: 'Cancellation reason is required' });
+    }
+
+    const admission = await Admission.findByPk(id);
+    if (!admission) {
+      return res.status(404).json({ error: 'Admission application not found' });
+    }
+
+    if (admission.applicationStatus !== 'ENROLLED' && admission.applicationStatus !== 'APPROVED') {
+      return res.status(400).json({ error: 'Only confirmed/approved admissions can be directly cancelled' });
+    }
+
+    admission.applicationStatus = 'CANCELLED';
+    admission.cancellationReason = reason;
+    admission.cancellationRemarks = remarks || null;
+    admission.cancellationApprovedAt = new Date();
+    admission.cancellationApprovedById = req.user!.id;
+    admission.cancellationAdminRemarks = remarks || null;
+    await admission.save();
+
+    await AuditLog.create({
+      userId: req.user!.id,
+      action: 'ADMISSION_STATUS_CHANGE',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: {
+        admissionId: id,
+        action: 'ADMISSION_CANCELLED_DIRECT',
+        reason,
+        remarks: remarks || '',
+        performedBy: req.user!.id,
+      },
+    });
+
+    return res.json({ success: true, message: 'Admission cancelled directly by administrator' });
   } catch (err) {
     return next(err);
   }

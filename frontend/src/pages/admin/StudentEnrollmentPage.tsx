@@ -157,6 +157,8 @@ export const StudentEnrollmentPage: React.FC<StudentEnrollmentPageProps> = ({ de
     APPROVED:     applications.filter(a => a.applicationStatus === 'APPROVED').length,
     REJECTED:     applications.filter(a => a.applicationStatus === 'REJECTED').length,
     ENROLLED:     applications.filter(a => a.applicationStatus === 'ENROLLED').length,
+    CANCELLATION_REQUESTED: applications.filter(a => a.applicationStatus === 'CANCELLATION_REQUESTED').length,
+    CANCELLED:    applications.filter(a => a.applicationStatus === 'CANCELLED').length,
   };
 
   // ── Helpers ─────────────────────────────────────────────────────────────────

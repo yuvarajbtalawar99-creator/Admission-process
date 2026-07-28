@@ -116,16 +116,12 @@ export const PrincipalLayout: React.FC = () => {
 
   const menuGroups: MenuGroup[] = [
     {
-      title: 'Dashboard',
+      title: 'Dashboard & Queue',
       items: [
         { name: 'Overview', path: '/principal/dashboard', icon: LayoutDashboard },
-        { name: 'Analytics', path: '/principal/analytics', icon: BarChart3 },
-      ],
-    },
-    {
-      title: 'Admissions approvals',
-      items: [
         { name: 'Admissions Queue', path: '/principal/admissions', icon: ClipboardList, badge: pendingCount > 0 ? pendingCount : undefined },
+        { name: 'Students', path: '/principal/students', icon: Users },
+        { name: 'Analytics', path: '/principal/analytics', icon: BarChart3 },
       ],
     },
     {
@@ -138,7 +134,9 @@ export const PrincipalLayout: React.FC = () => {
 
   const pageTitles: Record<string, string> = {
     '/principal/dashboard': 'Principal Overview',
-    '/principal/analytics': 'College Analytics',
+    '/principal/admissions': 'Admissions Queue',
+    '/principal/students': 'Students Directory (Read Only)',
+    '/principal/analytics': 'Admission Analytics',
     '/principal/reports': 'Report Generator',
     '/principal/profile': 'My Profile',
   };

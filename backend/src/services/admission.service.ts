@@ -152,6 +152,12 @@ function computeStepStatus(admission: any) {
   if (admission?.applicationStatus === 'REJECTED') {
     timeline.rejectedAt = admission?.reviewedAt || admission?.updatedAt;
   }
+  if (admission?.cancellationRequestedAt) {
+    timeline.cancellationRequestedAt = admission.cancellationRequestedAt;
+  }
+  if (admission?.cancellationApprovedAt) {
+    timeline.cancellationApprovedAt = admission.cancellationApprovedAt;
+  }
 
   return {
     applicationStatus: admission?.applicationStatus || 'DRAFT',
@@ -166,6 +172,12 @@ function computeStepStatus(admission: any) {
     adminRemarks: admission?.adminRemarks || null,
     rejectionReason: admission?.rejectionReason || null,
     rejectionReasonCode: admission?.rejectionReasonCode || null,
+    cancellationReason: admission?.cancellationReason || null,
+    cancellationRemarks: admission?.cancellationRemarks || null,
+    cancellationRequestedAt: admission?.cancellationRequestedAt || null,
+    cancellationApprovedAt: admission?.cancellationApprovedAt || null,
+    cancellationApprovedById: admission?.cancellationApprovedById || null,
+    cancellationAdminRemarks: admission?.cancellationAdminRemarks || null,
     timeline,
   };
 }
@@ -952,7 +964,7 @@ class AdmissionService {
     const cached = await redisService.getCache(cacheKey);
     if (cached) return cached;
 
-    const [total, draftCount, submitted, resubmitted, underReview, approvedCount, _approvedByPrincipalCount, rejected, enrolled] = await Promise.all([
+    const [total, draftCount, submitted, resubmitted, underReview, approvedCount, _approvedByPrincipalCount, rejected, enrolled, cancellationRequests] = await Promise.all([
       Admission.count(),
       Admission.count({ where: { applicationStatus: 'DRAFT' } }),
       Admission.count({
@@ -985,6 +997,7 @@ class AdmissionService {
       Admission.count({ where: { applicationStatus: 'APPROVED', approvedByAdminId: { [Op.ne]: null } } }),
       Admission.count({ where: { applicationStatus: 'REJECTED' } }),
       Admission.count({ where: { applicationStatus: 'ENROLLED' } }),
+      Admission.count({ where: { applicationStatus: 'CANCELLATION_REQUESTED' } }),
     ]);
 
     const recent = await Admission.findAll({
@@ -1007,6 +1020,7 @@ class AdmissionService {
       approved: approvedCount, 
       rejected, 
       enrolled, 
+      cancellationRequests,
       recent 
     };
 

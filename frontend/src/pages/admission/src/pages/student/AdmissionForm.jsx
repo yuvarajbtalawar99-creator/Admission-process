@@ -644,10 +644,10 @@ const AdmissionForm = () => {
     const progressPercent = stepStatus?.progressPercent || 0;
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-12">
+        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 animate-fade-in pb-8 sm:pb-12 px-3 sm:px-0 w-full max-w-full box-border">
             {stepStatus?.applicationStatus === 'REJECTED' && (
-                <div className="bg-rose-50 border-l-4 border-rose-500 p-5 rounded-r-xl shadow-sm space-y-2 no-print">
-                    <h3 className="text-sm font-bold text-rose-900 uppercase tracking-wide">⚠️ Action Required: Application Returned for Correction</h3>
+                <div className="bg-rose-50 border-l-4 border-rose-500 p-4 sm:p-5 rounded-r-xl shadow-sm space-y-2 no-print">
+                    <h3 className="text-xs sm:text-sm font-bold text-rose-900 uppercase tracking-wide">⚠️ Action Required: Application Returned for Correction</h3>
                     {(() => {
                         const isOther = stepStatus.rejectionReasonCode === 'OTHER' || stepStatus.rejectionReason === 'Other' || stepStatus.rejectionReason === 'OTHER';
                         if (isOther) {
@@ -672,35 +672,35 @@ const AdmissionForm = () => {
                             </>
                         );
                     })()}
-                    <p className="text-[11px] text-rose-600">
+                    <p className="text-[11px] text-rose-600 leading-tight">
                         Please navigate through the form steps below, modify the incorrect or missing details, and resubmit the application.
                     </p>
                 </div>
             )}
 
             {/* Form Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 rounded-lg p-5 no-print">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 bg-white border border-slate-200 rounded-2xl sm:rounded-lg p-4 sm:p-5 no-print">
                 <div className="space-y-1">
-                    <h1 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-                        <GraduationCap className="text-primary-600" size={24} />
+                    <h1 className="text-lg sm:text-xl font-semibold text-slate-900 flex items-center gap-2">
+                        <GraduationCap className="text-primary-600 shrink-0" size={22} />
                         Admission Form
                     </h1>
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500">
                         <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-semibold">Admission Session 2026-2027</span>
                     </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
                     <button
                         onClick={() => navigate('/admission/dashboard')}
-                        className="btn-secondary text-sm flex items-center gap-1.5 py-2 px-3"
+                        className="btn-secondary text-xs sm:text-sm flex items-center gap-1.5 py-2 px-3 min-h-[38px]"
                     >
                         <ChevronLeft size={16} />
                         Back to Portal
                     </button>
-                    <div className="text-right hidden sm:block">
+                    <div className="text-right">
                         <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Admission Progress</p>
                         <div className="flex items-center gap-2">
-                            <div className="w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="w-16 sm:w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                                 <div
                                     className="h-full rounded-full transition-all duration-700"
                                     style={{
@@ -711,40 +711,40 @@ const AdmissionForm = () => {
                                     }}
                                 ></div>
                             </div>
-                            <p className="text-sm font-bold text-primary-700">{completedCount}/{totalSteps}</p>
+                            <p className="text-xs sm:text-sm font-bold text-primary-700">{completedCount}/{totalSteps}</p>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Step Indicator */}
-            <div className="no-print">
+            <div className="no-print overflow-x-auto">
                 <StepIndicator steps={STEPS} currentStep={currentStep} getStepState={getStepState} />
             </div>
 
             {/* Step Status Bar */}
-            <div className="flex items-center justify-center gap-6 text-xs no-print">
+            <div className="flex items-center justify-center gap-4 sm:gap-6 text-xs no-print">
                 <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span className="text-slate-500 font-medium">Completed</span>
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-green-500"></div>
+                    <span className="text-slate-500 font-medium text-[11px] sm:text-xs">Completed</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-primary-600 step-pulse"></div>
-                    <span className="text-slate-500 font-medium">In Progress</span>
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-primary-600 step-pulse"></div>
+                    <span className="text-slate-500 font-medium text-[11px] sm:text-xs">In Progress</span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-slate-200"></div>
-                    <span className="text-slate-500 font-medium">Locked</span>
+                    <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-slate-200"></div>
+                    <span className="text-slate-500 font-medium text-[11px] sm:text-xs">Locked</span>
                 </div>
             </div>
 
             {/* Form Content Card */}
-            <div className="bg-white rounded-lg border border-slate-200 min-h-[400px] relative print-no-border">
+            <div className="bg-white rounded-2xl sm:rounded-lg border border-slate-200 min-h-[350px] relative print-no-border max-w-full box-border overflow-hidden">
                 <div className={`h-1 w-full rounded-t-lg transition-colors duration-500 no-print ${
                     getStepState(currentStep) === 'COMPLETED' ? 'bg-green-500' : 'bg-primary-600'
                 }`}></div>
 
-                <div className={`p-6 lg:p-8 transition-all duration-300 ${stepTransition ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
+                <div className={`p-4 sm:p-6 lg:p-8 transition-all duration-300 ${stepTransition ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
                     <LoadingContainer
                         isLoading={loading}
                         skeleton={<FormSkeleton fields={6} />}
@@ -755,32 +755,29 @@ const AdmissionForm = () => {
                 </div>
             </div>
 
-            {/* Help Section */}
-            <div className="bg-slate-50 rounded-lg p-5 flex flex-col md:flex-row items-center justify-between gap-6 border border-slate-200 no-print">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-lg bg-white text-primary-600 border border-slate-200 flex items-center justify-center">
-                        <HelpCircle size={20} />
+            {/* Help Section (Displayed ONLY on Step 1 and Final Review Step 7) */}
+            {(currentStep === 1 || currentStep === 7) && (
+                <div className="bg-slate-50 rounded-2xl sm:rounded-lg p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 sm:gap-6 border border-slate-200 no-print">
+                    <div className="flex items-center gap-3 sm:gap-4 text-center sm:text-left">
+                        <div className="w-10 h-10 rounded-lg bg-white text-primary-600 border border-slate-200 flex items-center justify-center shrink-0">
+                            <HelpCircle size={20} />
+                        </div>
+                        <div>
+                            <h4 className="text-xs sm:text-sm font-semibold text-slate-800 mb-0.5">Need help?</h4>
+                            <p className="text-xs sm:text-sm text-slate-500">Our admissions team is ready to guide you through the process.</p>
+                            <p className="text-xs text-slate-500 mt-0.5">
+                                <span className="font-medium text-slate-700">📞 099448693987</span>
+                                <span className="mx-2 text-slate-300">|</span>
+                                <span className="font-medium text-slate-700">✉️ principal@jcer.in</span>
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h4 className="text-sm font-semibold text-slate-800 mb-0.5">Need help?</h4>
-                        <p className="text-sm text-slate-500">Our admissions team is ready to guide you through the process.</p>
-                        <p className="text-xs text-slate-500 mt-0.5">
-                            <span className="font-medium text-slate-700">📞 099448693987</span>
-                            <span className="mx-2 text-slate-300">|</span>
-                            <span className="font-medium text-slate-700">✉️ principal@jcer.in</span>
-                        </p>
-                    </div>
+                    <button className="btn-secondary text-xs sm:text-sm flex items-center gap-2 py-2 px-4 whitespace-nowrap min-h-[38px]">
+                        Contact Support
+                        <ExternalLink size={14} />
+                    </button>
                 </div>
-                <button className="btn-secondary text-sm flex items-center gap-2 py-2 px-4 whitespace-nowrap">
-                    Contact Support
-                    <ExternalLink size={14} />
-                </button>
-            </div>
-
-            {/* Footer */}
-            <div className="text-center pt-4 border-t border-slate-100 text-xs text-slate-400">
-                © 2026 university Admission Cell. All rights reserved.
-            </div>
+            )}
         </div>
     );
 };

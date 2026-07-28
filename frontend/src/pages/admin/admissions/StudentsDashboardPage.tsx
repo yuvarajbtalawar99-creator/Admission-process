@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Search, Filter, ChevronLeft, ChevronRight, Eye, CheckCircle2, Clock, XCircle, FileText, 
-  RefreshCw, Download, User, Phone, MapPin, Calendar, BookOpen, Loader2, ArrowRight, ShieldCheck, Mail, ClipboardList, ShieldAlert, Award, Edit, GraduationCap, X, Briefcase, FileSignature, CheckSquare, Trash2
+  RefreshCw, Download, User, Phone, MapPin, Calendar, BookOpen, Loader2, ArrowRight, ShieldCheck, Mail, ClipboardList, ShieldAlert, Award, Edit, GraduationCap, X, Briefcase, FileSignature, CheckSquare, Trash2, Ban, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../../services/api';
@@ -17,6 +17,8 @@ const STATUS_COLOR_MAP: Record<string, string> = {
   APPROVED: 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/20 dark:text-indigo-450 dark:border-indigo-900/40',
   REJECTED: 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-450 dark:border-rose-900/40',
   ENROLLED: 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-450 dark:border-emerald-900/40',
+  CANCELLATION_REQUESTED: 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/20 dark:text-amber-450 dark:border-amber-900/40',
+  CANCELLED: 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-450 dark:border-rose-900/40',
 };
 
 const STATUS_LABEL_MAP: Record<string, string> = {
@@ -26,6 +28,8 @@ const STATUS_LABEL_MAP: Record<string, string> = {
   APPROVED: 'Verified (Admin)',
   REJECTED: 'Rejected',
   ENROLLED: 'Enrolled',
+  CANCELLATION_REQUESTED: 'Cancellation Requested',
+  CANCELLED: 'Admission Cancelled',
 };
 
 const getPhotoUrl = (path: string | null) => {
@@ -35,7 +39,11 @@ const getPhotoUrl = (path: string | null) => {
   return `${base.replace('/api', '')}${path}`;
 };
 
-export const StudentsDashboardPage: React.FC = () => {
+interface StudentsDashboardPageProps {
+  readOnly?: boolean;
+}
+
+export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ readOnly = false }) => {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<AdmissionApplication[]>([]);
   const [stats, setStats] = useState({
@@ -74,6 +82,41 @@ export const StudentsDashboardPage: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<AdmissionApplication | null>(null);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
+  const [cancelDirectModalOpen, setCancelDirectModalOpen] = useState(false);
+  const [cancelDirectStep, setCancelDirectStep] = useState<1 | 2>(1);
+  const [cancelDirectReason, setCancelDirectReason] = useState('');
+  const [cancelDirectRemarks, setCancelDirectRemarks] = useState('');
+  const [cancelDirectSubmitting, setCancelDirectSubmitting] = useState(false);
+
+  const handleOpenCancelModal = (e: React.MouseEvent, app: AdmissionApplication) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("Cancel Admission clicked", app);
+    setSelectedStudent(app);
+    setCancelDirectReason('');
+    setCancelDirectRemarks('');
+    setCancelDirectStep(1);
+    setCancelDirectModalOpen(true);
+  };
+
+  const handleDirectCancelSubmit = async () => {
+    if (!selectedStudent || !cancelDirectReason) return;
+    setCancelDirectSubmitting(true);
+    try {
+      await admissionService.directCancel(selectedStudent.id, cancelDirectReason, cancelDirectRemarks);
+      toast.success('Admission cancelled successfully.');
+      setCancelDirectModalOpen(false);
+      setCancelDirectReason('');
+      setCancelDirectRemarks('');
+      setCancelDirectStep(1);
+      if (viewModalOpen) setViewModalOpen(false);
+      handleRefresh();
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Failed to cancel admission');
+    } finally {
+      setCancelDirectSubmitting(false);
+    }
+  };
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
 
@@ -701,13 +744,25 @@ export const StudentsDashboardPage: React.FC = () => {
                           >
                             <Download size={14} />
                           </button>
-                          <button 
-                            onClick={() => handleEditClick(app)}
-                            className="p-1.5 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-300 transition-colors"
-                            title="Edit"
-                          >
-                            <Edit size={14} />
-                          </button>
+                          {!readOnly && (
+                            <button 
+                              onClick={() => handleEditClick(app)}
+                              className="p-1.5 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 rounded-lg text-neutral-600 dark:text-neutral-300 transition-colors"
+                              title="Edit"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
+                          {!readOnly && (app.applicationStatus === 'ENROLLED' || app.applicationStatus === 'APPROVED') && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleOpenCancelModal(e, app)}
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 dark:text-rose-400 rounded-lg transition-colors cursor-pointer"
+                              title="Cancel Admission"
+                            >
+                              <Ban size={14} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -931,7 +986,10 @@ export const StudentsDashboardPage: React.FC = () => {
               </button>
             </div>
           </div>
-             {/* View Profile Modal */}
+        </div>
+      )}
+
+      {/* View Profile Modal */}
       {viewModalOpen && selectedStudent && (
         <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl w-[94vw] h-[90vh] flex flex-col shadow-2xl animate-in fade-in duration-200 overflow-hidden">
@@ -965,6 +1023,15 @@ export const StudentsDashboardPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
+                {selectedStudent.applicationStatus === 'ENROLLED' && (
+                  <button 
+                    type="button"
+                    onClick={(e) => handleOpenCancelModal(e, selectedStudent)}
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-md"
+                  >
+                    <Ban size={14} /> Cancel Admission
+                  </button>
+                )}
                 <button 
                   onClick={() => handleDownloadPDF(selectedStudent.id)}
                   className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-md"
@@ -1503,6 +1570,59 @@ export const StudentsDashboardPage: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* Cancellation Information Card */}
+                  {(selectedStudent.applicationStatus === 'CANCELLED' || selectedStudent.applicationStatus === 'CANCELLATION_REQUESTED') && (
+                    <div className="bg-rose-50/50 dark:bg-rose-950/10 border border-rose-200/60 dark:border-rose-900/40 rounded-3xl p-5.5 space-y-4 shadow-sm text-neutral-900 dark:text-white">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-rose-700 dark:text-rose-400 border-l-4 border-rose-500 pl-3 flex items-center gap-2">
+                        <Ban size={16} className="text-rose-500" /> Cancellation Information
+                      </h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div>
+                          <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Status</p>
+                          <p className="font-bold text-rose-700 dark:text-rose-300 mt-0.5">
+                            {selectedStudent.applicationStatus === 'CANCELLED' ? 'Admission Cancelled' : 'Cancellation Pending'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Cancellation Reason</p>
+                          <p className="font-bold text-neutral-800 dark:text-neutral-200 mt-0.5">{selectedStudent.cancellationReason || 'N/A'}</p>
+                        </div>
+                        {selectedStudent.cancellationRequestedAt && (
+                          <div>
+                            <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Requested Date</p>
+                            <p className="font-bold text-neutral-800 dark:text-neutral-200 mt-0.5">
+                              {new Date(selectedStudent.cancellationRequestedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        )}
+                        {selectedStudent.cancellationApprovedAt && (
+                          <div>
+                            <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Cancelled Date</p>
+                            <p className="font-bold text-neutral-800 dark:text-neutral-200 mt-0.5">
+                              {new Date(selectedStudent.cancellationApprovedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {selectedStudent.cancellationRemarks && (
+                        <div className="text-xs">
+                          <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Student Remarks</p>
+                          <div className="p-3 bg-white dark:bg-neutral-950 border border-rose-200/40 dark:border-rose-900/30 rounded-xl mt-1.5 font-semibold text-neutral-700 dark:text-neutral-300 italic">
+                            "{selectedStudent.cancellationRemarks}"
+                          </div>
+                        </div>
+                      )}
+                      {selectedStudent.cancellationAdminRemarks && (
+                        <div className="text-xs">
+                          <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Administrator Remarks</p>
+                          <div className="p-3 bg-white dark:bg-neutral-950 border border-rose-200/40 dark:border-rose-900/30 rounded-xl mt-1.5 font-semibold text-neutral-700 dark:text-neutral-300 italic">
+                            "{selectedStudent.cancellationAdminRemarks}"
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 </div>
 
               </div>
@@ -1511,9 +1631,208 @@ export const StudentsDashboardPage: React.FC = () => {
 
           </div>
         </div>
-      )}   </div>
       )}
 
+      {/* Direct Cancel Admission Modal (Two-Step Workflow) */}
+      {cancelDirectModalOpen && selectedStudent && (
+        <div className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl animate-in fade-in duration-200">
+            
+            {cancelDirectStep === 1 ? (
+              <>
+                {/* Modal Title */}
+                <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                  <h3 className="text-base font-black text-neutral-900 dark:text-white uppercase tracking-wide flex items-center gap-2">
+                    <Ban className="text-rose-600" size={20} /> Cancel Admission
+                  </h3>
+                  <button 
+                    onClick={() => {
+                      setCancelDirectModalOpen(false);
+                      setCancelDirectReason('');
+                      setCancelDirectRemarks('');
+                      setCancelDirectStep(1);
+                    }}
+                    className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-400"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Display Student Details */}
+                <div className="bg-neutral-50 dark:bg-neutral-950 border border-neutral-200/80 dark:border-neutral-800 rounded-xl p-4 grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Student Name</p>
+                    <p className="font-extrabold text-neutral-900 dark:text-white mt-0.5">
+                      {selectedStudent.user ? `${selectedStudent.user.firstName || ''} ${selectedStudent.user.lastName || ''}`.trim() : 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Application Number</p>
+                    <p className="font-extrabold text-neutral-900 dark:text-white mt-0.5">{selectedStudent.applicationNumber}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Branch</p>
+                    <p className="font-bold text-neutral-800 dark:text-neutral-200 mt-0.5">{selectedStudent.branch?.name || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Admission Type</p>
+                    <p className="font-bold text-neutral-800 dark:text-neutral-200 mt-0.5">{selectedStudent.admissionType || 'N/A'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Current Status</p>
+                    <span className="inline-block mt-1 px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/40">
+                      Admission Confirmed
+                    </span>
+                  </div>
+                </div>
+
+                {/* Reason & Remarks Form */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">
+                      Reason <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={cancelDirectReason}
+                      onChange={(e) => setCancelDirectReason(e.target.value)}
+                      className="w-full text-xs font-semibold bg-neutral-50 dark:bg-neutral-950 border border-neutral-200/80 dark:border-neutral-800 rounded-xl px-4 py-3 focus:outline-none focus:border-violet-500 focus:bg-white dark:focus:bg-neutral-950 dark:text-white transition-colors"
+                    >
+                      <option value="">Select a reason</option>
+                      <option value="Student Joined Another College">Student Joined Another College</option>
+                      <option value="Student Did Not Report">Student Did Not Report</option>
+                      <option value="Fee Not Paid">Fee Not Paid</option>
+                      <option value="Documents Not Submitted">Documents Not Submitted</option>
+                      <option value="Duplicate Admission">Duplicate Admission</option>
+                      <option value="Requested Offline">Requested Offline</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black text-neutral-400 uppercase tracking-widest mb-1.5">
+                      Remarks
+                    </label>
+                    <textarea
+                      value={cancelDirectRemarks}
+                      onChange={(e) => setCancelDirectRemarks(e.target.value)}
+                      rows={3}
+                      placeholder="Optional administrative notes..."
+                      className="w-full text-xs font-semibold p-4 bg-neutral-50 dark:bg-neutral-950 border border-neutral-200/80 dark:border-neutral-800 rounded-xl focus:outline-none focus:border-violet-500 focus:bg-white dark:focus:bg-neutral-950 dark:text-white transition-all resize-none"
+                    />
+                  </div>
+
+                  {/* Information Box */}
+                  <div className="bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 rounded-xl p-4 space-y-2 text-xs">
+                    <p className="font-extrabold text-amber-900 dark:text-amber-400 flex items-center gap-1.5">
+                      <AlertTriangle size={14} className="text-amber-600 shrink-0" />
+                      This action will ONLY change the student's admission status to: <strong>Admission Cancelled</strong>
+                    </p>
+                    <p className="font-bold text-amber-800 dark:text-amber-350 text-[11px]">The following WILL NOT be deleted:</p>
+                    <div className="grid grid-cols-2 gap-1.5 text-[11px] font-bold text-amber-900 dark:text-amber-300">
+                      <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Student Profile</span>
+                      <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Personal Details</span>
+                      <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Academic Details</span>
+                      <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Uploaded Documents</span>
+                      <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Admission History</span>
+                      <span className="flex items-center gap-1"><CheckCircle2 size={12} className="text-emerald-600 shrink-0" /> Timeline</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex justify-end gap-2.5 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCancelDirectModalOpen(false);
+                      setCancelDirectReason('');
+                      setCancelDirectRemarks('');
+                      setCancelDirectStep(1);
+                    }}
+                    className="px-4 py-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl text-xs font-bold text-neutral-700 dark:text-neutral-350 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!cancelDirectReason}
+                    onClick={() => setCancelDirectStep(2)}
+                    className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white text-xs font-bold rounded-xl transition-colors shadow-md shadow-rose-600/10 flex items-center gap-1.5"
+                  >
+                    Proceed <ArrowRight size={14} />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Step 2: Final Confirmation Modal */}
+                <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-800 pb-3">
+                  <h3 className="text-base font-black text-rose-600 dark:text-rose-400 uppercase tracking-wide flex items-center gap-2">
+                    <AlertTriangle size={20} className="text-rose-600" /> Final Confirmation
+                  </h3>
+                  <button 
+                    onClick={() => setCancelDirectStep(1)}
+                    className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-400"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+
+                <div className="space-y-4 text-xs font-semibold text-neutral-700 dark:text-neutral-300">
+                  <p className="text-sm font-extrabold text-neutral-900 dark:text-white">
+                    Are you sure you want to cancel this student's admission?
+                  </p>
+
+                  <div className="bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/80 dark:border-rose-900/40 rounded-xl p-4 space-y-2.5">
+                    <div>
+                      <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Student</p>
+                      <p className="font-extrabold text-neutral-900 dark:text-white text-xs mt-0.5">
+                        {selectedStudent.applicationNumber} — {selectedStudent.user ? `${selectedStudent.user.firstName || ''} ${selectedStudent.user.lastName || ''}`.trim() : 'N/A'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-1 border-t border-rose-100 dark:border-rose-900/30">
+                      <div>
+                        <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">Current Status</p>
+                        <p className="font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">Admission Confirmed</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-rose-400 uppercase tracking-wider">New Status</p>
+                        <p className="font-extrabold text-rose-600 dark:text-rose-400 mt-0.5">Admission Cancelled</p>
+                      </div>
+                    </div>
+
+                    <p className="text-[11px] font-bold text-rose-700 dark:text-rose-350 italic pt-1">
+                      ℹ This action does NOT delete the student.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 2 Buttons */}
+                <div className="flex justify-end gap-2.5 pt-2 border-t border-neutral-100 dark:border-neutral-800">
+                  <button
+                    type="button"
+                    disabled={cancelDirectSubmitting}
+                    onClick={() => setCancelDirectStep(1)}
+                    className="px-4 py-2 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-xl text-xs font-bold text-neutral-700 dark:text-neutral-350 transition-colors disabled:opacity-50"
+                  >
+                    No
+                  </button>
+                  <button
+                    type="button"
+                    disabled={cancelDirectSubmitting}
+                    onClick={handleDirectCancelSubmit}
+                    className="px-5 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-colors shadow-md shadow-rose-600/10 flex items-center gap-1.5"
+                  >
+                    {cancelDirectSubmitting ? 'Cancelling...' : 'Yes, Cancel Admission'}
+                  </button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };

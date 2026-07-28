@@ -208,26 +208,26 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
     return (
         <>
             {/* Screen Layout */}
-            <div className="space-y-8 animate-fade-in">
-                <div className="bg-gradient-to-br from-slate-900 to-primary-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
+            <div className="space-y-6 sm:space-y-8 animate-fade-in w-full max-w-full box-border overflow-hidden">
+                <div className="bg-gradient-to-br from-slate-900 to-primary-900 rounded-2xl sm:rounded-3xl p-5 sm:p-8 text-white shadow-2xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full -ml-16 -mb-16 blur-2xl"></div>
 
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                        <div className="space-y-3">
+                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8">
+                        <div className="space-y-2 sm:space-y-3">
                             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10">
                                 <ShieldCheck size={12} className="text-blue-300" />
                                 Application Review Phase
                             </div>
-                            <h2 className="text-3xl font-extrabold tracking-tight">Verify Your Information</h2>
-                            <p className="text-slate-300 text-sm max-w-xl leading-relaxed">
+                            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Verify Your Information</h2>
+                            <p className="text-slate-300 text-xs sm:text-sm max-w-xl leading-relaxed">
                                 Please conduct a final review of all entered details. Your application will be locked for editing once submitted.
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-5 bg-white/5 backdrop-blur-sm p-4 rounded-2xl border border-white/10">
-                            <div className="relative group">
-                                <div className="size-20 rounded-full border-4 border-white/20 overflow-hidden bg-white/10 flex items-center justify-center transition-all duration-500 group-hover:border-primary-400 shadow-xl">
+                        <div className="flex items-center gap-4 sm:gap-5 bg-white/5 backdrop-blur-sm p-3.5 sm:p-4 rounded-xl sm:rounded-2xl border border-white/10">
+                            <div className="relative group shrink-0">
+                                <div className="size-16 sm:size-20 rounded-full border-4 border-white/20 overflow-hidden bg-white/10 flex items-center justify-center transition-all duration-500 group-hover:border-primary-400 shadow-xl">
                                     {docs.photoUrl ? (
                                         <img
                                             src={getPhotoUrl(docs.photoUrl)}
@@ -235,18 +235,18 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                                             className="w-full h-full object-cover"
                                         />
                                     ) : (
-                                        <User size={32} className="text-white/40" />
+                                        <User size={28} className="text-white/40" />
                                     )}
                                 </div>
-                                <div className="absolute -bottom-1 -right-1 bg-primary-500 text-white p-1.5 rounded-full shadow-lg">
-                                    <Camera size={12} />
+                                <div className="absolute -bottom-1 -right-1 bg-primary-500 text-white p-1 sm:p-1.5 rounded-full shadow-lg">
+                                    <Camera size={10} />
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <p className="text-xl font-bold leading-tight uppercase tracking-tight">
+                            <div className="text-left md:text-right min-w-0">
+                                <p className="text-base sm:text-xl font-bold leading-tight uppercase tracking-tight truncate">
                                     {applicantName || 'Guest Applicant'}
                                 </p>
-                                <p className="text-xs font-medium text-slate-400 mt-1">
+                                <p className="text-[11px] sm:text-xs font-medium text-slate-400 mt-1">
                                     App ID: <span className="text-primary-300 font-bold tracking-wider">{details.applicationNumber || details.id}</span>
                                 </p>
                             </div>
@@ -255,9 +255,9 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                 </div>
 
                 {details?.applicationStatus === 'REJECTED' && (details?.rejectionReason || details?.adminRemarks) && (
-                    <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
+                    <div className="bg-red-50 border-2 border-red-200 rounded-xl sm:rounded-2xl p-4 sm:p-6">
                         <div className="flex items-center gap-3 mb-3">
-                            <AlertCircle size={20} className="text-red-600" />
+                            <AlertCircle size={20} className="text-red-600 shrink-0" />
                             <h3 className="text-sm font-bold text-red-900">Correction / Rejection Reason</h3>
                         </div>
                         <div className="bg-white rounded-xl border border-red-100 p-4">
@@ -274,7 +274,7 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                     </div>
                 )}
 
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                     <ReviewSection icon={GraduationCap} title="Choice of Course" step={1}>
                         <DataItem label="Admission Type" value={details.admissionType} highlight={true} />
                         <DataItem label="Preferred Branch" value={details.branch?.name} highlight={true} />
@@ -296,6 +296,7 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                         <DataItem label="Studied in Karnataka" value={pd.studiedInKarnataka === true ? 'Yes' : 'No'}/>
                         <DataItem label="Area Type" value={pd.areaType} />
                     </ReviewSection>
+
                     <ReviewSection icon={Users} title="Parent Details" step={3}>
                         <DataItem label="Father's Name" value={par.fatherName} />
                         <DataItem label="Father's Occupation" value={par.fatherOccupation} />
@@ -367,12 +368,12 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                 </div>
 
                 {!readOnly && (
-                    <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xl mt-12 mb-8">
-                        <div className="bg-amber-50 p-6 flex items-start gap-4 border-b border-amber-100">
+                    <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 overflow-hidden shadow-xl mt-6 sm:mt-12 mb-8 max-w-full box-border">
+                        <div className="bg-amber-50 p-4 sm:p-6 flex items-start gap-3 sm:gap-4 border-b border-amber-100">
                             <div className="p-2 bg-amber-100 text-amber-600 rounded-lg shrink-0">
-                                <AlertCircle size={24} />
+                                <AlertCircle size={20} />
                             </div>
-                            <div className="space-y-1">
+                            <div className="space-y-1 min-w-0">
                                 <h4 className="text-sm font-bold text-amber-900">Final Declaration</h4>
                                 <p className="text-xs text-amber-700 leading-relaxed">
                                     I hereby declare that the information provided above is true and accurate to the best of my knowledge.
@@ -381,45 +382,46 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                             </div>
                         </div>
 
-                        <div className="p-8 space-y-8">
-                            <label className="flex items-center gap-4 cursor-pointer p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-all">
-                                <div className="relative flex items-center">
+                        <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 w-full max-w-full box-border">
+                            <label className="flex items-start sm:items-center gap-3 sm:gap-4 cursor-pointer p-3.5 sm:p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-all">
+                                <div className="relative flex items-center mt-0.5 sm:mt-0">
                                     <input
                                         type="checkbox"
                                         checked={isConfirmed}
                                         onChange={(e) => setIsConfirmed(e.target.checked)}
-                                        className="peer size-6 rounded-lg border-2 border-slate-300 text-primary-600 focus:ring-primary-600/20 transition-all checked:bg-primary-600 appearance-none"
+                                        className="peer size-5 sm:size-6 rounded-lg border-2 border-slate-300 text-primary-600 focus:ring-primary-600/20 transition-all checked:bg-primary-600 appearance-none"
                                     />
                                     <CheckCircle size={14} className="absolute inset-0 m-auto text-white opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
                                 </div>
-                                <span className="text-sm font-bold text-slate-700 select-none">
+                                <span className="text-xs sm:text-sm font-bold text-slate-700 select-none leading-tight">
                                     I have reviewed all the details and confirm they are correct.
                                 </span>
                             </label>
 
-                            <div className="flex flex-col sm:flex-row justify-between gap-4 pt-4 border-t border-slate-100">
+                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-4 border-t border-slate-100 w-full max-w-full box-border">
                                 <button
                                     type="button"
                                     onClick={() => handleEdit(1)}
-                                    className="btn-secondary h-14 px-8 flex items-center justify-center gap-3 text-sm font-bold rounded-2xl"
+                                    className="btn-secondary w-full sm:flex-1 h-12 sm:h-14 px-4 sm:px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold rounded-xl sm:rounded-2xl"
                                 >
-                                    <ChevronLeft size={20} />
+                                    <ChevronLeft size={18} />
                                     Discard & Edit
                                 </button>
 
                                 <button
+                                    type="button"
                                     onClick={handleSubmit}
                                     disabled={submitting || !isConfirmed}
                                     className={`
-                                        w-full sm:w-auto h-14 px-12 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all duration-300 shadow-xl
-                                        ${!isConfirmed ? 'bg-slate-200 text-slate-400 cursor-not-allowed grayscale' : 'bg-primary-600 text-white hover:bg-primary-700 hover:scale-[1.02] active:scale-[0.98] shadow-primary-600/30'}
+                                        w-full sm:flex-1 h-12 sm:h-14 px-4 sm:px-6 rounded-xl sm:rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-300 shadow-xl text-xs sm:text-sm max-w-full box-border
+                                        ${!isConfirmed ? 'bg-slate-200 text-slate-400 cursor-not-allowed grayscale shadow-none' : 'bg-primary-600 text-white hover:bg-primary-700 active:scale-[0.98] shadow-primary-600/30'}
                                     `}
                                 >
                                     {submitting ? (
-                                        <Loader2 size={22} className="animate-spin" />
+                                        <Loader2 size={20} className="animate-spin" />
                                     ) : (
                                         <>
-                                            <ShieldCheck size={20} />
+                                            <ShieldCheck size={18} />
                                             Finalize & Submit
                                         </>
                                     )}

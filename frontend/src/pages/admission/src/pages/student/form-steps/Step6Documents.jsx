@@ -230,14 +230,14 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                 })}
             </div>
 
-            <div className="pt-6 border-t border-slate-100 flex justify-between gap-4">
-                <button type="button" onClick={onPrev} className="btn-secondary h-10 px-5 flex items-center gap-2">
+            <div className="pt-4 sm:pt-6 border-t border-slate-100 flex items-center justify-between gap-3 sticky bottom-0 bg-white/95 backdrop-blur-md p-3 sm:p-0 -mx-4 -mb-4 sm:mx-0 sm:mb-0 sm:static sm:bg-transparent z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:shadow-none">
+                <button type="button" onClick={onPrev} className="btn-secondary min-h-[44px] h-11 px-5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
                     <ChevronLeft size={16} /> Back
                 </button>
                 <button
                     type="submit"
                     disabled={loading || Object.values(compressing).some(Boolean)}
-                    className="btn-primary h-10 px-6 flex items-center gap-2"
+                    className="btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
                 >
                     {loading
                         ? <Loader2 size={18} className="animate-spin" />

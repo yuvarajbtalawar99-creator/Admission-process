@@ -9,7 +9,9 @@ export type AdmissionStatus =
   | 'UNDER_REVIEW'
   | 'APPROVED'
   | 'REJECTED'
-  | 'ENROLLED';
+  | 'ENROLLED'
+  | 'CANCELLATION_REQUESTED'
+  | 'CANCELLED';
 
 export interface AdmissionApplication {
   id: string;
@@ -37,6 +39,15 @@ export interface AdmissionApplication {
   updatedAt: string;
   verifiedAt?: string | null;
   academicYear?: string | null;
+  cancellationReason?: string | null;
+  cancellationRemarks?: string | null;
+  cancellationRequestedAt?: string | null;
+  cancellationRequestedById?: string | null;
+  cancellationApprovedAt?: string | null;
+  cancellationApprovedById?: string | null;
+  cancellationRejectedAt?: string | null;
+  cancellationRejectedById?: string | null;
+  cancellationAdminRemarks?: string | null;
   user: {
     id: string;
     email: string;
@@ -157,6 +168,7 @@ export interface AdmissionStats {
   approved: number;
   rejected: number;
   enrolled: number;
+  cancellationRequests?: number;
   recent: AdmissionApplication[];
 }
 
@@ -244,6 +256,21 @@ const admissionService = {
   async getBranches(): Promise<{ id: string; name: string; code: string }[]> {
     const res = await API.get('/branches');
     return res.data.data;
+  },
+
+  requestCancellation: async (reason: string, remarks?: string): Promise<void> => {
+    await API.post('/student/cancellation-request', { reason, remarks });
+    window.dispatchEvent(new CustomEvent('admissions-updated'));
+  },
+
+  processCancellation: async (id: string, action: 'APPROVE' | 'REJECT', remarks?: string): Promise<void> => {
+    await API.post(`/admin/admissions/${id}/cancellation-process`, { action, remarks });
+    window.dispatchEvent(new CustomEvent('admissions-updated'));
+  },
+
+  directCancel: async (id: string, reason: string, remarks?: string): Promise<void> => {
+    await API.post(`/admin/admissions/${id}/cancellation-direct`, { reason, remarks });
+    window.dispatchEvent(new CustomEvent('admissions-updated'));
   },
 };
 

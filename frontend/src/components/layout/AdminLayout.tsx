@@ -87,6 +87,7 @@ export const AdminLayout: React.FC = () => {
   const [resubmittedCount, setResubmittedCount] = useState(0);
   const [rejectedCount, setRejectedCount] = useState(0);
   const [verifiedCount, setVerifiedCount] = useState(0);
+  const [cancellationRequestsCount, setCancellationRequestsCount] = useState(0);
 
   useEffect(() => {
     document.documentElement.classList.remove('dark');
@@ -100,6 +101,7 @@ export const AdminLayout: React.FC = () => {
         setResubmittedCount(stats.resubmitted || 0);
         setRejectedCount(stats.rejected || 0);
         setVerifiedCount(stats.approved || 0);
+        setCancellationRequestsCount(stats.cancellationRequests || 0);
       }).catch(err => console.error('Error loading sidebar stats:', err));
     };
 
@@ -151,6 +153,7 @@ export const AdminLayout: React.FC = () => {
         { name: 'Resubmitted', path: '/admin/admissions/resubmitted', icon: RefreshCw, badge: resubmittedCount > 0 ? resubmittedCount : undefined },
         { name: 'Rejected / Corrections', path: '/admin/admissions/rejected', icon: XCircle, badge: rejectedCount > 0 ? rejectedCount : undefined },
         { name: 'Verified', path: '/admin/admissions/verified', icon: FileCheck2, badge: verifiedCount > 0 ? verifiedCount : undefined },
+        { name: 'Cancellation Requests', path: '/admin/admissions/cancellations', icon: AlertCircle, badge: cancellationRequestsCount > 0 ? cancellationRequestsCount : undefined },
         { name: 'History', path: '/admin/admissions/history', icon: CalendarDays },
       ],
     },
@@ -177,6 +180,7 @@ export const AdminLayout: React.FC = () => {
     '/admin/admissions/rejected': 'Rejected Applications',
     '/admin/admissions/verified': 'Verified Admissions',
     '/admin/admissions/approved': 'Approved Admissions',
+    '/admin/admissions/cancellations': 'Cancellation Requests',
     '/admin/admissions/history': 'Admission History',
     '/admin/students': 'Student Management',
     '/admin/notifications': 'Notifications',

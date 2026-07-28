@@ -267,7 +267,7 @@ const SelectDropdown = ({
                                 onClick={() => !opt.disabled && handleSelect(opt.value)}
                                 onMouseEnter={() => !opt.disabled && setFocusedIndex(idx)}
                                 className={[
-                                    'flex items-center justify-between px-4 py-2.5 text-sm cursor-pointer transition-colors select-none',
+                                    'flex items-center justify-between px-4 py-3 min-h-[44px] text-sm cursor-pointer transition-colors select-none',
                                     opt.disabled ? 'text-slate-300 cursor-not-allowed opacity-60' : '',
                                     isSelected ? 'bg-primary-50 text-primary-700 font-semibold' : '',
                                     isFocused && !isSelected && !opt.disabled ? 'bg-slate-50 text-slate-900' : '',
@@ -275,7 +275,7 @@ const SelectDropdown = ({
                                     opt.value === '' ? 'text-slate-400 italic' : '',
                                 ].filter(Boolean).join(' ')}
                             >
-                                <span className="truncate">{opt.label}</span>
+                                <span className="text-sm flex-1 break-words whitespace-normal leading-snug">{opt.label}</span>
                                 {isSelected && opt.value !== '' && (
                                     <Check size={14} className="shrink-0 ml-2 text-primary-600" />
                                 )}
@@ -315,14 +315,14 @@ const SelectDropdown = ({
                 aria-required={required}
                 aria-disabled={disabled}
                 className={[
-                    'input-premium h-11 flex items-center justify-between gap-2 cursor-pointer text-left w-full',
-                    !value ? 'text-slate-400' : 'text-slate-900',
+                    'input-premium min-h-[44px] py-2.5 px-3.5 h-auto flex items-center justify-between gap-2 cursor-pointer text-left w-full max-w-full box-border',
+                    !value ? 'text-slate-400' : 'text-slate-900 font-medium',
                     disabled ? 'opacity-50 cursor-not-allowed' : '',
                     open ? 'border-primary-600 ring ring-[rgba(18,65,161,0.12)]' : '',
                     className,
                 ].filter(Boolean).join(' ')}
             >
-                <span className="truncate text-sm flex-1 min-w-0">
+                <span className="text-sm flex-1 min-w-0 break-words whitespace-normal leading-tight">
                     {selectedOption ? selectedOption.label : <span className="text-slate-400">{placeholder}</span>}
                 </span>
                 <ChevronDown

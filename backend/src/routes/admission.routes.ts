@@ -32,6 +32,9 @@ studentRouter.post('/submit', admissionController.submitApplication);  // Step 7
 studentRouter.post('/check-aadhaar', admissionController.checkAadhaar);
 studentRouter.post('/check-cet', admissionController.checkCet);
 
+// Cancellation
+studentRouter.post('/cancellation-request', admissionController.requestAdmissionCancellation);
+
 // ─── Application routes (student) ─────────────────────────────────────────────
 const applicationRouter = express.Router();
 applicationRouter.use(authMiddleware);
@@ -50,6 +53,8 @@ adminAdmissionRouter.get('/admissions/:id/documents/:field', admissionController
 adminAdmissionRouter.get('/admissions/:id', admissionController.getAdmissionById);
 adminAdmissionRouter.put('/admissions/:id/status', admissionController.updateAdmissionStatus);
 adminAdmissionRouter.put('/admissions/:id/verify', admissionController.verifyAdmissionChecklist);
+adminAdmissionRouter.post('/admissions/:id/cancellation-process', admissionController.processCancellationRequest);
+adminAdmissionRouter.post('/admissions/:id/cancellation-direct', admissionController.directCancelAdmission);
 adminAdmissionRouter.get('/stats', admissionController.getAdminStats);
 
 export { studentRouter, applicationRouter, adminAdmissionRouter };

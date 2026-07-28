@@ -74,6 +74,25 @@ const TIMELINE_STEPS = [
         activeBorder: 'border-purple-300',
         lineColor: 'bg-purple-300',
         isFinal: true
+    },
+    {
+        key: 'cancellationRequestedAt',
+        label: 'Cancellation Requested',
+        icon: Clock,
+        activeColor: 'text-amber-600',
+        activeBg: 'bg-amber-100',
+        activeBorder: 'border-amber-300',
+        lineColor: 'bg-amber-300'
+    },
+    {
+        key: 'cancellationApprovedAt',
+        label: 'Admission Cancelled',
+        icon: XCircle,
+        activeColor: 'text-red-600',
+        activeBg: 'bg-red-100',
+        activeBorder: 'border-red-300',
+        lineColor: 'bg-red-300',
+        isFinal: true
     }
 ];
 
@@ -81,10 +100,14 @@ const ActivityTimeline = ({ timeline = {}, compact = false }) => {
     // Determine which final step to show (approved OR rejected, not both)
     const isRejected = !!timeline.rejectedAt;
     const isApproved = !!timeline.approvedAt;
+    const isCancelled = !!timeline.cancellationApprovedAt;
+    const isCancellationRequested = !!timeline.cancellationRequestedAt;
 
     const stepsToShow = TIMELINE_STEPS.filter(step => {
         if (step.key === 'rejectedAt' && !isRejected) return false;
         if (step.key === 'approvedAt' && isRejected) return false;
+        if (step.key === 'cancellationRequestedAt' && !isCancellationRequested) return false;
+        if (step.key === 'cancellationApprovedAt' && !isCancelled) return false;
         return true;
     });
 
