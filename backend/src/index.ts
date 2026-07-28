@@ -11,6 +11,186 @@ async function startServer() {
     
     // Split lifecycle: only run schema alteration in development
     if (process.env.NODE_ENV === 'development') {
+      // Pre-cast: fix audit_logs.details column type before sync tries to alter it.
+      // PostgreSQL cannot automatically cast TEXT -> JSON; we must specify USING.
+      try {
+        await sequelize.query(`
+          DO $$
+          BEGIN
+            IF EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'audit_logs' AND column_name = 'details'
+                AND data_type <> 'json' AND data_type <> 'jsonb'
+            ) THEN
+              ALTER TABLE "audit_logs" ALTER COLUMN "details" TYPE JSON USING "details"::json;
+            END IF;
+          END
+          $$;
+        `);
+      } catch (castErr: any) {
+        console.warn('Pre-cast migration for audit_logs.details skipped:', castErr.message);
+      }
+
+      // Pre-cast: fix admission_parent_details.fatherAnnualIncome column type.
+      // PostgreSQL cannot automatically cast TEXT -> DECIMAL; we must specify USING.
+      try {
+        await sequelize.query(`
+          DO $$
+          BEGIN
+            IF EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admission_parent_details' AND column_name = 'fatherAnnualIncome'
+                AND data_type NOT IN ('numeric', 'decimal', 'double precision', 'real')
+            ) THEN
+              ALTER TABLE "admission_parent_details" ALTER COLUMN "fatherAnnualIncome" TYPE DECIMAL(12, 2)
+              USING (
+                CASE 
+                  WHEN "fatherAnnualIncome" IS NULL THEN NULL
+                  WHEN TRIM("fatherAnnualIncome"::text) = '' THEN NULL
+                  WHEN TRIM(regexp_replace("fatherAnnualIncome"::text, '[^-0-9.]', '', 'g')) = '' THEN NULL
+                  ELSE TRIM(regexp_replace("fatherAnnualIncome"::text, '[^-0-9.]', '', 'g'))::numeric(12, 2)
+                END
+              );
+            END IF;
+          END
+          $$;
+        `);
+      } catch (castErr: any) {
+        console.warn('Pre-cast migration for admission_parent_details.fatherAnnualIncome skipped:', castErr.message);
+      }
+
+      // Pre-cast: fix parents.annualIncome column type.
+      try {
+        await sequelize.query(`
+          DO $$
+          BEGIN
+            IF EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'parents' AND column_name = 'annualIncome'
+                AND data_type NOT IN ('numeric', 'decimal', 'double precision', 'real')
+            ) THEN
+              ALTER TABLE "parents" ALTER COLUMN "annualIncome" TYPE DECIMAL(10, 2)
+              USING (
+                CASE 
+                  WHEN "annualIncome" IS NULL THEN NULL
+                  WHEN TRIM("annualIncome"::text) = '' THEN NULL
+                  WHEN TRIM(regexp_replace("annualIncome"::text, '[^-0-9.]', '', 'g')) = '' THEN NULL
+                  ELSE TRIM(regexp_replace("annualIncome"::text, '[^-0-9.]', '', 'g'))::numeric(10, 2)
+                END
+              );
+            END IF;
+          END
+          $$;
+        `);
+      } catch (castErr: any) {
+        console.warn('Pre-cast migration for parents.annualIncome skipped:', castErr.message);
+      }
+
+      // Pre-cast: fix admission_academic_details percentage columns type.
+      try {
+        const percentageCols = ['tenthPercentage', 'twelfthPercentage', 'diplomaPercentage'];
+        for (const col of percentageCols) {
+          await sequelize.query(`
+            DO $$
+            BEGIN
+              IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'admission_academic_details' AND column_name = '${col}'
+                  AND data_type NOT IN ('numeric', 'decimal', 'double precision', 'real')
+              ) THEN
+                ALTER TABLE "admission_academic_details" ALTER COLUMN "${col}" TYPE DECIMAL(5, 2)
+                USING (
+                  CASE 
+                    WHEN "${col}" IS NULL THEN NULL
+                    WHEN TRIM("${col}"::text) = '' THEN NULL
+                    WHEN TRIM(regexp_replace("${col}"::text, '[^-0-9.]', '', 'g')) = '' THEN NULL
+                    ELSE TRIM(regexp_replace("${col}"::text, '[^-0-9.]', '', 'g'))::numeric(5, 2)
+                  END
+                );
+              END IF;
+            END
+            $$;
+          `);
+        }
+      } catch (castErr: any) {
+        console.warn('Pre-cast migration for admission_academic_details percentages skipped:', castErr.message);
+      }
+
+      // Pre-cast: fix admission_academic_details integer columns type.
+      try {
+        const integerCols = [
+          'tenthMarksObtained', 'tenthMaxMarks', 'tenthAttempts',
+          'physicsMarks', 'mathsMarks', 'chemistryMarks', 'optionalMarks',
+          'twelfthMaxMarks', 'twelfthAggregate', 'twelfthAttempts',
+          'diplomaFinalYearMaxMarks', 'diplomaFinalYearObtained', 'diplomaAttempts',
+          'cetScore', 'cetRank', 'cetYear'
+        ];
+        for (const col of integerCols) {
+          await sequelize.query(`
+            DO $$
+            BEGIN
+              IF EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_name = 'admission_academic_details' AND column_name = '${col}'
+                  AND data_type NOT IN ('integer', 'bigint', 'smallint')
+              ) THEN
+                ALTER TABLE "admission_academic_details" ALTER COLUMN "${col}" TYPE INTEGER
+                USING (
+                  CASE 
+                    WHEN "${col}" IS NULL THEN NULL
+                    WHEN TRIM("${col}"::text) = '' THEN NULL
+                    WHEN TRIM(regexp_replace("${col}"::text, '[^-0-9.]', '', 'g')) = '' THEN NULL
+                    ELSE TRIM(regexp_replace("${col}"::text, '[^-0-9.]', '', 'g'))::numeric::integer
+                  END
+                );
+              END IF;
+            END
+            $$;
+          `);
+        }
+      } catch (castErr: any) {
+        console.warn('Pre-cast migration for admission_academic_details integers skipped:', castErr.message);
+      }
+
+      // Pre-cast: ensure admissions.qualification column and its ENUM type exist
+      try {
+        await sequelize.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_admissions_qualification') THEN
+              CREATE TYPE "enum_admissions_qualification" AS ENUM ('PUC', 'DIPLOMA');
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admissions' AND column_name = 'qualification'
+            ) THEN
+              ALTER TABLE "admissions" ADD COLUMN "qualification" "enum_admissions_qualification";
+            END IF;
+          END
+          $$;
+        `);
+      } catch (e: any) {
+        console.warn('Pre-cast migration for admissions.qualification skipped:', e.message);
+      }
+
+      // Pre-cast: ensure admission_documents.feesPaidReceiptUrl column exists
+      try {
+        await sequelize.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admission_documents' AND column_name = 'feesPaidReceiptUrl'
+            ) THEN
+              ALTER TABLE "admission_documents" ADD COLUMN "feesPaidReceiptUrl" VARCHAR(255);
+            END IF;
+          END
+          $$;
+        `);
+      } catch (e: any) {
+        console.warn('Pre-cast migration for admission_documents.feesPaidReceiptUrl skipped:', e.message);
+      }
+
       console.log('Syncing database schema (development alter)...');
       await sequelize.sync({ alter: true });
     } else {

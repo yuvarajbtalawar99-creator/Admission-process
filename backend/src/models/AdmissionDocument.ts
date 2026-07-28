@@ -14,6 +14,7 @@ class AdmissionDocument extends Model {
   public casteCertificateUrl!: string | null;
   public domicileCertificateUrl!: string | null;
   public gapCertificateUrl!: string | null;
+  public feesPaidReceiptUrl!: string | null;
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -65,6 +66,10 @@ AdmissionDocument.init(
       allowNull: true,
     },
     gapCertificateUrl: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    feesPaidReceiptUrl: {
       type: DataTypes.STRING(255),
       allowNull: true,
     },

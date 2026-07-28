@@ -31,15 +31,15 @@ export const BOARD_CONFIG = {
   },
   STATE: {
     name: "STATE",
-    description: "Aggregate out of 525 (Third language graded)",
-    totalMarks: 525,
+    description: "Subject-wise marks out of 625",
+    totalMarks: 625,
     passingPercentage: 33,
     calculationRule: "AGGREGATE",
     passingAggregateMarks: 206,
     fields: [
       { name: "firstLanguage", label: "First Language", type: "number", max: 125, min: 0, passing: 38, required: true },
       { name: "secondLanguage", label: "Second Language", type: "number", max: 100, min: 0, passing: 30, required: true },
-      { name: "thirdLanguage", label: "Third Language", type: "grade", options: ["A", "B", "C", "D"], required: true },
+      { name: "thirdLanguage", label: "Third Language", type: "number", max: 100, min: 0, passing: 30, required: true },
       { name: "maths", label: "Mathematics", type: "number", max: 100, min: 0, passing: 30, required: true },
       { name: "science", label: "Science", type: "number", max: 100, min: 0, passing: 30, required: true },
       { name: "socialScience", label: "Social Science", type: "number", max: 100, min: 0, passing: 30, required: true }

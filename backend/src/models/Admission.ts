@@ -19,6 +19,7 @@ class Admission extends Model {
   public applicationNumber!: string;
   public admissionType!: AdmissionType | null;
   public branchId!: string | null;
+  public qualification!: 'PUC' | 'DIPLOMA' | null;
   public aadhaar!: string | null;
   public cetNumber!: string | null;
   public dcetNumber!: string | null;
@@ -90,6 +91,10 @@ Admission.init(
       type: DataTypes.UUID,
       allowNull: true,
       references: { model: Department, key: 'id' },
+    },
+    qualification: {
+      type: DataTypes.ENUM('PUC', 'DIPLOMA'),
+      allowNull: true,
     },
     aadhaar: {
       type: DataTypes.STRING(12),

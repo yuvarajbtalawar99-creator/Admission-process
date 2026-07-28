@@ -64,3 +64,9 @@ out/
 # Misc
 *.pem
 .env.*.local
+
+# Uploads and temporary build metadata
+backend/uploads/*
+!backend/uploads/.gitkeep
+*.mjs
+*.ts.timestamp-*

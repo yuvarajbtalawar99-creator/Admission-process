@@ -3,19 +3,312 @@ import api from '../../../api/axios';
 import { Loader2, ChevronLeft, ChevronRight, School, GraduationCap, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SelectDropdown from '../../../components/SelectDropdown';
-import { BOARD_CONFIG } from '../../../config/boardConfig';
-import { calculatePercentage } from '../../../utils/calculatePercentage';
+
 
 const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) => {
     const [loading, setLoading] = useState(false);
+    const [validationErrors, setValidationErrors] = useState({});
 
-    const calculateSSLC = (updatedData = data) => {
-        const obtained = parseFloat(updatedData.sslcMarksObtained) || 0;
-        const max = parseFloat(updatedData.sslcMaxMarks) || 0;
-        if (max > 0) {
-            const perc = (obtained / max) * 100;
-            updateData({ sslcPercentage: perc.toFixed(2) });
+    const BOARDS_CONFIG = {
+        STATE: {
+            board: 'STATE',
+            subjects: [
+                { name: "firstLanguageMarks", label: "First Language", max: 125 },
+                { name: "secondLanguageMarks", label: "Second Language", max: 100 },
+                { name: "thirdLanguageSubject", label: "Third Language Subject", type: "dropdown" },
+                { name: "thirdLanguageMarks", label: "Third Language Marks", max: 100 },
+                { name: "mathematicsMarks", label: "Mathematics", max: 100 },
+                { name: "scienceMarks", label: "Science", max: 100 },
+                { name: "socialScienceMarks", label: "Social Science", max: 100 }
+            ],
+            calculate: (marks) => {
+                const subjectKeys = [
+                    'firstLanguageMarks',
+                    'secondLanguageMarks',
+                    'thirdLanguageMarks',
+                    'mathematicsMarks',
+                    'scienceMarks',
+                    'socialScienceMarks'
+                ];
+                let sum = 0;
+                for (const key of subjectKeys) {
+                    const markVal = marks[key];
+                    if (markVal !== "" && markVal !== undefined && markVal !== null && /^\d+$/.test(String(markVal))) {
+                        sum += parseInt(markVal);
+                    }
+                }
+                const maxMarks = 625;
+                const percentage = (sum / maxMarks) * 100;
+                return {
+                    totalMarks: sum,
+                    totalMarksEntered: sum,
+                    admissionTotal: sum,
+                    maximumMarks: maxMarks,
+                    percentage: percentage.toFixed(2)
+                };
+            }
+        },
+        CBSE: {
+            board: 'CBSE',
+            subjects: [
+                { name: "englishMarks", label: "English", max: 100 },
+                { name: "language2Marks", label: "Language II", max: 100 },
+                { name: "mathematicsMarks", label: "Mathematics", max: 100 },
+                { name: "scienceMarks", label: "Science", max: 100 },
+                { name: "socialScienceMarks", label: "Social Science", max: 100 }
+            ],
+            calculate: (marks) => {
+                const subjectKeys = [
+                    'englishMarks',
+                    'language2Marks',
+                    'mathematicsMarks',
+                    'scienceMarks',
+                    'socialScienceMarks'
+                ];
+                let sum = 0;
+                for (const key of subjectKeys) {
+                    const markVal = marks[key];
+                    if (markVal !== "" && markVal !== undefined && markVal !== null && /^\d+$/.test(String(markVal))) {
+                        sum += parseInt(markVal);
+                    }
+                }
+                const maxMarks = 500;
+                const percentage = (sum / maxMarks) * 100;
+                return {
+                    totalMarksEntered: sum,
+                    admissionTotal: sum,
+                    maximumMarks: maxMarks,
+                    percentage: percentage.toFixed(2)
+                };
+            }
+        },
+        ICSE: {
+            board: 'ICSE',
+            subjects: [
+                { name: "englishMarks", label: "English", max: 100 },
+                { name: "secondLanguageMarks", label: "Second Language", max: 100 },
+                { name: "mathematicsMarks", label: "Mathematics", max: 100 },
+                { name: "scienceMarks", label: "Science", max: 100 },
+                { name: "socialScienceMarks", label: "Social Science", max: 100 },
+                { name: "electiveSubjectMarks", label: "Elective / Optional Subject", max: 100 }
+            ],
+            calculate: (marks) => {
+                const englishVal = marks['englishMarks'];
+                const englishMark = (englishVal !== "" && englishVal !== undefined && englishVal !== null && /^\d+$/.test(String(englishVal))) ? parseInt(englishVal) : 0;
+
+                const otherKeys = [
+                    'secondLanguageMarks',
+                    'mathematicsMarks',
+                    'scienceMarks',
+                    'socialScienceMarks',
+                    'electiveSubjectMarks'
+                ];
+
+                const otherMarks = [];
+                let totalEntered = englishMark;
+
+                for (const key of otherKeys) {
+                    const val = marks[key];
+                    const markNum = (val !== "" && val !== undefined && val !== null && /^\d+$/.test(String(val))) ? parseInt(val) : 0;
+                    otherMarks.push(markNum);
+                    totalEntered += markNum;
+                }
+
+                // Sort other marks descending and pick top 4
+                otherMarks.sort((a, b) => b - a);
+                const top4OthersSum = otherMarks.slice(0, 4).reduce((sum, val) => sum + val, 0);
+
+                const admissionTotal = englishMark + top4OthersSum;
+                const maxMarks = 500;
+                const percentage = (admissionTotal / maxMarks) * 100;
+
+                return {
+                    totalMarksEntered: totalEntered,
+                    admissionTotal: admissionTotal,
+                    maximumMarks: 500,
+                    percentage: percentage.toFixed(2)
+                };
+            }
+        },
+        OTHER: {
+            board: 'OTHER',
+            subjects: [
+                { name: "sslcMaxMarksInput", label: "Maximum Marks" },
+                { name: "sslcMarksObtainedInput", label: "Marks Obtained" }
+            ],
+            calculate: (marks) => {
+                return {
+                    totalMarksEntered: marks.sslcMarksObtainedInput || 0,
+                    admissionTotal: marks.sslcMarksObtainedInput || 0,
+                    maximumMarks: marks.sslcMaxMarksInput || 0,
+                    percentage: marks.sslcMaxMarksInput > 0 ? ((marks.sslcMarksObtainedInput / marks.sslcMaxMarksInput) * 100).toFixed(2) : '0.00'
+                };
+            }
         }
+    };
+
+    const validateSubjectMark = (name, val) => {
+        if (val === "" || val === undefined || val === null) {
+            return "Marks is required.";
+        }
+        const num = Number(val);
+        if (!/^\d+$/.test(String(val))) {
+            return "Only whole numbers are allowed.";
+        }
+        if (num < 0) {
+            return "Marks cannot be negative.";
+        }
+
+        const board = data.sslcBoard;
+        if (board === 'OTHER') {
+            return ""; 
+        }
+
+        const config = BOARDS_CONFIG[board];
+        if (config) {
+            const field = config.subjects.find(s => s.name === name);
+            if (field) {
+                if (num > field.max) {
+                    return `Marks cannot exceed ${field.max}.`;
+                }
+            }
+        }
+        return "";
+    };
+
+    const handleFieldChange = (name, val) => {
+        const errorMsg = validateSubjectMark(name, val);
+        
+        setValidationErrors(prev => ({
+            ...prev,
+            [name]: errorMsg
+        }));
+
+        const board = data.sslcBoard;
+        const config = BOARDS_CONFIG[board];
+        if (!config) return;
+
+        if (board === 'OTHER') {
+            const dbField = name === 'sslcMaxMarksInput' ? 'sslcMaxMarks' : 'sslcMarksObtained';
+            const updatedFields = { [dbField]: val };
+            updateData(updatedFields);
+
+            const combinedData = { ...data, ...updatedFields };
+            const maxMarks = parseInt(combinedData.sslcMaxMarks) || 0;
+            const obtained = parseInt(combinedData.sslcMarksObtained) || 0;
+
+            if (maxMarks < 0) {
+                setValidationErrors(prev => ({ ...prev, sslcMaxMarksInput: "Marks cannot be negative." }));
+            } else {
+                setValidationErrors(prev => ({ ...prev, sslcMaxMarksInput: "" }));
+            }
+            
+            if (obtained < 0) {
+                setValidationErrors(prev => ({ ...prev, sslcMarksObtainedInput: "Marks cannot be negative." }));
+            } else if (maxMarks > 0 && obtained > maxMarks) {
+                setValidationErrors(prev => ({ ...prev, sslcMarksObtainedInput: "Obtained marks cannot exceed maximum marks." }));
+            } else {
+                setValidationErrors(prev => ({ ...prev, sslcMarksObtainedInput: "" }));
+            }
+
+            const percentage = maxMarks > 0 ? ((obtained / maxMarks) * 100).toFixed(2) : '0.00';
+            updateData({ sslcPercentage: percentage });
+
+            const newSslcSubjectMarks = {
+                board: 'OTHER',
+                totalMarksEntered: obtained,
+                admissionTotal: obtained,
+                maximumMarks: maxMarks,
+                percentage: percentage
+            };
+            updateData({ sslcSubjectMarks: newSslcSubjectMarks });
+        } else {
+            const updatedMarks = {
+                ...(data.sslcSubjectMarks || {}),
+                [name]: val
+            };
+
+            const result = config.calculate(updatedMarks);
+
+            const newSslcSubjectMarks = {
+                ...updatedMarks,
+                board: board,
+                totalMarksEntered: result.totalMarksEntered,
+                admissionTotal: result.admissionTotal,
+                maximumMarks: result.maximumMarks,
+                percentage: result.percentage
+            };
+
+            updateData({
+                sslcSubjectMarks: newSslcSubjectMarks,
+                sslcMarksObtained: result.admissionTotal,
+                sslcMaxMarks: result.maximumMarks,
+                sslcPercentage: result.percentage
+            });
+        }
+    };
+
+    const handleThirdLanguageSubjectChange = (val) => {
+        const board = data.sslcBoard;
+        const config = BOARDS_CONFIG[board];
+        const newSslcSubjectMarks = {
+            ...(data.sslcSubjectMarks || {}),
+            thirdLanguageSubject: val
+        };
+        const result = config.calculate(newSslcSubjectMarks);
+        updateData({
+            sslcSubjectMarks: {
+                ...newSslcSubjectMarks,
+                totalMarks: result.totalMarks,
+                totalMarksEntered: result.totalMarksEntered,
+                admissionTotal: result.admissionTotal,
+                maximumMarks: result.maximumMarks,
+                percentage: result.percentage
+            }
+        });
+    };
+
+    const isSslcFormValid = () => {
+        const board = data.sslcBoard;
+        if (!board) return false;
+
+        const config = BOARDS_CONFIG[board];
+        if (!config) return false;
+
+        const subjectMarks = data.sslcSubjectMarks || {};
+
+        if (board === 'OTHER') {
+            const maxVal = data.sslcMaxMarks;
+            const obtVal = data.sslcMarksObtained;
+            if (!maxVal || !obtVal) return false;
+            if (!/^\d+$/.test(String(maxVal)) || !/^\d+$/.test(String(obtVal))) return false;
+            if (parseInt(obtVal) > parseInt(maxVal)) return false;
+            if (parseInt(maxVal) < 0 || parseInt(obtVal) < 0) return false;
+        } else {
+            for (const field of config.subjects) {
+                const val = subjectMarks[field.name];
+                if (field.type === "dropdown") {
+                    if (!val) return false;
+                } else {
+                    if (val === undefined || val === "" || val === null) {
+                        return false;
+                    }
+                    if (validateSubjectMark(field.name, val) !== "") {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        if (!data.sslcSchool || !data.sslcBoard || !data.sslcYear || !data.sslcRegisterNumber || !data.sslcAttempts) {
+            return false;
+        }
+
+        if (isSslcRegInvalid) {
+            return false;
+        }
+
+        return true;
     };
 
     const calculatePUC = (updatedData = data) => {
@@ -43,27 +336,11 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
         }
     };
 
-    const getBoardValidation = () => {
-        const board = data.sslcBoard;
-        if (!board || board === 'OTHER') {
-            const obtained = parseFloat(data.sslcMarksObtained);
-            const max = parseFloat(data.sslcMaxMarks);
-            if (isNaN(obtained) || isNaN(max)) return { passed: false, error: "" };
-            if (obtained > max) return { passed: false, error: "Obtained marks cannot exceed maximum marks" };
-            return { passed: true, error: "" };
-        }
-        return calculatePercentage(board, data.sslcSubjectMarks || {});
-    };
-
-    const valResult = getBoardValidation();
-
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Enforce board validation before submitting
-        const val = getBoardValidation();
-        if (!val.passed && data.sslcBoard !== 'OTHER') {
-            toast.error(val.error || "Cannot save: board passing requirements not met.");
+        if (!isSslcFormValid()) {
+            toast.error("Please fill all subject marks correctly before continuing.");
             return;
         }
 
@@ -120,9 +397,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
         updateData(updatedFields);
 
         const combinedData = { ...data, ...updatedFields };
-        if (name === 'sslcMarksObtained' || name === 'sslcMaxMarks') {
-            calculateSSLC(combinedData);
-        } else if (name === 'diplomaFinalYearObtained' || name === 'diplomaFinalYearMaxMarks') {
+        if (name === 'diplomaFinalYearObtained' || name === 'diplomaFinalYearMaxMarks') {
             calculateDiploma(combinedData);
         }
     };
@@ -136,23 +411,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
             sslcMaxMarks: '',
             sslcPercentage: ''
         });
-    };
-
-    const handleSubjectChange = (e) => {
-        const { name, value } = e.target;
-        const updatedMarks = {
-            ...(data.sslcSubjectMarks || {}),
-            [name]: value
-        };
-
-        const result = calculatePercentage(data.sslcBoard, updatedMarks);
-
-        updateData({
-            sslcSubjectMarks: updatedMarks,
-            sslcMarksObtained: result.obtained || 0,
-            sslcMaxMarks: result.max || 0,
-            sslcPercentage: result.percentage ? result.percentage.toFixed(2) : '0.00'
-        });
+        setValidationErrors({});
     };
 
     const handlePucChange = (e) => {
@@ -176,62 +435,71 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
     const renderBoardFields = () => {
         const board = data.sslcBoard;
-        if (!board || board === 'OTHER') {
-            return (
-                <>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Max Marks <span className="text-red-500">*</span></label>
-                        <input required type="number" name="sslcMaxMarks" className="input-premium h-11" value={data.sslcMaxMarks || ''} onChange={handleChange} placeholder="Enter max marks" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Marks Obtained <span className="text-red-500">*</span></label>
-                        <input required type="number" name="sslcMarksObtained" className="input-premium h-11" value={data.sslcMarksObtained || ''} onChange={handleChange} placeholder="Enter marks obtained" />
-                    </div>
-                </>
-            );
-        }
+        if (!board) return null;
 
-        const config = BOARD_CONFIG[board];
+        const config = BOARDS_CONFIG[board];
         if (!config) return null;
 
         const subjectMarks = data.sslcSubjectMarks || {};
 
-        return config.fields.map((field) => {
-            if (field.type === "grade") {
+        return config.subjects.map((field) => {
+            if (field.type === "dropdown") {
                 return (
                     <div key={field.name} className="space-y-1.5 animate-fade-in">
                         <label className="text-sm font-medium text-slate-700">
-                            {field.label} {field.required && <span className="text-red-500">*</span>}
+                            {field.label} <span className="text-red-500">*</span>
                         </label>
                         <SelectDropdown
                             id={field.name}
                             name={field.name}
-                            required={field.required}
+                            required
                             value={subjectMarks[field.name] || ''}
-                            onChange={(val) => handleSubjectChange({ target: { name: field.name, value: val } })}
-                            placeholder="Select grade..."
-                            options={field.options.map(opt => ({ value: opt, label: opt }))}
+                            onChange={(val) => handleThirdLanguageSubjectChange(val)}
+                            placeholder="Select subject..."
+                            options={[
+                                { value: 'Kannada', label: 'Kannada' },
+                                { value: 'Hindi', label: 'Hindi' },
+                                { value: 'Sanskrit', label: 'Sanskrit' },
+                                { value: 'Urdu', label: 'Urdu' },
+                                { value: 'Tamil', label: 'Tamil' },
+                                { value: 'Telugu', label: 'Telugu' },
+                                { value: 'Marathi', label: 'Marathi' },
+                                { value: 'Other', label: 'Other' },
+                            ]}
                         />
                     </div>
                 );
             }
 
+            const isOther = board === 'OTHER';
+            const val = isOther 
+                ? (field.name === 'sslcMaxMarksInput' ? (data.sslcMaxMarks || '') : (data.sslcMarksObtained || ''))
+                : (subjectMarks[field.name] || '');
+            
+            const error = isOther
+                ? (field.name === 'sslcMaxMarksInput' ? validationErrors.sslcMaxMarksInput : validationErrors.sslcMarksObtainedInput)
+                : validationErrors[field.name];
+
             return (
                 <div key={field.name} className="space-y-1.5 animate-fade-in">
                     <label className="text-sm font-medium text-slate-700">
-                        {field.label} (Max {field.max}) {field.required && <span className="text-red-500">*</span>}
+                        {field.label} {field.max && `(Max ${field.max})`} <span className="text-red-500">*</span>
                     </label>
                     <input
-                        required={field.required}
-                        type="number"
-                        min={field.min}
-                        max={field.max}
+                        required
+                        type="text"
                         name={field.name}
-                        className="input-premium h-11"
-                        value={subjectMarks[field.name] || ""}
-                        onChange={handleSubjectChange}
-                        placeholder={`Enter marks (max ${field.max})`}
+                        className={`input-premium h-11 ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                        value={val}
+                        onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                        onBlur={(e) => handleFieldChange(field.name, e.target.value)}
+                        placeholder={field.max ? `Enter marks (max ${field.max})` : `Enter marks`}
                     />
+                    {error && (
+                        <p className="text-red-500 text-[11px] font-semibold mt-1 animate-fade-in">
+                            {error}
+                        </p>
+                    )}
                 </div>
             );
         });
@@ -300,7 +568,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                             <p className="text-[11px] text-primary-600 font-medium mt-1">ℹ️ ICSE: English compulsory + best of 4 others.</p>
                         )}
                         {data.sslcBoard === 'STATE' && (
-                            <p className="text-[11px] text-primary-600 font-medium mt-1">ℹ️ State: Out of 525 (Third language graded).</p>
+                            <p className="text-[11px] text-primary-600 font-medium mt-1">ℹ️ State: Subject-wise marks out of 625.</p>
                         )}
                     </div>
                     <div className="space-y-1.5">
@@ -338,33 +606,17 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                             {renderBoardFields()}
                         </div>
 
-                        {/* Inline Board Validation Notice Cards */}
-                        {data.sslcBoard !== 'OTHER' && (
-                            <div className="mt-5">
-                                {valResult.error && valResult.error.includes("Please enter all required marks") ? (
-                                    <div className="bg-amber-50 border-l-4 border-amber-500 p-3 rounded-r-lg">
-                                        <p className="text-xs text-amber-700 font-medium">⚠️ Enter all subject marks to calculate final percentage.</p>
-                                    </div>
-                                ) : valResult.error ? (
-                                    <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-lg animate-fade-in">
-                                        <p className="text-xs font-semibold text-red-700">{valResult.error}</p>
-                                    </div>
-                                ) : !valResult.passed ? (
-                                    <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-lg animate-fade-in">
-                                        <p className="text-xs font-semibold text-red-700">
-                                            ⚠️ Passing Requirements Not Met: 
-                                            {data.sslcBoard === 'STATE' && " Minimum 30% per subject, 33% overall aggregate, and minimum 206 aggregate marks required to pass."}
-                                            {data.sslcBoard === 'CBSE' && " Minimum 33% per subject required to pass."}
-                                            {data.sslcBoard === 'ICSE' && " Minimum 35% per subject and 33% overall aggregate required to pass."}
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-r-lg animate-fade-in">
-                                        <p className="text-xs font-semibold text-emerald-700">
-                                            ✅ Passing requirements met! (Total evaluated marks: {data.sslcMarksObtained} / {data.sslcMaxMarks})
-                                        </p>
-                                    </div>
-                                )}
+                        {/* Automatic Total & Percentage Display */}
+                        {data.sslcBoard === 'ICSE' ? (
+                            <div className="mt-5 p-4 bg-slate-100 border border-slate-200 rounded-lg flex flex-col sm:flex-row justify-between gap-4 font-semibold text-slate-700 text-sm">
+                                <div>Total Marks Entered: {data.sslcSubjectMarks?.totalMarksEntered || 0} / 600</div>
+                                <div>Best of Five: {data.sslcMarksObtained || 0} / 500</div>
+                                <div>Percentage: {data.sslcPercentage || '0.00'}%</div>
+                            </div>
+                        ) : (
+                            <div className="mt-5 p-4 bg-slate-100 border border-slate-200 rounded-lg flex flex-col sm:flex-row justify-between gap-4 font-semibold text-slate-700 text-sm">
+                                <div>Total Obtained: {data.sslcMarksObtained || 0} / {data.sslcMaxMarks || 625}</div>
+                                <div>Percentage: {data.sslcPercentage || '0.00'}%</div>
                             </div>
                         )}
                     </div>
@@ -390,7 +642,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
             </div>
 
             {/* PUC Details (For Fresh Admissions) */}
-            {data.admissionType !== 'DCET' && (
+            {data.qualification !== 'DIPLOMA' && (
             <div>
                 <SectionHeader icon={GraduationCap} title="PUC (12th Standard) Details" subtitle="Required — Senior secondary records" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -465,7 +717,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
             )}
 
             {/* Diploma Details (For Lateral Entry) */}
-            {data.admissionType === 'DCET' && (
+            {data.qualification === 'DIPLOMA' && (
             <div>
                 <SectionHeader icon={BookOpen} title="Diploma Details" subtitle="Required — Vocational education records" />
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -501,7 +753,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                 <button type="button" onClick={onPrev} className="btn-secondary h-10 px-5 flex items-center gap-2">
                     <ChevronLeft size={16} /> Back
                 </button>
-                <button type="submit" disabled={loading} className="btn-primary h-10 px-6 flex items-center gap-2">
+                <button type="submit" disabled={loading || !isSslcFormValid()} className={`btn-primary h-10 px-6 flex items-center gap-2 ${(loading || !isSslcFormValid()) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                     {loading ? <Loader2 size={18} className="animate-spin" /> : (
                         <>Save & Continue <ChevronRight size={16} /></>
                     )}

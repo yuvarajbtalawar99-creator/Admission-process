@@ -15,6 +15,7 @@ export interface AdmissionApplication {
   id: string;
   applicationNumber: string;
   admissionType: string | null;
+  qualification: string | null;
   aadhaar?: string;
   cetNumber?: string;
   dcetNumber?: string;
@@ -33,6 +34,9 @@ export interface AdmissionApplication {
   approvedByAdminId?: string | null;
   approvalRemarks?: string | null;
   createdAt: string;
+  updatedAt: string;
+  verifiedAt?: string | null;
+  academicYear?: string | null;
   user: {
     id: string;
     email: string;
@@ -60,6 +64,9 @@ export interface AdmissionApplication {
     phone: string | null;
     email: string | null;
     nationality: string | null;
+    caste?: string | null;
+    studiedInKarnataka?: boolean | null;
+    areaType?: string | null;
   } | null;
   studentparentdetails: {
     fatherName: string | null;
@@ -90,11 +97,29 @@ export interface AdmissionApplication {
     tenthBoard: string | null;
     tenthPassingYear: number | null;
     tenthPercentage: number | null;
+    tenthRegisterNumber?: string | null;
+    tenthMarksObtained?: number | null;
+    tenthMaxMarks?: number | null;
+    tenthAttempts?: number | null;
     twelfthSchool: string | null;
     twelfthBoard: string | null;
     twelfthPassingYear: number | null;
     twelfthPercentage: number | null;
     twelfthStream: string | null;
+    twelfthRegisterNumber?: string | null;
+    twelfthAttempts?: number | null;
+    physicsMarks?: number | null;
+    mathsMarks?: number | null;
+    chemistryMarks?: number | null;
+    optionalSubject?: string | null;
+    optionalMarks?: number | null;
+    diplomaUniversity?: string | null;
+    diplomaYear?: string | null;
+    diplomaRegisterNumber?: string | null;
+    diplomaFinalYearMaxMarks?: number | null;
+    diplomaFinalYearObtained?: number | null;
+    diplomaPercentage?: number | null;
+    diplomaAttempts?: number | null;
     cetScore: number | null;
     cetRank: number | null;
     cetYear: number | null;
@@ -111,6 +136,7 @@ export interface AdmissionApplication {
     casteCertificateUrl: string | null;
     domicileCertificateUrl: string | null;
     gapCertificateUrl: string | null;
+    feesPaidReceiptUrl: string | null;
   } | null;
 }
 
@@ -147,6 +173,13 @@ const admissionService = {
     sortOrder?: string;
     page?: number;
     limit?: number;
+    qualification?: string;
+    gender?: string;
+    category?: string;
+    district?: string;
+    academicYear?: string;
+    startDate?: string;
+    endDate?: string;
   }): Promise<AdmissionListResult> {
     const query = new URLSearchParams();
     if (params.page)     query.set('page',     String(params.page));
@@ -157,9 +190,25 @@ const admissionService = {
     if (params.admissionType) query.set('admissionType', params.admissionType);
     if (params.sortBy)    query.set('sortBy',    params.sortBy);
     if (params.sortOrder) query.set('sortOrder', params.sortOrder);
+    if (params.qualification) query.set('qualification', params.qualification);
+    if (params.gender) query.set('gender', params.gender);
+    if (params.category) query.set('category', params.category);
+    if (params.district) query.set('district', params.district);
+    if (params.academicYear) query.set('academicYear', params.academicYear);
+    if (params.startDate) query.set('startDate', params.startDate);
+    if (params.endDate) query.set('endDate', params.endDate);
 
     const res = await API.get(`/admin/admissions?${query.toString()}`);
-    return res.data.data as AdmissionListResult;
+    const data = res.data.data;
+    if (Array.isArray(data)) {
+      return {
+        applications: data,
+        total: res.data.total || 0,
+        page: params.page || 1,
+        totalPages: Math.ceil((res.data.total || 0) / (params.limit || 20))
+      } as AdmissionListResult;
+    }
+    return data as AdmissionListResult;
   },
 
   /** GET /api/admin/admissions/:id — full application detail */

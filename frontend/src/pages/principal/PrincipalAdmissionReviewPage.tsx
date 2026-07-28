@@ -218,7 +218,9 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
   const par = app.studentparentdetails as any;
   const addr = app.studentaddress as any;
   const acad = app.studentacademicdetails as any;
-  const isLateral = app.admissionType === 'DCET';
+  const q = (app.qualification || '').toUpperCase();
+  const showPUC = q === 'PUC' || (!q && app.admissionType === 'KCET');
+  const showDiploma = q === 'DIPLOMA' || (!q && app.admissionType === 'DCET');
 
   return (
     <div className="space-y-6 pb-16 animate-fade-in">
@@ -359,18 +361,11 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
                   <FormField label="Aggregate Percentage" value={acad?.tenthPercentage ? `${acad.tenthPercentage}%` : '-'} />
                 </div>
               </div>
-              <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800/30">
-                <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-2">
-                  {isLateral ? 'Diploma Qualifications' : '12th Standard / PUC Details'}
-                </p>
-                {isLateral ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField label="Diploma University" value={acad?.diplomaUniversity} />
-                    <FormField label="Passing Year" value={acad?.diplomaYear} />
-                    <FormField label="Registration No." value={acad?.diplomaRegisterNumber} />
-                    <FormField label="Aggregate Percentage" value={acad?.diplomaPercentage ? `${acad.diplomaPercentage}%` : '-'} />
-                  </div>
-                ) : (
+              {showPUC && (
+                <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800/30">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-2">
+                    12th Standard / PUC Details
+                  </p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField label="School / College Name" value={acad?.twelfthSchool} />
                     <FormField label="Board" value={acad?.twelfthBoard} />
@@ -379,8 +374,21 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
                     <FormField label="Registration No." value={acad?.twelfthRegisterNumber} />
                     <FormField label="Aggregate Percentage" value={acad?.twelfthPercentage ? `${acad.twelfthPercentage}%` : '-'} />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+              {showDiploma && (
+                <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800/30">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-neutral-400 mb-2">
+                    Diploma Qualifications
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField label="Diploma University" value={acad?.diplomaUniversity} />
+                    <FormField label="Passing Year" value={acad?.diplomaYear} />
+                    <FormField label="Registration No." value={acad?.diplomaRegisterNumber} />
+                    <FormField label="Aggregate Percentage" value={acad?.diplomaPercentage ? `${acad.diplomaPercentage}%` : '-'} />
+                  </div>
+                </div>
+              )}
               
               {(app.admissionType === 'KCET' || app.admissionType === 'DCET') && (
                 <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800/30">
@@ -405,7 +413,7 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
               <DocumentThumbnail field="photo" appId={app.id} label="Passport Photo" onClick={() => setPreviewDoc({ field: 'photo', label: 'Passport Photo' })} />
               <DocumentThumbnail field="signature" appId={app.id} label="Candidate Signature" onClick={() => setPreviewDoc({ field: 'signature', label: 'Candidate Signature' })} />
               <DocumentThumbnail field="tenthMarksheet" appId={app.id} label="10th Marksheet" onClick={() => setPreviewDoc({ field: 'tenthMarksheet', label: '10th Marksheet' })} />
-              <DocumentThumbnail field="twelfthMarksheet" appId={app.id} label={isLateral ? "Diploma Marks Card" : "12th Marksheet"} onClick={() => setPreviewDoc({ field: 'twelfthMarksheet', label: isLateral ? "Diploma Marks Card" : "12th Marksheet" })} />
+              <DocumentThumbnail field="twelfthMarksheet" appId={app.id} label={showDiploma ? "Diploma Marks Card" : "12th Marksheet"} onClick={() => setPreviewDoc({ field: 'twelfthMarksheet', label: showDiploma ? "Diploma Marks Card" : "12th Marksheet" })} />
               <DocumentThumbnail field="aadhaar" appId={app.id} label="Aadhaar Card" onClick={() => setPreviewDoc({ field: 'aadhaar', label: 'Aadhaar Card' })} />
               <DocumentThumbnail field="domicileCertificate" appId={app.id} label="Domicile/Study Cert" onClick={() => setPreviewDoc({ field: 'domicileCertificate', label: 'Domicile/Study Certificate' })} />
               {app.admissionType === 'KCET' && (

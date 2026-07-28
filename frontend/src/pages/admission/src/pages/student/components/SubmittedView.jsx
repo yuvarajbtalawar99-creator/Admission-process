@@ -226,20 +226,26 @@ const SubmittedView = ({ statusData, fullDetails, onDownloadPDF }) => {
             </div>
 
             {/* ═══ REJECTION REASON (if rejected) ═══ */}
-            {isRejected && statusData?.rejectionRemark && (
+            {isRejected && (statusData?.rejectionReason || statusData?.adminRemarks) && (
                 <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 space-y-3">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center">
                             <AlertTriangle size={20} />
                         </div>
                         <div>
-                            <h3 className="text-sm font-bold text-red-900">Rejection Reason</h3>
+                            <h3 className="text-sm font-bold text-red-900">Correction / Rejection Reason</h3>
                             <p className="text-xs text-red-500">From Admissions Office</p>
                         </div>
                     </div>
                     <div className="bg-white rounded-xl border border-red-100 p-4">
-                        <p className="text-sm text-red-800 leading-relaxed font-medium italic">
-                            "{statusData.rejectionRemark}"
+                        <p className="text-sm text-red-800 leading-relaxed font-medium italic whitespace-pre-line">
+                            {(() => {
+                                const isOther = statusData.rejectionReasonCode === 'OTHER' || statusData.rejectionReason === 'Other' || statusData.rejectionReason === 'OTHER';
+                                if (isOther) {
+                                    return statusData.adminRemarks || statusData.rejectionReason || 'Other';
+                                }
+                                return statusData.rejectionReason || statusData.adminRemarks || '';
+                            })()}
                         </p>
                     </div>
                     <p className="text-xs text-red-500 font-medium">

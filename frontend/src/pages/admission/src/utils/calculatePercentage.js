@@ -39,14 +39,14 @@ export const calculatePercentage = (boardKey, marks) => {
             { name: "elective", label: "Group 3 Elective", max: 100, passing: 35, required: true }
         ]
     } : boardKey === "STATE" ? {
-        totalMarks: 525,
+        totalMarks: 625,
         passingPercentage: 33,
         passingAggregateMarks: 206,
         calculationRule: "AGGREGATE",
         fields: [
             { name: "firstLanguage", label: "First Language", max: 125, passing: 38, required: true },
             { name: "secondLanguage", label: "Second Language", max: 100, passing: 30, required: true },
-            { name: "thirdLanguage", label: "Third Language", type: "grade", required: true },
+            { name: "thirdLanguage", label: "Third Language", max: 100, passing: 30, required: true },
             { name: "maths", label: "Mathematics", max: 100, passing: 30, required: true },
             { name: "science", label: "Science", max: 100, passing: 30, required: true },
             { name: "socialScience", label: "Social Science", max: 100, passing: 30, required: true }
@@ -62,16 +62,6 @@ export const calculatePercentage = (boardKey, marks) => {
     const missingCompulsory = [];
 
     for (const field of config.fields) {
-        if (field.type === "grade") {
-            const gradeVal = marks[field.name];
-            if (!gradeVal) {
-                if (field.required) {
-                    missingCompulsory.push(field.name);
-                }
-            }
-            continue; // Exclude graded subjects from numeric calculation
-        }
-
         const valStr = marks[field.name];
         if (valStr === undefined || valStr === "") {
             if (field.required) {
@@ -127,7 +117,7 @@ export const calculatePercentage = (boardKey, marks) => {
     else if (config.calculationRule === "AGGREGATE") {
         // STATE: Standard sum of all numeric subjects
         obtained = subjectMarks.reduce((sum, item) => sum + item.mark, 0);
-        max = config.totalMarks; // 525
+        max = config.totalMarks; // 625
 
         // Enforce state board specific aggregate limits
         if (obtained < (config.passingAggregateMarks || 206)) {

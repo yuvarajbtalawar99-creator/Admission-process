@@ -55,6 +55,7 @@ const multerInstance = multer({
   { name: 'casteCertificate', maxCount: 1 },
   { name: 'domicileCertificate', maxCount: 1 },
   { name: 'gapCertificate', maxCount: 1 },
+  { name: 'feesPaidReceipt', maxCount: 1 },
 ]);
 
 /**

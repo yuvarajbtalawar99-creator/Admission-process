@@ -386,7 +386,7 @@ export const getAnalyticsData = async (
 
     // 5. Department student distribution (for pie chart)
     const depts = await Department.findAll({ transaction });
-    const deptDistribution = [];
+    const deptDistribution: any[] = [];
     const colors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
     for (let i = 0; i < depts.length; i++) {
       const d = depts[i];
@@ -400,7 +400,7 @@ export const getAnalyticsData = async (
 
     // 6. Admission Trends (Admissions by month in current year)
     const currentYear = new Date().getFullYear();
-    const admissionsByMonth = [];
+    const admissionsByMonth: any[] = [];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     for (let m = 0; m < 12; m++) {
       const startDate = new Date(currentYear, m, 1);

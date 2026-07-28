@@ -164,13 +164,15 @@ export const StudentEnrollmentPage: React.FC<StudentEnrollmentPageProps> = ({ de
   const getDocumentList = (app: AdmissionApplication) => {
     const d = app.studentdocuments;
     if (!d) return [];
+    const isLateral = app.qualification === 'DIPLOMA' || (!app.qualification && app.admissionType === 'DCET');
     return [
       { label: 'Passport Photo',      url: d.photoUrl },
       { label: 'Signature',           url: d.signatureUrl },
       { label: '10th Marksheet',      url: d.tenthMarksheetUrl },
-      { label: '12th Marksheet',      url: d.twelfthMarksheetUrl },
+      { label: isLateral ? 'Diploma Marks Card' : '12th Marksheet', url: d.twelfthMarksheetUrl },
       { label: 'CET Score Card',      url: d.cetScoreCardUrl },
       { label: 'Aadhaar Card',        url: d.aadhaarUrl },
+      { label: 'Fees Paid Receipt',   url: d.feesPaidReceiptUrl },
       { label: 'Caste Certificate',   url: d.casteCertificateUrl },
       { label: 'Domicile Certificate',url: d.domicileCertificateUrl },
       { label: 'Gap Certificate',     url: d.gapCertificateUrl },
@@ -303,7 +305,10 @@ export const StudentEnrollmentPage: React.FC<StudentEnrollmentPageProps> = ({ de
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {[
                         { label: '10th', value: acad?.tenthPercentage ? `${acad.tenthPercentage}%` : '—' },
-                        { label: '12th', value: acad?.twelfthPercentage ? `${acad.twelfthPercentage}%` : '—' },
+                        { 
+                          label: app.qualification === 'DIPLOMA' ? 'Diploma' : '12th', 
+                          value: (app.qualification === 'DIPLOMA' ? acad?.diplomaPercentage : acad?.twelfthPercentage) ? `${app.qualification === 'DIPLOMA' ? acad.diplomaPercentage : acad.twelfthPercentage}%` : '—' 
+                        },
                         { label: 'CET', value: acad?.cetScore ? `${acad.cetScore}` : '—' },
                       ].map((s) => (
                         <div key={s.label} className="bg-white/70 rounded-xl p-2 text-center border border-white">
@@ -457,7 +462,11 @@ export const StudentEnrollmentPage: React.FC<StudentEnrollmentPageProps> = ({ de
                   <div className="grid grid-cols-3 gap-3">
                     {[
                       { label: '10th %',  value: selected.studentacademicdetails.tenthPercentage ? `${selected.studentacademicdetails.tenthPercentage}%` : '—', color: '#d97706' },
-                      { label: '12th %',  value: selected.studentacademicdetails.twelfthPercentage ? `${selected.studentacademicdetails.twelfthPercentage}%` : '—', color: '#0284c7' },
+                      { 
+                        label: selected.qualification === 'DIPLOMA' ? 'Diploma %' : '12th %',  
+                        value: (selected.qualification === 'DIPLOMA' ? selected.studentacademicdetails.diplomaPercentage : selected.studentacademicdetails.twelfthPercentage) ? `${selected.qualification === 'DIPLOMA' ? selected.studentacademicdetails.diplomaPercentage : selected.studentacademicdetails.twelfthPercentage}%` : '—', 
+                        color: '#0284c7' 
+                      },
                       { label: 'CET Score', value: selected.studentacademicdetails.cetScore ? `${selected.studentacademicdetails.cetScore}` : '—', color: '#7C3AED' },
                     ].map((s) => (
                       <div key={s.label} className="rounded-xl p-3 border text-center" style={{ backgroundColor: s.color + '10', borderColor: s.color + '30' }}>

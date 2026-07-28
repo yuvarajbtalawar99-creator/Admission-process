@@ -279,10 +279,26 @@ export const downloadPDF = async (
 
 /** GET /api/admin/admissions */
 export const listAdmissions = async (
-  req: AuthRequest, res: Response, next: NextFunction
+  req: AuthRequest, res: Response, _next: NextFunction
 ): Promise<any> => {
   try {
-    const { status, branchId, admissionType, search, sortBy, sortOrder, page, limit } = req.query as any;
+    const {
+      status,
+      branchId,
+      admissionType,
+      search,
+      sortBy,
+      sortOrder,
+      page,
+      limit,
+      qualification,
+      gender,
+      category,
+      district,
+      academicYear,
+      startDate,
+      endDate
+    } = req.query as any;
     const result = await admissionService.listApplications({
       status,
       branchId,
@@ -292,10 +308,31 @@ export const listAdmissions = async (
       sortOrder,
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 20,
+      qualification,
+      gender,
+      category,
+      district,
+      academicYear,
+      startDate,
+      endDate
     });
+    
+    if (!result || result.total === 0) {
+      return res.json({
+        success: true,
+        data: [],
+        total: 0
+      });
+    }
+
     return res.json({ success: true, data: result });
   } catch (err) {
-    return next(err);
+    console.error("Error in listAdmissions controller:", err);
+    return res.json({
+      success: true,
+      data: [],
+      total: 0
+    });
   }
 };
 

@@ -101,18 +101,18 @@ function computeStepStatus(admission: any) {
   const acad = admission?.studentacademicdetails;
   const docs = admission?.studentdocuments;
 
-  const isLateral = admission?.admissionType === 'DCET';
+  const isLateral = admission?.qualification === 'DIPLOMA' || (!admission?.qualification && admission?.admissionType === 'DCET');
 
   const steps = [
-    { step: 1, completed: !!(admission?.admissionType && admission?.aadhaar && admission?.branchId) },
+    { step: 1, completed: !!(admission?.admissionType && admission?.aadhaar && admission?.branchId && admission?.qualification) },
     { step: 2, completed: !!(pd?.firstName && pd?.dateOfBirth && pd?.gender) },
     { step: 3, completed: !!(par?.fatherName && par?.fatherPhone) },
     { step: 4, completed: !!(addr?.currentAddressLine1 && addr?.currentCity && addr?.currentPincode) },
-    // DCET (lateral) students fill Diploma details, not PUC/12th
+    // Diploma students fill Diploma details, not PUC/12th
     { step: 5, completed: isLateral
         ? !!(acad?.tenthPercentage && acad?.diplomaPercentage)
         : !!(acad?.tenthPercentage && acad?.twelfthPercentage) },
-    { step: 6, completed: !!(docs?.photoUrl && docs?.tenthMarksheetUrl) },
+    { step: 6, completed: !!(docs?.photoUrl && docs?.tenthMarksheetUrl && docs?.feesPaidReceiptUrl) },
     { step: 7, completed: admission?.applicationStatus === 'SUBMITTED' },
   ];
 
@@ -165,6 +165,7 @@ function computeStepStatus(admission: any) {
     activeStepIndex,
     adminRemarks: admission?.adminRemarks || null,
     rejectionReason: admission?.rejectionReason || null,
+    rejectionReasonCode: admission?.rejectionReasonCode || null,
     timeline,
   };
 }
@@ -238,7 +239,7 @@ class AdmissionService {
       case 'details': {
         const data = await Admission.findOne({
           where: { id: admission.id },
-          attributes: ['id', 'userId', 'applicationNumber', 'admissionType', 'branchId', 'aadhaar', 'cetNumber', 'dcetNumber', 'applicationStatus']
+          attributes: ['id', 'userId', 'applicationNumber', 'admissionType', 'branchId', 'aadhaar', 'cetNumber', 'dcetNumber', 'applicationStatus', 'qualification']
         });
         return data;
       }
@@ -352,6 +353,7 @@ class AdmissionService {
     aadhaar: string;
     cetNumber?: string;
     dcetNumber?: string;
+    qualification?: 'PUC' | 'DIPLOMA';
   }): Promise<string> {
     const admission = await this.getOrCreate(userId);
     this.checkEditable(admission);
@@ -361,6 +363,7 @@ class AdmissionService {
       aadhaar: payload.aadhaar,
       cetNumber: payload.cetNumber || null,
       dcetNumber: payload.dcetNumber || null,
+      qualification: payload.qualification || null,
     });
     await this.invalidateCache(userId);
     return admission.id;
@@ -418,6 +421,10 @@ class AdmissionService {
     this.checkEditable(admission);
     const existing = await AdmissionAcademicDetail.findOne({ where: { admissionId: admission.id } });
     
+    const q = (admission.qualification || '').toUpperCase();
+    const showPUC = q === 'PUC' || (!q && admission.admissionType === 'KCET');
+    const showDiploma = q === 'DIPLOMA' || (!q && admission.admissionType === 'DCET');
+
     const dbPayload = {
       tenthSchool: payload.sslcSchool,
       tenthBoard: payload.sslcBoard,
@@ -428,27 +435,30 @@ class AdmissionService {
       tenthPercentage: payload.sslcPercentage,
       tenthAttempts: payload.sslcAttempts,
       tenthSubjectMarks: payload.sslcSubjectMarks || null,
-      twelfthSchool: payload.pucSchool,
-      twelfthBoard: payload.pucBoard,
-      twelfthPassingYear: payload.pucYear,
-      twelfthRegisterNumber: payload.pucRegisterNumber,
-      twelfthStream: payload.pucStream,
-      physicsMarks: payload.physicsMarks,
-      mathsMarks: payload.mathsMarks,
-      chemistryMarks: payload.chemistryMarks,
-      optionalSubject: payload.optionalSubject,
-      optionalMarks: payload.optionalMarks,
-      twelfthMaxMarks: payload.pucMaxMarks,
-      twelfthAggregate: payload.pucAggregate,
-      twelfthPercentage: payload.pucPercentage,
-      twelfthAttempts: payload.pucAttempts,
-      diplomaUniversity: payload.diplomaUniversity,
-      diplomaYear: payload.diplomaYear,
-      diplomaRegisterNumber: payload.diplomaRegisterNumber,
-      diplomaFinalYearMaxMarks: payload.diplomaFinalYearMaxMarks,
-      diplomaFinalYearObtained: payload.diplomaFinalYearObtained,
-      diplomaPercentage: payload.diplomaPercentage,
-      diplomaAttempts: payload.diplomaAttempts,
+      
+      twelfthSchool: showPUC ? payload.pucSchool || null : null,
+      twelfthBoard: showPUC ? payload.pucBoard || null : null,
+      twelfthPassingYear: showPUC ? (payload.pucYear || null) : null,
+      twelfthRegisterNumber: showPUC ? payload.pucRegisterNumber || null : null,
+      twelfthStream: showPUC ? payload.pucStream || null : null,
+      physicsMarks: showPUC ? payload.physicsMarks || null : null,
+      mathsMarks: showPUC ? payload.mathsMarks || null : null,
+      chemistryMarks: showPUC ? payload.chemistryMarks || null : null,
+      optionalSubject: showPUC ? payload.optionalSubject || null : null,
+      optionalMarks: showPUC ? payload.optionalMarks || null : null,
+      twelfthMaxMarks: showPUC ? payload.pucMaxMarks || null : null,
+      twelfthAggregate: showPUC ? payload.pucAggregate || null : null,
+      twelfthPercentage: showPUC ? payload.pucPercentage || null : null,
+      twelfthAttempts: showPUC ? payload.pucAttempts || null : null,
+      
+      diplomaUniversity: showDiploma ? payload.diplomaUniversity || null : null,
+      diplomaYear: showDiploma ? (payload.diplomaYear || null) : null,
+      diplomaRegisterNumber: showDiploma ? payload.diplomaRegisterNumber || null : null,
+      diplomaFinalYearMaxMarks: showDiploma ? payload.diplomaFinalYearMaxMarks || null : null,
+      diplomaFinalYearObtained: showDiploma ? payload.diplomaFinalYearObtained || null : null,
+      diplomaPercentage: showDiploma ? payload.diplomaPercentage || null : null,
+      diplomaAttempts: showDiploma ? payload.diplomaAttempts || null : null,
+      
       cetScore: payload.cetScore,
       cetRank: payload.cetRank,
       cetYear: payload.cetYear,
@@ -562,8 +572,31 @@ class AdmissionService {
     sortOrder?: string;
     page?: number;
     limit?: number;
+    qualification?: string;
+    gender?: string;
+    category?: string;
+    district?: string;
+    academicYear?: string;
+    startDate?: string;
+    endDate?: string;
   }) {
-    const { status, branchId, admissionType, search, sortBy, sortOrder = 'DESC', page = 1, limit = 20 } = filters;
+    const {
+      status,
+      branchId,
+      admissionType,
+      search,
+      sortBy,
+      sortOrder = 'DESC',
+      page = 1,
+      limit = 20,
+      qualification,
+      gender,
+      category,
+      district,
+      academicYear,
+      startDate,
+      endDate
+    } = filters;
     const offset = (page - 1) * limit;
 
     const where: any = {};
@@ -599,6 +632,59 @@ class AdmissionService {
     }
     if (branchId && branchId !== 'ALL') where.branchId = branchId;
     if (admissionType && admissionType !== 'ALL') where.admissionType = admissionType;
+    if (qualification && qualification !== 'ALL') where.qualification = qualification;
+
+    // Academic Year filter
+    if (academicYear && academicYear !== 'ALL') {
+      const startYearMatch = academicYear.match(/\d{4}/);
+      if (startYearMatch) {
+        const startYear = parseInt(startYearMatch[0]);
+        const start = new Date(`${startYear}-06-01T00:00:00.000Z`);
+        const end = new Date(`${startYear + 1}-05-31T23:59:59.999Z`);
+        where.createdAt = { [Op.between]: [start, end] };
+      }
+    }
+
+    // Date range filter
+    if (startDate || endDate) {
+      const start = startDate ? new Date(startDate) : new Date('2020-01-01');
+      const end = endDate ? new Date(endDate) : new Date();
+      if (where.createdAt) {
+        where.createdAt = {
+          [Op.and]: [
+            where.createdAt,
+            { [Op.between]: [start, end] }
+          ]
+        };
+      } else {
+        where.createdAt = { [Op.between]: [start, end] };
+      }
+    }
+
+    // Universal Search filter
+    if (search && search.trim() !== '') {
+      const s = search.trim();
+      where[Op.or] = [
+        { applicationNumber: { [Op.iLike]: `%${s}%` } },
+        { aadhaar: { [Op.iLike]: `%${s}%` } },
+        { '$user.firstName$': { [Op.iLike]: `%${s}%` } },
+        { '$user.lastName$': { [Op.iLike]: `%${s}%` } },
+        { '$user.email$': { [Op.iLike]: `%${s}%` } },
+        { '$user.phone$': { [Op.iLike]: `%${s}%` } },
+        { '$user.student.enrollmentNumber$': { [Op.iLike]: `%${s}%` } }
+      ];
+    }
+
+    // Filters for personal details
+    const personalWhere: any = {};
+    if (gender && gender !== 'ALL') personalWhere.gender = gender;
+    if (category && category !== 'ALL') personalWhere.category = category;
+
+    // Filters for address
+    const addressWhere: any = {};
+    if (district && district.trim() !== '') {
+      addressWhere.currentCity = { [Op.iLike]: `%${district.trim()}%` };
+    }
 
     const include: any[] = [
       {
@@ -608,21 +694,21 @@ class AdmissionService {
         attributes: ['id', 'email', 'firstName', 'lastName', 'phone', 'profileImage'],
         include: [
           { model: Student, as: 'student', attributes: ['id', 'enrollmentNumber', 'rollNumber'], required: false }
-        ],
-        ...(search
-          ? {
-              where: {
-                [Op.or]: [
-                  { firstName: { [Op.iLike]: `%${search}%` } },
-                  { lastName: { [Op.iLike]: `%${search}%` } },
-                  { email: { [Op.iLike]: `%${search}%` } },
-                ],
-              },
-              required: true,
-            }
-          : {}),
+        ]
       },
       { model: Department, as: 'branch', required: false },
+      {
+        model: AdmissionPersonalDetail,
+        as: 'studentpersonaldetails',
+        required: Object.keys(personalWhere).length > 0,
+        where: Object.keys(personalWhere).length > 0 ? personalWhere : undefined
+      },
+      {
+        model: AdmissionAddress,
+        as: 'studentaddress',
+        required: Object.keys(addressWhere).length > 0,
+        where: Object.keys(addressWhere).length > 0 ? addressWhere : undefined
+      }
     ];
 
     let order: any[] = [['createdAt', 'DESC']];
@@ -630,6 +716,10 @@ class AdmissionService {
       order = [['createdAt', sortOrder]];
     } else if (sortBy === 'rank') {
       order = [['applicationNumber', sortOrder]];
+    } else if (sortBy === 'updatedAt') {
+      order = [['updatedAt', sortOrder]];
+    } else if (sortBy === 'name') {
+      order = [[{ model: User, as: 'user' }, 'firstName', sortOrder]];
     }
 
     const { count, rows } = await Admission.findAndCountAll({
@@ -653,7 +743,14 @@ class AdmissionService {
   async getApplicationById(id: string): Promise<any> {
     const full = await Admission.findByPk(id, {
       include: [
-        { model: User, as: 'user', attributes: ['id', 'email', 'firstName', 'lastName', 'phone', 'profileImage'] },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email', 'firstName', 'lastName', 'phone', 'profileImage'],
+          include: [
+            { model: Student, as: 'student', attributes: ['id', 'enrollmentNumber', 'rollNumber'] }
+          ]
+        },
         { model: Department, as: 'branch' },
         { model: AdmissionPersonalDetail, as: 'studentpersonaldetails' },
         { model: AdmissionParentDetail, as: 'studentparentdetails' },

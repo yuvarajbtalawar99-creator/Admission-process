@@ -36,6 +36,7 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdmissionQueuePage from './pages/admin/admissions/AdmissionQueuePage';
 import AdmissionReviewPage from './pages/admin/admissions/AdmissionReviewPage';
 import PrincipalManagementPage from './pages/admin/users/PrincipalManagementPage';
+import StudentsDashboardPage from './pages/admin/admissions/StudentsDashboardPage';
 import AdminNotificationsPage from './pages/admin/communications/AdminNotificationsPage';
 import AdminAnnouncementsPage from './pages/admin/communications/AdminAnnouncementsPage';
 import AdminAnalyticsPage from './pages/admin/analytics/AdminAnalyticsPage';
@@ -194,6 +195,7 @@ export const App: React.FC = () => (
               <Route path="admissions/history"     element={<AdmissionQueuePage defaultStatus="ALL" />} />
               <Route path="admissions/review/:id"  element={<AdmissionReviewPage />} />
 
+              <Route path="students"         element={<StudentsDashboardPage />} />
               <Route path="users/principals" element={<PrincipalManagementPage />} />
               <Route path="credentials"      element={<CredentialManagementPage />} />
 

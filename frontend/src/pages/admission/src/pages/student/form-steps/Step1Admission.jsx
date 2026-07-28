@@ -95,6 +95,15 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
         return () => clearTimeout(timer);
     }, [data.cetNumber, data.dcetNumber, data.admissionType]);
 
+    // Auto-synchronize qualification based on admissionType for KCET and DCET
+    useEffect(() => {
+        if (data.admissionType === 'KCET' && data.qualification !== 'PUC') {
+            updateData({ qualification: 'PUC' });
+        } else if (data.admissionType === 'DCET' && data.qualification !== 'DIPLOMA') {
+            updateData({ qualification: 'DIPLOMA' });
+        }
+    }, [data.admissionType, data.qualification, updateData]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         
@@ -108,6 +117,11 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
             return;
         }
 
+        if (!data.qualification) {
+            toast.error('Please select your qualification.');
+            return;
+        }
+
         setLoading(true);
         try {
             const payload = {
@@ -115,7 +129,8 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
                 branchId: data.branchId || null,
                 aadhaar: data.aadhaar,
                 cetNumber: data.cetNumber,
-                dcetNumber: data.dcetNumber
+                dcetNumber: data.dcetNumber,
+                qualification: data.qualification
             };
 
             const res = await api.post('/student/create', payload);
@@ -147,7 +162,15 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
                         id="admissionType"
                         required
                         value={data.admissionType || ''}
-                        onChange={(val) => updateData({ admissionType: val, cetNumber: '', dcetNumber: '' })}
+                        onChange={(val) => {
+                            const updates = { admissionType: val, cetNumber: '', dcetNumber: '' };
+                            if (val === 'DCET') {
+                                updates.qualification = 'DIPLOMA';
+                            } else if (val === 'KCET') {
+                                updates.qualification = 'PUC';
+                            }
+                            updateData(updates);
+                        }}
                         placeholder="Select admission type..."
                         options={[
                             { value: 'KCET', label: 'KCET (Karnataka Common Entrance Test)' },
@@ -175,6 +198,27 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
                 </div>
+
+                {/* Qualification (displayed only for MANAGEMENT) */}
+                {data.admissionType === 'MANAGEMENT' && (
+                    <div className="space-y-1.5 md:col-span-2">
+                        <label className="block text-sm font-medium text-slate-700">Qualification <span className="text-red-500">*</span></label>
+                        <SelectDropdown
+                            id="qualification"
+                            required
+                            value={data.qualification || ''}
+                            onChange={(val) => updateData({ qualification: val })}
+                            placeholder="Select qualification..."
+                            options={[
+                                { value: 'PUC', label: 'PUC / 12th Standard' },
+                                { value: 'DIPLOMA', label: 'Diploma' },
+                            ]}
+                        />
+                        {!data.qualification && applicationStatus === 'REJECTED' && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                        )}
+                    </div>
+                )}
 
                 {/* Aadhaar Number */}
                 <div className="space-y-1.5 md:col-span-2">

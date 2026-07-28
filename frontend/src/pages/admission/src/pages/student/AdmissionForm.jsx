@@ -33,7 +33,7 @@ const STEPS = [
 ];
 
 const STEP_FIELDS_MAP = {
-    1: ['admissionType', 'branchId', 'aadhaar', 'cetNumber', 'dcetNumber'],
+    1: ['admissionType', 'branchId', 'aadhaar', 'cetNumber', 'dcetNumber', 'qualification'],
     2: ['firstName', 'middleName', 'lastName', 'caste', 'dateOfBirth', 'gender', 'category', 'religion', 'nationality', 'studiedInKarnataka', 'areaType'],
     3: ['fatherName', 'motherName', 'parentMobile', 'fatherPhone', 'parentEmail', 'fatherEmail', 'occupation', 'fatherOccupation', 'motherOccupation', 'motherPhone', 'annualIncome', 'fatherAnnualIncome'],
     4: ['currentAddressLine1', 'currentCity', 'currentState', 'currentPincode', 'permanentAddressLine1', 'permanentCity', 'permanentState', 'permanentPincode', 'Address', 'City', 'Taluk', 'DistrictId', 'Pincode', 'sameAsCurrent', 'permanentAddress', 'permanentCity', 'permanentTaluk', 'permanentDistrictId', 'permanentPincode'],
@@ -93,6 +93,62 @@ const AdmissionForm = () => {
             }
         } catch (e) {
             console.error('Failed to refresh form data after upload:', e);
+        }
+    };
+
+    const syncApplicationState = async () => {
+        try {
+            const res = await api.get('/application/full-details');
+            if (res.data.success && res.data.data) {
+                const details = res.data.data;
+                setFullDetails(details);
+                
+                // Flatten the nested details to merge into formData
+                const flatData = {
+                    id: details.id,
+                    applicationNumber: details.applicationNumber,
+                    admissionType: details.admissionType,
+                    branchId: details.branchId,
+                    qualification: details.qualification,
+                    aadhaar: details.aadhaar,
+                    cetNumber: details.cetNumber,
+                    dcetNumber: details.dcetNumber,
+                    applicationStatus: details.applicationStatus,
+                    ...(details.studentpersonaldetails || {}),
+                    ...(details.studentparentdetails || {}),
+                    ...(details.studentaddress || {}),
+                    ...(details.studentacademicdetails || {}),
+                    ...(details.studentdocuments || {})
+                };
+                
+                // Apply legacy mappings
+                if (details.studentacademicdetails) {
+                    const acad = details.studentacademicdetails;
+                    flatData.sslcSchool = acad.tenthSchool;
+                    flatData.sslcBoard = acad.tenthBoard;
+                    flatData.sslcYear = acad.tenthPassingYear;
+                    flatData.sslcRegisterNumber = acad.tenthRegisterNumber;
+                    flatData.sslcMarksObtained = acad.tenthMarksObtained;
+                    flatData.sslcMaxMarks = acad.tenthMaxMarks;
+                    flatData.sslcPercentage = acad.tenthPercentage;
+                    flatData.sslcAttempts = acad.tenthAttempts;
+                    flatData.sslcSubjectMarks = acad.tenthSubjectMarks;
+
+                    flatData.pucSchool = acad.twelfthSchool;
+                    flatData.pucBoard = acad.twelfthBoard;
+                    flatData.pucYear = acad.twelfthPassingYear;
+                    flatData.pucRegisterNumber = acad.twelfthRegisterNumber;
+                    flatData.pucStream = acad.twelfthStream;
+                    flatData.pucMaxMarks = acad.twelfthMaxMarks;
+                    flatData.pucAggregate = acad.twelfthAggregate;
+                    flatData.pucPercentage = acad.twelfthPercentage;
+                    flatData.pucAttempts = acad.twelfthAttempts;
+                }
+
+                setFormData(prev => ({ ...prev, ...flatData }));
+            }
+        } catch (e) {
+            console.error("Failed to sync application state:", e);
         }
     };
 
@@ -166,6 +222,13 @@ const AdmissionForm = () => {
             fetchFullDetailsData();
         }
     }, [statusLoading, stepStatus?.applicationStatus]);
+
+    // Force global sync on initial load/mount
+    useEffect(() => {
+        if (!statusLoading && stepStatus) {
+            syncApplicationState();
+        }
+    }, [statusLoading]);
 
     // Fetch step-specific data lazily on step transition
     useEffect(() => {
@@ -249,6 +312,11 @@ const AdmissionForm = () => {
         const nextStep = currentStep + 1;
         localStorage.setItem('admission_form_step', nextStep.toString());
         await refetchStatus();
+
+        if (currentStep === 1) {
+            await syncApplicationState();
+        }
+
         setTimeout(() => {
             setCurrentStep(nextStep);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -296,60 +364,97 @@ const AdmissionForm = () => {
         setFormData((prev) => ({ ...prev, ...processed }));
     };
 
-    const handleDownloadPDF = () => {
+    const handleDownloadPDF = async () => {
         const toastId = toast.loading('Preparing your admission letter…');
         try {
-            const details = fullDetails;
-            if (!details) { toast.dismiss(toastId); toast.error('Details not loaded.'); return; }
+            const res = await api.get('/application/full-details');
+            if (!res.data.success) throw new Error('Failed to load latest details');
+            const details = res.data.data;
 
             const pd = details?.studentpersonaldetails || {};
             const docs = details?.studentdocuments || {};
             const branch = details?.branch || {};
             const user = details?.user || {};
+            const par = details?.studentparentdetails || {};
+            const addr = details?.studentaddress || {};
+            const acad = details?.studentacademicdetails || {};
+            const signatureUrl = docs.signatureUrl || '';
+            const q = (details?.qualification || '').toUpperCase();
+            const showPUC = q === 'PUC' || (!q && details?.admissionType === 'KCET');
+            const showDiploma = q === 'DIPLOMA' || (!q && details?.admissionType === 'DCET');
             const applicantName = pd.firstName ? `${pd.firstName} ${pd.lastName || ''}`.trim() : `${user.firstName || ''} ${user.lastName || ''}`.trim();
             const absoluteLogoUrl = window.location.origin + '/logo.png';
             const photoUrl = docs.photoUrl || '';
+
+            const getPdfStatusText = (det) => {
+                const status = det?.applicationStatus;
+                if (status === 'ENROLLED') return 'ADMISSION CONFIRMED';
+                if (status === 'APPROVED') return 'ADMISSION APPROVED';
+                if (det?.documentsVerified) return 'DOCUMENTS VERIFIED';
+                if (status === 'UNDER_REVIEW') return 'UNDER REVIEW';
+                if (status === 'SUBMITTED') {
+                    if (det?.resubmittedAt) return 'APPLICATION RESUBMITTED';
+                    return 'APPLICATION SUBMITTED';
+                }
+                if (status === 'REJECTED') return 'APPLICATION REJECTED';
+                return 'APPLICATION DRAFT';
+            };
+            const pdfStatus = getPdfStatusText(details);
 
 
             const printHTML = `
                 <!DOCTYPE html>
                 <html>
                 <head>
+                    <title></title>
                     <style>
-                        .header { border-bottom: 3px solid #1a3c6e; padding-bottom: 12px; margin-bottom: 15px; }
-                        .header-top { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+                        @page { size: A4 portrait; margin: 6mm 10mm; }
+                        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                        html, body { height: auto !important; overflow: visible !important; }
+                        body { font-family: 'Times New Roman', Times, serif; background: white; margin: 0; padding: 0; color: #000; }
+                        .application-form { width: 100%; max-width: 190mm; margin: 0 auto; padding: 0px; background: white; box-sizing: border-box; height: auto !important; overflow: visible !important; }
+                        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 400px; height: 400px; opacity: 0.05; pointer-events: none; z-index: 0; }
+                        .watermark img { width: 100%; height: 100%; object-fit: contain; }
+                        .header { border-bottom: 3px solid #1a3c6e; padding-bottom: 6px; margin-bottom: 8px; }
+                        .header-top { display: grid; grid-template-columns: 80px 1fr 80px; align-items: center; width: 100%; }
                         .logo-box { width: 80px; height: 80px; border-radius: 50%; overflow: hidden; flex-shrink: 0; }
                         .logo-box img { width: 100%; height: 100%; object-fit: contain; }
-                        .header-text { flex: 1; text-align: center; padding: 0 10px; }
-                        .header-text h1 { font-size: 14pt; font-weight: bold; color: #1a3c6e; }
-                        .header-text h2 { font-size: 11pt; font-weight: bold; color: #1a3c6e; border: 1.5px solid #1a3c6e; display: inline-block; padding: 1px 12px; margin: 4px 0; }
-                        .header-text p { font-size: 9.5pt; color: #333; margin: 2px 0 0; }
+                        .header-text { flex: 1; text-align: center; padding: 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+                        .header-text h1 { font-size: 12.5pt; font-weight: bold; color: #1a3c6e; white-space: nowrap; text-align: center; }
+                        .header-text h2 { font-size: 10pt; font-weight: bold; color: #1a3c6e; border: 1.5px solid #1a3c6e; display: inline-block; padding: 1px 10px; margin: 2px 0; text-align: center; }
+                        .header-text p { font-size: 9pt; color: #333; margin: 1px 0 0; text-align: center; }
                         .photo-box { flex-shrink: 0; width: 80px; height: 100px; border: 2px solid #1a3c6e; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #fafafa; }
                         .photo-box img { width: 100%; height: 100%; object-fit: cover; }
                         .photo-placeholder { font-size: 10px; color: #999; text-align: center; }
-                        .header-bottom { display: flex; justify-content: space-between; margin-top: 10px; padding: 6px 12px; background: #f5f7fa; border: 1px solid #dde1e8; font-size: 10pt; }
-                        .status-confirmed { background: #dcfce7; border: 2px solid #16a34a; padding: 8px 14px; margin: 10px 0 14px; text-align: center; font-size: 12pt; font-weight: bold; color: #15803d; letter-spacing: 1px; }
-                        .notice-box { background: #fffbeb; border: 1.5px solid #d97706; padding: 8px 14px; margin-bottom: 12px; font-size: 9.5pt; color: #92400e; }
-                        .body { margin: 10px 0 15px; }
-                        .section { margin-bottom: 12px; }
-                        .section-title { background: #000; color: white; padding: 5px 12px; font-size: 11pt; font-weight: bold; letter-spacing: 0.5px; }
+                        .header-bottom { display: flex; justify-content: space-between; margin-top: 6px; padding: 3px 8px; background: #f5f7fa; border: 1px solid #dde1e8; font-size: 9pt; }
+                        .status-confirmed { background: #dcfce7; border: 2px solid #16a34a; padding: 4px 8px; margin: 4px 0 6px; text-align: center; font-size: 11pt; font-weight: bold; color: #15803d; letter-spacing: 0.5px; }
+                        .notice-box { background: #fffbeb; border: 1.5px solid #d97706; padding: 4px 10px; margin-bottom: 8px; font-size: 8.5pt; color: #92400e; }
+                        .body { margin: 4px 0 8px; }
+                        .section { margin-bottom: 6px; break-inside: avoid; page-break-inside: avoid; }
+                        .section-title { background: #000; color: white; padding: 2px 8px; font-size: 9.5pt; font-weight: bold; letter-spacing: 0.5px; }
                         .section-content { border: 1px solid #dde1e8; border-top: none; }
                         .section-content table { width: 100%; border-collapse: collapse; }
-                        .section-content td { padding: 4px 10px; border-bottom: 1px dotted #e0e4eb; font-size: 10pt; }
+                        .section-content td { padding: 2px 6px; border-bottom: 1px dotted #e0e4eb; font-size: 8.5pt; }
                         .section-content tr:last-child td { border-bottom: none; }
                         .label { width: 160px; font-weight: 600; color: #333; }
                         .value { font-weight: 500; color: #000; }
-                        .subheader { background: #f5f7fa; font-weight: bold; color: #1a3c6e; padding: 3px 10px !important; }
-                        .declaration { margin: 15px 0 12px; border: 2px solid #1a3c6e; padding: 10px 14px; background: #f8faff; }
-                        .declaration-title { font-size: 11pt; font-weight: bold; color: #1a3c6e; text-align: center; margin-bottom: 4px; }
-                        .declaration-text { font-size: 10pt; line-height: 1.5; text-align: justify; }
-                        .signature { display: flex; justify-content: space-between; margin: 25px 0 10px; padding: 0 20px; }
+                        .subheader { background: #f5f7fa; font-weight: bold; color: #1a3c6e; padding: 1.5px 6px !important; font-size: 8.5pt; }
+                        .declaration { margin: 6px 0 4px; border: 1.5px solid #1a3c6e; padding: 4px 10px; background: #f8faff; break-inside: avoid; page-break-inside: avoid; }
+                        .declaration-title { font-size: 9.5pt; font-weight: bold; color: #1a3c6e; text-align: center; margin-bottom: 1px; }
+                        .declaration-text { font-size: 8pt; line-height: 1.35; text-align: justify; }
+                        .signature { display: flex; justify-content: space-between; margin: 10px 0 3px; padding: 0 10px; break-inside: avoid; page-break-inside: avoid; }
                         .signature-item { text-align: center; width: 200px; }
-                        .signature-line { border-top: 1px solid black; height: 25px; margin-bottom: 3px; }
-                        .signature-img { height: 35px; object-fit: contain; display: block; margin: 0 auto 3px; }
-                        .signature-label { font-size: 9pt; color: #333; font-weight: 600; }
-                        .footer { margin-top: 20px; border-top: 2px solid #1a3c6e; padding-top: 10px; text-align: center; }
-                        .footer p { font-size: 9pt; color: #555; margin: 2px 0; }
+                        .signature-line { border-top: 1px solid black; height: 12px; margin-bottom: 1px; }
+                        .signature-img { height: 24px; object-fit: contain; display: block; margin: 0 auto 1px; }
+                        .signature-label { font-size: 8pt; color: #333; font-weight: 600; }
+                        .footer { margin-top: 5px; border-top: 2px solid #1a3c6e; padding-top: 4px; text-align: center; break-inside: avoid; page-break-inside: avoid; }
+                        .footer p { font-size: 8pt; color: #555; margin: 1px 0; }
+                        @media print {
+                            html, body, .application-form {
+                                height: auto !important;
+                                overflow: visible !important;
+                            }
+                        }
                     </style>
                 </head>
                 <body>
@@ -370,11 +475,11 @@ const AdmissionForm = () => {
                             </div>
                             <div class="header-bottom">
                                 <span><strong>Application No:</strong> ${details?.applicationNumber || 'N/A'}</span>
-                                <span><strong>Status:</strong> ADMISSION CONFIRMED</span>
+                                <span><strong>Status:</strong> ${pdfStatus}</span>
                                 <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                             </div>
                         </div>
-                        <div class="status-confirmed">✅ ADMISSION CONFIRMED – Jain College of Engineering &amp; Research</div>
+                        <div class="status-confirmed">✅ ${pdfStatus} – Jain College of Engineering &amp; Research</div>
                         <div class="notice-box">📋 <strong>Important:</strong> Please carry this printed copy when visiting the college for document verification and enrollment formalities.</div>
                         <div class="body">
                             <div class="section">
@@ -425,11 +530,17 @@ const AdmissionForm = () => {
                                     <tr><td class="label">Board</td><td class="value">${acad.tenthBoard || '—'}</td></tr>
                                     <tr><td class="label">Year</td><td class="value">${acad.tenthPassingYear || '—'}</td></tr>
                                     <tr><td class="label">Percentage</td><td class="value">${acad.tenthPercentage ? `${acad.tenthPercentage}%` : '—'}</td></tr>
-                                    ${acad.twelfthBoard ? `
+                                    ${showPUC ? `
                                     <tr><td colspan="2" class="subheader">PUC / 12th</td></tr>
-                                    <tr><td class="label">Board</td><td class="value">${acad.twelfthBoard}</td></tr>
+                                    <tr><td class="label">Board</td><td class="value">${acad.twelfthBoard || '—'}</td></tr>
                                     <tr><td class="label">Year</td><td class="value">${acad.twelfthPassingYear || '—'}</td></tr>
                                     <tr><td class="label">Percentage</td><td class="value">${acad.twelfthPercentage ? `${acad.twelfthPercentage}%` : '—'}</td></tr>
+                                    ` : ''}
+                                    ${showDiploma ? `
+                                    <tr><td colspan="2" class="subheader">Diploma details (Lateral Entry)</td></tr>
+                                    <tr><td class="label">University</td><td class="value">${acad.diplomaUniversity || '—'}</td></tr>
+                                    <tr><td class="label">Year</td><td class="value">${acad.diplomaYear || '—'}</td></tr>
+                                    <tr><td class="label">Percentage</td><td class="value">${acad.diplomaPercentage ? `${acad.diplomaPercentage}%` : '—'}</td></tr>
                                     ` : ''}
                                 </tbody></table></div>
                             </div>
@@ -449,7 +560,7 @@ const AdmissionForm = () => {
                             </div>
                         </div>
                         <div class="footer">
-                            <p>Application No: ${details?.applicationNumber || 'N/A'} &nbsp;|&nbsp; Status: ADMISSION CONFIRMED &nbsp;|&nbsp; Printed on: ${new Date().toLocaleString('en-IN')}</p>
+                            <p>Application No: ${details?.applicationNumber || 'N/A'} &nbsp;|&nbsp; Status: ${pdfStatus} &nbsp;|&nbsp; Printed on: ${new Date().toLocaleString('en-IN')}</p>
                             <div style="border-top:1px solid #dde1e8;margin:5px 0;"></div>
                             <p>Contact: 099448693987 | principal@jcer.in</p>
                         </div>
@@ -459,9 +570,10 @@ const AdmissionForm = () => {
             `;
 
             toast.dismiss(toastId);
-            const printWindow = window.open('', '_blank', 'width=860,height=700');
+            const printWindow = window.open('', '_blank');
             if (printWindow) {
                 printWindow.document.write(printHTML);
+                printWindow.document.title = "";
                 printWindow.document.close();
                 printWindow.focus();
                 setTimeout(() => { printWindow.print(); }, 150);
@@ -536,16 +648,30 @@ const AdmissionForm = () => {
             {stepStatus?.applicationStatus === 'REJECTED' && (
                 <div className="bg-rose-50 border-l-4 border-rose-500 p-5 rounded-r-xl shadow-sm space-y-2 no-print">
                     <h3 className="text-sm font-bold text-rose-900 uppercase tracking-wide">⚠️ Action Required: Application Returned for Correction</h3>
-                    {stepStatus?.rejectionReason && (
-                        <p className="text-xs font-bold text-rose-800">
-                            <strong>Reason for Rejection:</strong> {stepStatus.rejectionReason}
-                        </p>
-                    )}
-                    {stepStatus?.adminRemarks && (
-                        <p className="text-xs font-medium text-rose-700">
-                            <strong>Correction Requests:</strong> {stepStatus.adminRemarks}
-                        </p>
-                    )}
+                    {(() => {
+                        const isOther = stepStatus.rejectionReasonCode === 'OTHER' || stepStatus.rejectionReason === 'Other' || stepStatus.rejectionReason === 'OTHER';
+                        if (isOther) {
+                            return (
+                                <p className="text-xs font-bold text-rose-800 whitespace-pre-line">
+                                    <strong>Reason for Rejection:</strong> {stepStatus.adminRemarks || stepStatus.rejectionReason || 'Other'}
+                                </p>
+                            );
+                        }
+                        return (
+                            <>
+                                {stepStatus?.rejectionReason && (
+                                    <p className="text-xs font-bold text-rose-800">
+                                        <strong>Reason for Rejection:</strong> {stepStatus.rejectionReason}
+                                    </p>
+                                )}
+                                {stepStatus?.adminRemarks && (
+                                    <p className="text-xs font-medium text-rose-700 whitespace-pre-line">
+                                        <strong>Correction Requests:</strong> {stepStatus.adminRemarks}
+                                    </p>
+                                )}
+                            </>
+                        );
+                    })()}
                     <p className="text-[11px] text-rose-600">
                         Please navigate through the form steps below, modify the incorrect or missing details, and resubmit the application.
                     </p>
@@ -653,7 +779,7 @@ const AdmissionForm = () => {
 
             {/* Footer */}
             <div className="text-center pt-4 border-t border-slate-100 text-xs text-slate-400">
-                © 2024 University Admission Cell. All rights reserved.
+                © 2026 university Admission Cell. All rights reserved.
             </div>
         </div>
     );

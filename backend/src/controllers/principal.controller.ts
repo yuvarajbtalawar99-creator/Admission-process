@@ -356,7 +356,7 @@ export const bulkApproveAdmissions = async (
       return res.status(400).json({ error: 'Array of admission ids is required.' });
     }
 
-    const results = [];
+    const results: any[] = [];
     for (const id of ids) {
       try {
         const enrollmentNumber = await admissionService.updateStatus(

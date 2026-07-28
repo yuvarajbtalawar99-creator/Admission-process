@@ -21,7 +21,9 @@ const getMissingFields = (app: AdmissionApplication | null) => {
   const addr = app.studentaddress as any;
   const acad = app.studentacademicdetails as any;
   const docs = app.studentdocuments as any;
-  const isLateral = app.admissionType === 'DCET';
+  const q = (app.qualification || '').toUpperCase();
+  const showPUC = q === 'PUC' || (!q && app.admissionType === 'KCET');
+  const showDiploma = q === 'DIPLOMA' || (!q && app.admissionType === 'DCET');
 
   // Personal Details
   if (!pd?.firstName) missing.push("Personal: First Name");
@@ -44,7 +46,7 @@ const getMissingFields = (app: AdmissionApplication | null) => {
   if (!par?.motherPhone) missing.push("Parent: Mother's Mobile");
   if (!par?.fatherAnnualIncome) missing.push("Parent: Annual Income");
 
-  // Address
+  // Address Details
   if (!addr?.currentAddressLine1) missing.push("Address: Current Address");
   if (!addr?.currentCity) missing.push("Address: Current City");
   if (!addr?.currentState) missing.push("Address: Current State");
@@ -57,12 +59,13 @@ const getMissingFields = (app: AdmissionApplication | null) => {
   if (!acad?.tenthRegisterNumber) missing.push("Academic: 10th Register Number");
   if (!acad?.tenthPercentage) missing.push("Academic: 10th Percentage");
 
-  if (isLateral) {
+  if (showDiploma) {
     if (!acad?.diplomaUniversity) missing.push("Academic: Diploma University");
     if (!acad?.diplomaYear) missing.push("Academic: Diploma Year of Passing");
     if (!acad?.diplomaRegisterNumber) missing.push("Academic: Diploma Register Number");
     if (!acad?.diplomaPercentage) missing.push("Academic: Diploma Percentage");
-  } else {
+  }
+  if (showPUC) {
     if (!acad?.twelfthSchool) missing.push("Academic: 12th/PUC School Name");
     if (!acad?.twelfthStream) missing.push("Academic: 12th/PUC Stream");
     if (!acad?.twelfthBoard) missing.push("Academic: 12th/PUC Board");
@@ -75,7 +78,8 @@ const getMissingFields = (app: AdmissionApplication | null) => {
   if (!docs?.photoUrl) missing.push("Documents: Passport Photo");
   if (!docs?.signatureUrl) missing.push("Documents: Candidate Signature");
   if (!docs?.tenthMarksheetUrl) missing.push("Documents: 10th/SSLC Marksheet");
-  if (!docs?.twelfthMarksheetUrl) missing.push(isLateral ? "Documents: Diploma Marks Card" : "Documents: 12th/PUC Marksheet");
+  if (!docs?.twelfthMarksheetUrl) missing.push(showDiploma ? "Documents: Diploma Marks Card" : "Documents: 12th/PUC Marksheet");
+  if (!docs?.feesPaidReceiptUrl) missing.push("Documents: Fees Paid Receipt");
   if (!docs?.aadhaarUrl) missing.push("Documents: Aadhaar Card");
   if (!docs?.domicileCertificateUrl) missing.push("Documents: Domicile/Study Certificate");
 
@@ -376,7 +380,22 @@ export const AdmissionReviewPage: React.FC = () => {
           verificationRemarks
         });
       }
-      await admissionService.updateStatus(app.id, status, remarks, undefined, rejectionReasonCode);
+      let label: string | undefined = undefined;
+      if (status === 'REJECTED' && rejectionReasonCode) {
+        const reasonLabels: Record<string, string> = {
+          'DOC_NOT_VERIFIED': 'Documents Not Verified',
+          'INCOMPLETE_DOCUMENTS': 'Incomplete Documents',
+          'FEES_NOT_PAID': 'Fees Not Paid',
+          'ELIGIBILITY_FAILED': 'Eligibility Criteria Not Met',
+          'INVALID_CERTIFICATES': 'Invalid / Mismatched Certificates',
+          'DUPLICATE_APPLICATION': 'Duplicate Application Found',
+          'AADHAAR_MISMATCH': 'Aadhaar Verification Failed',
+          'USN_CONFLICT': 'USN Conflict / Already Exists',
+          'OTHER': 'Other',
+        };
+        label = reasonLabels[rejectionReasonCode] || rejectionReasonCode;
+      }
+      await admissionService.updateStatus(app.id, status, remarks, label, rejectionReasonCode);
       toast.success(status === 'APPROVED' ? 'Application verified and forwarded to Principal' : `Application marked as ${status}`);
       if (status === 'APPROVED') {
         navigate('/admin/admissions/verified');
@@ -453,13 +472,15 @@ export const AdmissionReviewPage: React.FC = () => {
   const addr = app.studentaddress as any;
   const acad = app.studentacademicdetails as any;
   const docs = app.studentdocuments as any;
-  const isLateral = app.admissionType === 'DCET';
+  const q = (app.qualification || '').toUpperCase();
+  const showPUC = q === 'PUC' || (!q && app.admissionType === 'KCET');
+  const showDiploma = q === 'DIPLOMA' || (!q && app.admissionType === 'DCET');
   const profilePhotoUrl = getDocUrl(docs?.photoUrl || app.user?.profileImage);
 
   const missingFields = getMissingFields(app);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 animate-fade-in">
+    <div className="w-full max-w-[1440px] mx-auto px-8 md:px-10 space-y-6 pb-12 animate-fade-in">
       
       {/* Top action bar */}
       <div className="flex items-center justify-between">
@@ -523,7 +544,12 @@ export const AdmissionReviewPage: React.FC = () => {
               </span>
               {app.admissionType && (
                 <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-extrabold">
-                  TYPE: {app.admissionType} {isLateral ? '(Lateral Entry)' : ''}
+                  TYPE: {app.admissionType} {showDiploma ? '(Lateral Entry)' : ''}
+                </span>
+              )}
+              {app.qualification && (
+                <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded text-xs font-extrabold">
+                  QUALIFICATION: {app.qualification === 'DIPLOMA' ? 'Diploma' : 'PUC / 12th'}
                 </span>
               )}
             </div>
@@ -550,7 +576,7 @@ export const AdmissionReviewPage: React.FC = () => {
           <h3 className="text-xs uppercase font-black tracking-widest text-neutral-400 flex items-center gap-2 border-l-4 border-primary-500 pl-2">
             <User size={14} className="text-primary-500" /> Personal Details
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4">
             <FormField label="First Name" value={pd?.firstName} />
             <FormField label="Middle Name" value={pd?.middleName} />
             <FormField label="Last Name" value={pd?.lastName} />
@@ -575,7 +601,7 @@ export const AdmissionReviewPage: React.FC = () => {
             {/* Father card */}
             <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-3">
               <p className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">Father's Information</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                 <FormField label="Name" value={par?.fatherName} />
                 <FormField label="Occupation" value={par?.fatherOccupation} />
                 <FormField label="Mobile" value={par?.fatherPhone} />
@@ -585,7 +611,7 @@ export const AdmissionReviewPage: React.FC = () => {
             {/* Mother card */}
             <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-3">
               <p className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">Mother's & Guardian Information</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                 <FormField label="Mother Name" value={par?.motherName} />
                 <FormField label="Mother Occupation" value={par?.motherOccupation} />
                 <FormField label="Mother Mobile" value={par?.motherPhone} />
@@ -629,7 +655,7 @@ export const AdmissionReviewPage: React.FC = () => {
             {/* 10th Record */}
             <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-3">
               <p className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">10th Standard (SSLC)</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                 <FormField label="School Name" value={acad?.tenthSchool} />
                 <FormField label="Board" value={acad?.tenthBoard} />
                 <FormField label="Passing Year" value={acad?.tenthPassingYear} />
@@ -645,10 +671,10 @@ export const AdmissionReviewPage: React.FC = () => {
             </div>
 
             {/* 12th/PUC or Diploma Record */}
-            {isLateral ? (
+            {showDiploma && (
               <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-3 bg-blue-50/30 dark:bg-blue-950/10">
                 <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Diploma details (Lateral Entry)</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                   <FormField label="University/Institution" value={acad?.diplomaUniversity} />
                   <FormField label="Passing Year" value={acad?.diplomaYear} />
                   <FormField label="Register Number" value={acad?.diplomaRegisterNumber} />
@@ -660,10 +686,11 @@ export const AdmissionReviewPage: React.FC = () => {
                   </div>
                 )}
               </div>
-            ) : (
+            )}
+            {showPUC && (
               <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-3">
                 <p className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">12th Standard / PUC</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-x-5 gap-y-3">
                   <FormField label="School / College" value={acad?.twelfthSchool} />
                   <FormField label="Board" value={acad?.twelfthBoard} />
                   <FormField label="Passing Year" value={acad?.twelfthPassingYear} />
@@ -686,7 +713,7 @@ export const AdmissionReviewPage: React.FC = () => {
           {(acad?.cetScore || acad?.cetRank || acad?.dcetScore || acad?.dcetRank || app.cetNumber || app.dcetNumber) && (
             <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 space-y-3">
               <p className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest">Entrance Examination Details</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-3">
                 {app.cetNumber && <FormField label="KCET Number" value={app.cetNumber} />}
                 {acad?.cetScore && <FormField label="KCET Score" value={acad?.cetScore} />}
                 {acad?.cetRank && <FormField label="KCET Rank" value={`#${acad?.cetRank}`} />}
@@ -709,9 +736,10 @@ export const AdmissionReviewPage: React.FC = () => {
                 { label: 'Passport Size Photo', field: 'photo', url: docs.photoUrl },
                 { label: 'Candidate E-Signature', field: 'signature', url: docs.signatureUrl },
                 { label: 'SSLC / 10th Marks Card', field: 'tenthMarksheet', url: docs.tenthMarksheetUrl },
-                { label: isLateral ? 'Diploma Marks Card' : 'PUC / 12th Marks Card', field: 'twelfthMarksheet', url: docs.twelfthMarksheetUrl },
+                { label: showDiploma ? 'Diploma Marks Card' : 'PUC / 12th Marks Card', field: 'twelfthMarksheet', url: docs.twelfthMarksheetUrl },
                 { label: 'Entrance Score Card (CET/DCET)', field: 'cetScoreCard', url: docs.cetScoreCardUrl },
                 { label: 'Aadhaar Card copy', field: 'aadhaar', url: docs.aadhaarUrl },
+                { label: 'Fees Paid Receipt', field: 'feesPaidReceipt', url: docs.feesPaidReceiptUrl },
                 { label: 'Caste Certificate (Optional)', field: 'casteCertificate', url: docs.casteCertificateUrl },
                 { label: 'Domicile / Study Certificate', field: 'domicileCertificate', url: docs.domicileCertificateUrl },
                 { label: 'Income / Gap Year Certificate', field: 'gapCertificate', url: docs.gapCertificateUrl },

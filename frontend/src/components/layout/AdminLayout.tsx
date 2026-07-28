@@ -155,10 +155,9 @@ export const AdminLayout: React.FC = () => {
       ],
     },
     {
-      title: 'User Management',
+      title: 'Student Management',
       items: [
-        { name: 'Applicants', path: '/admin/users/students', icon: Users },
-        { name: 'Principals', path: '/admin/users/principals', icon: Shield },
+        { name: 'Students', path: '/admin/students', icon: Users },
       ],
     },
 
@@ -167,7 +166,7 @@ export const AdminLayout: React.FC = () => {
   const subNavTabs = [
     { name: 'Dashboard', path: '/admin/dashboard' },
     { name: 'Admissions Queue', path: '/admin/admissions/queue' },
-    { name: 'Applicants', path: '/admin/users/students' },
+    { name: 'Students', path: '/admin/students' },
   ];
 
   const pageTitles: Record<string, string> = {
@@ -179,8 +178,7 @@ export const AdminLayout: React.FC = () => {
     '/admin/admissions/verified': 'Verified Admissions',
     '/admin/admissions/approved': 'Approved Admissions',
     '/admin/admissions/history': 'Admission History',
-    '/admin/users/students': 'Applicants Management',
-    '/admin/users/principals': 'Principals Management',
+    '/admin/students': 'Student Management',
     '/admin/notifications': 'Notifications',
     '/admin/announcements': 'Announcements',
     '/admin/settings/system': 'System Settings',
@@ -198,12 +196,12 @@ export const AdminLayout: React.FC = () => {
     <div className="min-h-screen max-w-full overflow-x-hidden flex text-neutral-900 dark:text-neutral-100 transition-colors duration-300 font-sans pb-6 pr-6">
 
       {/* ── FLOATING SIDEBAR ── */}
-      <aside className="fixed left-6 top-6 bottom-6 w-64 flex flex-col justify-between py-6 px-4 rounded-[32px] glass-bar z-40">
+      <aside className="fixed left-6 top-6 bottom-6 w-[312px] flex flex-col justify-between py-6 px-5 rounded-[32px] glass-bar z-40">
 
         {/* Top: Logo + Nav */}
         <div className="flex flex-col w-full">
-          <Link to="/admin/dashboard" className="flex items-center space-x-3 px-2 mb-6 hover:opacity-95 transition-all">
-          <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
+          <Link to="/admin/dashboard" className="flex items-center space-x-3.5 px-2 mb-6 hover:opacity-95 transition-all">
+          <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0">
   <img
     src="/logo.png"
     alt="JCER Logo"
@@ -211,8 +209,8 @@ export const AdminLayout: React.FC = () => {
   />
 </div>
             <div className="flex flex-col">
-              <span className="font-bold text-lg tracking-wider uppercase text-neutral-900 dark:text-white">JCER ERP</span>
-              <span className="text-[12px] font-extrabold -mt-0.5" style={{ color: '#7C3AED' }}>Admin Portal</span>
+              <span className="font-bold text-xl tracking-wider uppercase text-neutral-900 dark:text-white">JCER ERP</span>
+              <span className="text-[13px] font-extrabold -mt-0.5" style={{ color: '#7C3AED' }}>Admin Portal</span>
             </div>
           </Link>
 
@@ -231,14 +229,14 @@ export const AdminLayout: React.FC = () => {
                       <Link
                         key={item.name}
                         to={item.path}
-                        className={`w-full px-3 py-2 rounded-xl flex items-center justify-between transition-all duration-300 ${
+                        className={`w-full h-[50px] px-4 rounded-xl flex items-center justify-between transition-all duration-300 ${
                           isActive
                             ? 'admin-sidebar-active shadow-sm'
                             : 'text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-violet-50/50 dark:hover:bg-violet-900/10 hover:scale-[1.01]'
                         }`}
                       >
-                        <div className="flex items-center space-x-3">
-                          <Icon className="w-4 h-4 flex-shrink-0" strokeWidth={2.2} />
+                        <div className="flex items-center space-x-3.5">
+                          <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={2.2} />
                           <span className="text-xs font-semibold">{item.name}</span>
                         </div>
                         {item.badge && !isActive && (
@@ -280,7 +278,7 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* ── MAIN CONTENT AREA ── */}
-      <div className="flex-1 pt-6 flex flex-col min-h-screen min-w-0" style={{ paddingLeft: '304px' }}>
+      <div className="flex-1 pt-6 flex flex-col min-h-screen min-w-0" style={{ paddingLeft: '360px' }}>
 
         {/* ── TOP HEADER ── */}
         <header className="flex flex-row items-center justify-between py-4 mb-6 z-30 gap-4">
