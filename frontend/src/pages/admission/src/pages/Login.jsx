@@ -4,11 +4,14 @@ import { Mail, Lock, Loader2, Eye, EyeOff, User, ArrowRight, ShieldCheck } from 
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showForgotPassword, setShowForgotPassword] = useState(false);
+
     const { login } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
@@ -58,7 +61,7 @@ const Login = () => {
                 <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-700 flex items-center gap-2" htmlFor="email">
                         <User size={18} className="text-slate-400" />
-                        Email or Institutional ID
+                        Email Address
                     </label>
                     <input
                         type="email"
@@ -67,7 +70,7 @@ const Login = () => {
                         value={formData.email}
                         onChange={handleChange}
                         className="w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
-                        placeholder="e.g. student.name@college.edu"
+                        placeholder="e.g. student.name@example.com"
                         required
                     />
                 </div>
@@ -78,7 +81,13 @@ const Login = () => {
                             <Lock size={18} className="text-slate-400" />
                             Password
                         </label>
-                        <a href="#" className="text-xs font-semibold text-primary-600 hover:underline">Forgot password?</a>
+                        <button
+                            type="button"
+                            onClick={() => setShowForgotPassword(true)}
+                            className="text-xs font-semibold text-primary-600 hover:underline"
+                        >
+                            Forgot password?
+                        </button>
                     </div>
                     <div className="relative">
                         <input
@@ -101,39 +110,37 @@ const Login = () => {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <input 
-                        type="checkbox" 
-                        id="remember" 
-                        className="w-4 h-4 text-primary-600 border-slate-300 rounded focus:ring-primary-600" 
-                    />
-                    <label className="text-sm text-slate-600 font-medium" htmlFor="remember">Keep me logged in</label>
-                </div>
-
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 sm:py-4 rounded-lg shadow-lg shadow-primary-600/20 transition-all flex items-center justify-center gap-2"
+                    className="w-full py-3.5 sm:py-4 px-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg shadow-lg shadow-primary-600/25 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 text-sm sm:text-base"
                 >
-                    {loading ? <Loader2 size={24} className="animate-spin" /> : (
+                    {loading ? (
                         <>
-                            Sign In to Dashboard
-                            <ArrowRight size={20} />
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <span>Logging in...</span>
+                        </>
+                    ) : (
+                        <>
+                            <span>Log In</span>
+                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                         </>
                     )}
                 </button>
             </form>
 
-            <div className="mt-10 pt-8 border-t border-slate-100 text-center">
-                <p className="text-sm text-slate-500 mb-4">
-                    New admission? <Link to="/admission/register" className="text-primary-600 font-bold hover:underline">Apply Here</Link>
-                </p>
-                <div className="flex items-center justify-center gap-4 text-[10px] text-slate-400 uppercase tracking-widest font-bold">
-                    <span className="flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-500" /> Secured by SSL</span>
-                    <span className="size-1 bg-slate-200 rounded-full"></span>
-                    <span>Institutional Policy</span>
-                </div>
+            <div className="mt-6 text-center text-sm text-slate-600">
+                Don't have an account?{' '}
+                <Link to="/admission/register" className="font-bold text-primary-600 hover:underline">
+                    Register here
+                </Link>
             </div>
+
+            {/* Forgot Password OTP Modal */}
+            <ForgotPasswordModal
+                isOpen={showForgotPassword}
+                onClose={() => setShowForgotPassword(false)}
+            />
         </div>
     );
 };

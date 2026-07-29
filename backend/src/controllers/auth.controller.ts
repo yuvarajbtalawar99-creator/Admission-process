@@ -1,10 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
+import bcrypt from 'bcryptjs';
 import sequelize from '../config/database';
 import User from '../models/User';
 import Student from '../models/Student';
 import Admission from '../models/Admission';
 import authService from '../services/auth.service';
 import securityEvents from '../services/securityEvents.service';
+import otpService from '../services/otp.service';
+import emailService from '../services/email.service';
+import Otp from '../models/Otp';
+import logger from '../utils/logger.util';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -38,25 +43,41 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     const { email, password } = req.body;
 
     if (!email || !password) {
+      logger.warn(`LOGIN_FAILED: Missing email or password in request body`);
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    // Find user
-    const user = await User.findOne({ where: { email } });
+    const normalizedEmail = email.trim().toLowerCase();
+    logger.info(`LOGIN_ATTEMPT: Email received: ${normalizedEmail}`);
+
+    // Query user by email
+    let user = await User.findOne({ where: { email: normalizedEmail } });
     if (!user) {
+      user = await User.findOne({ where: { email } });
+    }
+
+    if (!user) {
+      logger.warn(`LOGIN_FAILED: User not found for email: ${normalizedEmail}`);
       securityEvents.loginFailure(req, email, 'User not found');
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    logger.info(`LOGIN_DEBUG: User found - ID: ${user.id}, Role: ${user.role}, Status: ${user.status}, Email: ${user.email}`);
+    logger.info(`LOGIN_DEBUG: Stored password hash exists: ${!!user.passwordHash} (length: ${user.passwordHash ? user.passwordHash.length : 0})`);
+
     // Check status
     if (user.status !== 'ACTIVE') {
+      logger.warn(`LOGIN_FAILED: User account is ${user.status} for email: ${user.email}`);
       securityEvents.loginFailure(req, email, `Account ${user.status.toLowerCase()}`, user.id);
       return res.status(403).json({ error: 'Your account is inactive or suspended' });
     }
 
-    // Check password
+    // Compare entered password with stored hash using bcrypt.compare
     const isMatch = await user.comparePassword(password);
+    logger.info(`LOGIN_DEBUG: bcrypt.compare result for email ${user.email}: ${isMatch}`);
+
     if (!isMatch) {
+      logger.warn(`LOGIN_FAILED: Invalid password (bcrypt.compare returned false) for user: ${user.email}`);
       securityEvents.loginFailure(req, email, 'Invalid password', user.id);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
@@ -69,6 +90,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
     // Audit Success
     securityEvents.loginSuccess(req, { id: user.id, role: user.role, email: user.email });
+    logger.info(`LOGIN_SUCCESS: Successfully authenticated user: ${user.email} (Role: ${user.role})`);
 
     return res.status(200).json({
       success: true,
@@ -78,6 +100,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
       },
     });
   } catch (error) {
+    logger.error('LOGIN_ERROR: Server exception during login execution:', error);
     return next(error);
   }
 };
@@ -177,6 +200,75 @@ export const checkPhone = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+// ─── EMAIL OTP: REGISTRATION ENDPOINTS ───────────────────────────────────────
+
+export const sendRegistrationOtp = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { firstName, lastName, email, phone } = req.body;
+
+    if (!email || !firstName || !lastName) {
+      return res.status(400).json({ error: 'First name, last name, and email are required.' });
+    }
+
+    // Check email uniqueness
+    const existingEmail = await User.findOne({ where: { email: email.trim().toLowerCase() } });
+    if (existingEmail) {
+      return res.status(409).json({ error: 'An account with this email address already exists.' });
+    }
+
+    // Check phone uniqueness if provided
+    if (phone) {
+      const existingPhone = await User.findOne({ where: { phone: phone.trim() } });
+      if (existingPhone) {
+        return res.status(409).json({ error: 'An account with this mobile number already exists.' });
+      }
+    }
+
+    // Generate and save OTP
+    const genResult = await otpService.generateAndSaveOtp(email, 'REGISTER');
+    if (!genResult.success || !genResult.otp) {
+      return res.status(429).json({ error: genResult.error || 'Failed to generate OTP.' });
+    }
+
+    // Send OTP email
+    const studentName = `${firstName} ${lastName}`.trim();
+    const emailSent = await emailService.sendRegistrationOTP(email, studentName, genResult.otp);
+
+    if (!emailSent) {
+      return res.status(500).json({ error: 'Failed to send OTP email. Please verify your email address.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'A 6-digit OTP has been sent to your email address. Please check your inbox.',
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const verifyRegistrationOtp = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email and OTP code are required.' });
+    }
+
+    const verifyResult = await otpService.verifyOtp(email, otp, 'REGISTER');
+    if (!verifyResult.success) {
+      return res.status(400).json({ error: verifyResult.error || 'OTP verification failed.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Email address verified successfully.',
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const { firstName, lastName, email, password, phone } = req.body;
@@ -185,24 +277,48 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       return res.status(400).json({ error: 'First name, last name, email, and password are required.' });
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Verify that OTP verification took place for this registration
+    const verifiedOtp = await Otp.findOne({
+      where: {
+        email: normalizedEmail,
+        purpose: 'REGISTER',
+        verified: true,
+      },
+      order: [['updatedAt', 'DESC']],
+    });
+
+    if (!verifiedOtp) {
+      return res.status(403).json({ error: 'Registration failed. Email verification via OTP is required before account creation.' });
+    }
+
     // Check email uniqueness
-    const existing = await User.findOne({ where: { email } });
+    const existing = await User.findOne({ where: { email: normalizedEmail } });
     if (existing) {
       return res.status(409).json({ error: 'An account with this email already exists.' });
     }
 
     // Check phone uniqueness if provided
     if (phone) {
-      const existingPhone = await User.findOne({ where: { phone } });
+      const existingPhone = await User.findOne({ where: { phone: phone.trim() } });
       if (existingPhone) {
         return res.status(409).json({ error: 'An account with this mobile number already exists.' });
       }
     }
 
+    // Auto-generate username from email
+    const username = normalizedEmail.split('@')[0] + Math.floor(100 + Math.random() * 900);
+
+    // Hash password with bcrypt
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
     // Create user
-    const user = await User.create({
-      email,
-      passwordHash: password,  // hashed by beforeSave hook
+    const newUser = await User.create({
+      username,
+      email: normalizedEmail,
+      passwordHash,
       firstName,
       lastName,
       phone: phone || null,
@@ -210,40 +326,136 @@ export const register = async (req: Request, res: Response, next: NextFunction):
       status: 'ACTIVE',
     });
 
-    // Auto-create blank admission record
-    const year = new Date().getFullYear();
-    const count = await Admission.count();
-    const seq = String(count + 1).padStart(5, '0');
-    await Admission.create({
-      userId: user.id,
-      applicationNumber: `APP-${year}-${seq}`,
-      applicationStatus: 'DRAFT',
-    });
-
-    // Issue tokens
-    const { accessToken, refreshToken } = await authService.generateTokens(user);
-
-    const IS_PROD = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: IS_PROD,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    // Generate tokens and return login payload
+    const { accessToken, refreshToken: newRefreshToken } = await authService.generateTokens(newUser);
+    res.cookie('refreshToken', newRefreshToken, cookieOptions);
 
     return res.status(201).json({
       success: true,
-      message: 'Registration successful!',
+      message: 'Student account created successfully.',
       data: {
         token: accessToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: `${user.firstName} ${user.lastName}`,
-          profileImage: user.profileImage,
-        },
+        user: await getUserPayload(newUser),
       },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+// ─── EMAIL OTP: FORGOT PASSWORD ENDPOINTS ─────────────────────────────────────
+
+export const sendForgotPasswordOtp = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email address is required.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if user exists
+    const user = await User.findOne({ where: { email: normalizedEmail } });
+    if (!user) {
+      return res.status(404).json({ error: 'No registered student account found with this email address.' });
+    }
+
+    // Generate OTP
+    const genResult = await otpService.generateAndSaveOtp(normalizedEmail, 'FORGOT_PASSWORD');
+    if (!genResult.success || !genResult.otp) {
+      return res.status(429).json({ error: genResult.error || 'Failed to generate OTP.' });
+    }
+
+    // Send email using Nodemailer Gmail SMTP
+    const studentName = `${user.firstName} ${user.lastName}`.trim();
+    const emailSent = await emailService.sendForgotPasswordOTP(normalizedEmail, studentName, genResult.otp);
+
+    if (!emailSent) {
+      return res.status(500).json({ error: 'Failed to send password reset OTP email. Please try again.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset OTP has been sent to your email address.',
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const verifyForgotPasswordOtp = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ error: 'Email address and OTP code are required.' });
+    }
+
+    const verifyResult = await otpService.verifyOtp(email, otp, 'FORGOT_PASSWORD');
+    if (!verifyResult.success) {
+      return res.status(400).json({ error: verifyResult.error || 'OTP verification failed.' });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'OTP verified successfully. You may now enter your new password.',
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+  try {
+    const { email, newPassword, confirmPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: 'Email address and new password are required.' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long.' });
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match.' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if OTP was verified for FORGOT_PASSWORD
+    const verifiedOtp = await Otp.findOne({
+      where: {
+        email: normalizedEmail,
+        purpose: 'FORGOT_PASSWORD',
+        verified: true,
+      },
+      order: [['updatedAt', 'DESC']],
+    });
+
+    if (!verifiedOtp) {
+      return res.status(403).json({ error: 'Password reset unauthorized. OTP verification required.' });
+    }
+
+    // Find user
+    const user = await User.findOne({ where: { email: normalizedEmail } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const newPasswordHash = await bcrypt.hash(newPassword, salt);
+
+    // Update user password
+    await user.update({ passwordHash: newPasswordHash });
+
+    logger.info(`Password successfully reset for user ${normalizedEmail}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset successfully! Please log in with your new password.',
     });
   } catch (error) {
     return next(error);
@@ -253,58 +465,36 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
   try {
     const authReq = req as any;
-    const { oldPassword, newPassword } = req.body;
+    const userId = authReq.user?.id;
+    const { currentPassword, newPassword } = req.body;
 
-    if (!oldPassword || !newPassword) {
-      return res.status(400).json({ error: 'Old password and new password are required' });
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const user = await User.findByPk(authReq.user.id);
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const isMatch = await user.comparePassword(oldPassword);
+    const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
-      securityEvents.loginFailure(req, user.email, 'Invalid old password during password change', user.id);
-      return res.status(401).json({ error: 'Invalid old password' });
+      return res.status(400).json({ error: 'Incorrect current password' });
     }
 
-    user.passwordHash = newPassword; // Hashed by hook
-    user.mustChangePassword = false;
-    await user.save();
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(newPassword, salt);
 
-    // Revoke all other sessions for security
-    await authService.revokeSession(user.id);
-    
-    // Generate new tokens
-    const { accessToken, refreshToken } = await authService.generateTokens(user);
-
-    const IS_PROD = process.env.NODE_ENV === 'production';
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: IS_PROD,
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+    await user.update({
+      passwordHash: hash,
+      mustChangePassword: false,
     });
 
     return res.status(200).json({
       success: true,
       message: 'Password changed successfully',
-      data: {
-        token: accessToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          name: `${user.firstName} ${user.lastName}`,
-          profileImage: user.profileImage,
-          mustChangePassword: user.mustChangePassword,
-        },
-      }
     });
   } catch (error) {
     return next(error);
   }
 };
-

@@ -14,17 +14,22 @@ export const globalLimiter = rateLimit({
   },
 });
 
+const isDev = process.env.NODE_ENV === 'development';
+
 /**
- * Strict rate limiter for authentication endpoints (login, register).
- * Max 10 attempts per 15 minutes per IP.
+ * Environment-aware rate limiter for authentication endpoints (login, register, OTP).
+ * Development: Max 1000 requests per 1 minute per IP.
+ * Production: Max 5 attempts per 15 minutes per IP.
  */
 export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  windowMs: isDev ? 1 * 60 * 1000 : 15 * 60 * 1000,
+  max: isDev ? 1000 : 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    error: 'Too many authentication attempts. Please try again after 15 minutes.',
+    error: isDev
+      ? 'Too many authentication attempts. Please wait 1 minute and try again.'
+      : 'Too many authentication attempts. Please try again after 15 minutes.',
   },
   skipSuccessfulRequests: false,
 });

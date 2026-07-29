@@ -135,7 +135,7 @@ User.init(
     ],
     hooks: {
       beforeSave: async (user: User) => {
-        if (user.changed('passwordHash')) {
+        if (user.changed('passwordHash') && !isSecureHash(user.passwordHash)) {
           const salt = await bcrypt.genSalt(10);
           user.passwordHash = await bcrypt.hash(user.passwordHash, salt);
         }

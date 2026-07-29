@@ -20,7 +20,7 @@ import principalRoutes from './routes/principal.routes';
 const app: Application = express();
 
 const compressionMiddleware = compression();
-app.use((req, res, next) => compressionMiddleware(req, res, next));
+app.use((req, res, next) => (compressionMiddleware as any)(req, res, next));
 
 // Trust first proxy hop (e.g. Nginx, Load Balancer)
 app.set('trust proxy', 1);
