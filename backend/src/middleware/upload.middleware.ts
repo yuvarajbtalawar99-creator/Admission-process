@@ -4,6 +4,7 @@ import fs from 'fs';
 import { Request, Response, NextFunction } from 'express';
 import { BadRequestError } from '../utils/error.util';
 import logger from '../utils/logger.util';
+import { validateDocument } from '../utils/documentValidation.util';
 
 // Ensure uploads directory exists and is located outside of public-accessible root
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
@@ -91,10 +92,10 @@ const verifyMagicBytes = (filePath: string, mimeType: string): boolean => {
 
 /**
  * Hardened upload middleware wrapper that handles multer uploads
- * and performs strict content-sniffing/magic byte checks to prevent macro/malware execution.
+ * and performs strict content-sniffing/magic byte checks and document quality validation.
  */
 export const uploadDocuments = (req: Request, res: Response, next: NextFunction): void => {
-  multerInstance(req, res, (err: any) => {
+  multerInstance(req, res, async (err: any) => {
     if (err) {
       return next(err);
     }
@@ -116,6 +117,25 @@ export const uploadDocuments = (req: Request, res: Response, next: NextFunction)
             logger.warn(`Security alert: Upload blocked due to magic byte mismatch for ${file.originalname}`);
             return next(new BadRequestError(`File validation failed. Disguised files or macro scripts are not allowed.`));
           }
+
+          // Document Quality Validation (Color + Blur)
+          const qualityResult = await validateDocument(fieldName, file.path);
+          if (!qualityResult.success) {
+            // Delete failed upload immediately
+            try {
+              fs.unlinkSync(file.path);
+            } catch (unlinkErr) {
+              logger.error(`Failed to delete unvalidated upload: ${file.path}`, unlinkErr);
+            }
+            logger.warn(`Document quality validation failed for field '${fieldName}': ${qualityResult.reason}`);
+
+            res.status(400).json({
+              success: false,
+              reason: qualityResult.reason,
+              message: qualityResult.message,
+            });
+            return;
+          }
         }
       }
     }
@@ -132,7 +152,7 @@ const feeReceiptMulterInstance = multer({
 }).single('admissionFeeReceipt');
 
 export const uploadFeeReceiptMiddleware = (req: Request, res: Response, next: NextFunction): void => {
-  feeReceiptMulterInstance(req, res, (err: any) => {
+  feeReceiptMulterInstance(req, res, async (err: any) => {
     if (err) {
       return next(err);
     }
@@ -147,6 +167,24 @@ export const uploadFeeReceiptMiddleware = (req: Request, res: Response, next: Ne
           logger.error(`Failed to delete invalid upload: ${file.path}`, unlinkErr);
         }
         return next(new BadRequestError(`File validation failed. Disguised files or macro scripts are not allowed.`));
+      }
+
+      // Document Quality Validation (Blur Only for Fee Receipt)
+      const qualityResult = await validateDocument(file.fieldname, file.path);
+      if (!qualityResult.success) {
+        try {
+          fs.unlinkSync(file.path);
+        } catch (unlinkErr) {
+          logger.error(`Failed to delete unvalidated fee receipt: ${file.path}`, unlinkErr);
+        }
+        logger.warn(`Document quality validation failed for fee receipt: ${qualityResult.reason}`);
+
+        res.status(400).json({
+          success: false,
+          reason: qualityResult.reason,
+          message: qualityResult.message,
+        });
+        return;
       }
     }
     next();
