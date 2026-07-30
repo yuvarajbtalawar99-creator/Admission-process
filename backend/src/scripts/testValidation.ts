@@ -15,7 +15,7 @@ async function runTests() {
   const bwImagePath = path.join(testDir, 'bw_image.png');
   const blurryImagePath = path.join(testDir, 'blurry_image.png');
 
-  // 1. Create a sharp color test image (Red/Blue gradient with text/shapes)
+  // 1. Create a sharp color test image
   await sharp({
     create: {
       width: 400,
@@ -27,14 +27,14 @@ async function runTests() {
     .composite([
       {
         input: Buffer.from(
-          '<svg width="400" height="400"><rect x="50" y="50" width="300" height="300" fill="#00FF44"/><text x="100" y="200" font-size="30" fill="#0000FF">SHARP COLOR DOC</text></svg>'
+          '<svg width="400" height="400"><rect x="50" y="50" width="300" height="300" fill="#00FF44"/><text x="100" y="200" font-size="30" fill="#0000FF">COLOR DOC</text></svg>'
         ),
       },
     ])
     .png()
     .toFile(colorImagePath);
 
-  // 2. Create a Black & White / Grayscale test image
+  // 2. Create a Black & White / Grayscale test image (simulating grayscale document with JPEG noise)
   await sharp(colorImagePath)
     .grayscale()
     .png()
@@ -46,25 +46,21 @@ async function runTests() {
     .png()
     .toFile(blurryImagePath);
 
-  console.log('1. Testing Passport Photo (Requires Color + Blur) on Sharp Color Image:');
-  const res1 = await validateDocument('photo', colorImagePath);
-  console.log('Result:', JSON.stringify(res1, null, 2));
+  console.log('Test Case 1: Uploading Grayscale Income Cert into tenthMarksheet field (Requires Color + Blur)');
+  const res1 = await validateDocument('tenthMarksheet', bwImagePath);
 
-  console.log('\n2. Testing Passport Photo (Requires Color + Blur) on Black & White Image:');
-  const res2 = await validateDocument('photo', bwImagePath);
-  console.log('Result:', JSON.stringify(res2, null, 2));
+  console.log('Test Case 2: Uploading Sharp Color Photo into photo field (Requires Color + Blur)');
+  const res2 = await validateDocument('photo', colorImagePath);
 
-  console.log('\n3. Testing Aadhaar Card (Requires Color + Blur) on Blurry Image:');
+  console.log('Test Case 3: Uploading Blurry Aadhaar into aadhaar field (Requires Color + Blur)');
   const res3 = await validateDocument('aadhaar', blurryImagePath);
-  console.log('Result:', JSON.stringify(res3, null, 2));
 
-  console.log('\n4. Testing E-Signature (Blur Only, NO Color) on B&W Signature Image:');
+  console.log('Test Case 4: Uploading Grayscale Signature into signature field (Blur Only, NO Color)');
   const res4 = await validateDocument('signature', bwImagePath);
-  console.log('Result:', JSON.stringify(res4, null, 2));
 
   // Cleanup test files
   fs.rmSync(testDir, { recursive: true, force: true });
-  console.log('\n✅ All tests executed successfully.');
+  console.log('✅ All validation tests completed successfully.');
 }
 
 runTests().catch(console.error);

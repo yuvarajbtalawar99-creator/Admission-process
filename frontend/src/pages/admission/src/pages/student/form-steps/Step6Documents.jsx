@@ -10,6 +10,7 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
     const [loading, setLoading] = useState(false);
     const [files, setFiles] = useState({});
     const [compressing, setCompressing] = useState({});
+    const [validating, setValidating] = useState({});
 
     const DOCS = [
         { name: 'photo',           label: 'Recent Passport Photo',            icon: User,         note: 'JPG/PNG, max 500 KB' },
@@ -34,6 +35,19 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
         { name: 'studyCertificate',  label: '7 Years Study Certificate',       icon: FileText,     note: 'JPG/PNG, max 1 MB' },
     ];
 
+    const API_FIELDS = {
+        photo:             'photo',
+        signature:         'signature',
+        sslcMarkscard:     'tenthMarksheet',
+        pucMarkscard:      'twelfthMarksheet',
+        aadhaar:           'aadhaar',
+        cetScoreCard:      'cetScoreCard',
+        casteCertificate:  'casteCertificate',
+        incomeCertificate: 'gapCertificate',
+        studyCertificate:  'domicileCertificate',
+        feesPaidReceipt:   'feesPaidReceipt',
+    };
+
     const handleFileChange = async (e, docName) => {
         const file = e.target.files[0];
         // Reset input so same file can be re-selected after error
@@ -41,22 +55,45 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
 
         if (!file) return;
 
-        // 1. Validate image type (no PDFs)
+        // 1. Validate image mime type
         const typeCheck = validateImageType(file);
         if (!typeCheck.valid) {
             toast.error(typeCheck.error);
             return;
         }
 
-        // 2. Compress automatically in the background
-        setCompressing(prev => ({ ...prev, [docName]: true }));
+        // 2. Show "Validating document..." state immediately
+        setValidating(prev => ({ ...prev, [docName]: true }));
+        const valToastId = toast.loading(`Validating document...`);
+
         try {
-            const compressed = await compressDocumentImage(file, docName);
-            setFiles(prev => ({ ...prev, [docName]: compressed }));
-            toast.success(`${file.name} compressed & ready`, { duration: 2000 });
+            const formData = new FormData();
+            formData.append('document', file);
+            formData.append('documentType', API_FIELDS[docName] || docName);
+
+            // Call backend quality validation endpoint immediately
+            const valRes = await api.post('/student/validate-document', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+
+            toast.dismiss(valToastId);
+
+            if (valRes.data.success) {
+                // Validation PASSED! Now compress image for upload storage
+                setCompressing(prev => ({ ...prev, [docName]: true }));
+                const compressed = await compressDocumentImage(file, docName);
+                setFiles(prev => ({ ...prev, [docName]: compressed }));
+                toast.success(`Validation passed! ${file.name} ready for upload`, { duration: 3000 });
+            }
         } catch (err) {
-            toast.error(err.message || 'Compression failed. Please try a different image.');
+            toast.dismiss(valToastId);
+            const errMsg = err.response?.data?.message || 'Document validation failed. Please upload a clear color photo.';
+            
+            // STOP IMMEDIATELY! Do NOT store file, do NOT proceed with upload!
+            setFiles(prev => ({ ...prev, [docName]: null }));
+            toast.error(errMsg, { duration: 5000 });
         } finally {
+            setValidating(prev => ({ ...prev, [docName]: false }));
             setCompressing(prev => ({ ...prev, [docName]: false }));
         }
     };
@@ -93,22 +130,12 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
         }
 
         setLoading(true);
-        const API_FIELDS = {
-            photo:             'photo',
-            signature:         'signature',
-            sslcMarkscard:     'tenthMarksheet',
-            pucMarkscard:      'twelfthMarksheet',
-            aadhaar:           'aadhaar',
-            cetScoreCard:      'cetScoreCard',
-            casteCertificate:  'casteCertificate',
-            incomeCertificate: 'gapCertificate',
-            studyCertificate:  'domicileCertificate',
-            feesPaidReceipt:   'feesPaidReceipt',
-        };
 
         const formData = new FormData();
         Object.keys(files).forEach(key => {
-            formData.append(API_FIELDS[key] || key, files[key]);
+            if (files[key]) {
+                formData.append(API_FIELDS[key] || key, files[key]);
+            }
         });
 
         try {
@@ -159,6 +186,8 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                         : !!(data?.[doc.name] || data?.[DB_MAP[doc.name]]);
                     const isComplete      = isFileSelected || isFileInDb;
                     const isCompressing   = !!compressing[doc.name];
+                    const isValidating    = !!validating[doc.name];
+                    const isBusy          = isCompressing || isValidating;
                     const isRequired      = ['photo', 'signature', 'sslcMarkscard', 'aadhaar', 'feesPaidReceipt'].includes(doc.name) ||
                         (doc.name === 'cetScoreCard' && data?.admissionType !== 'MANAGEMENT');
 
@@ -189,16 +218,18 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                             <h3 className="text-sm font-semibold text-slate-900 mb-0.5">{doc.label}</h3>
                             <p className="text-xs text-slate-500 mb-3">{doc.note}</p>
 
-                            <label className={`block w-full ${isCompressing ? 'cursor-wait' : 'cursor-pointer'}`}>
+                            <label className={`block w-full ${isBusy ? 'cursor-wait' : 'cursor-pointer'}`}>
                                 <div className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border transition-colors text-sm ${
-                                    isCompressing
-                                        ? 'bg-slate-200 border-slate-200 text-slate-500 cursor-wait'
+                                    isBusy
+                                        ? 'bg-amber-50 border-amber-200 text-amber-700 cursor-wait font-medium'
                                         : isComplete
                                         ? 'border-dashed bg-white border-green-200 text-green-600 font-medium'
                                         : 'border-solid bg-slate-800 border-slate-800 text-white hover:bg-slate-900 hover:border-slate-900 font-medium'
                                 }`}>
-                                    {isCompressing
-                                        ? <><Loader2 size={16} className="animate-spin" /> Compressing…</>
+                                    {isValidating
+                                        ? <><Loader2 size={16} className="animate-spin text-amber-600" /> Validating document…</>
+                                        : isCompressing
+                                        ? <><Loader2 size={16} className="animate-spin text-amber-600" /> Compressing…</>
                                         : <><UploadCloud size={16} /> {isComplete ? 'Update File' : 'Choose File'}</>
                                     }
                                 </div>
@@ -206,7 +237,7 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                                     type="file"
                                     className="hidden"
                                     accept={ACCEPTED_MIME}
-                                    disabled={isCompressing}
+                                    disabled={isBusy}
                                     onChange={(e) => handleFileChange(e, doc.name)}
                                 />
                             </label>
@@ -236,7 +267,7 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                 </button>
                 <button
                     type="submit"
-                    disabled={loading || Object.values(compressing).some(Boolean)}
+                    disabled={loading || Object.values(compressing).some(Boolean) || Object.values(validating).some(Boolean)}
                     className="btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
                 >
                     {loading

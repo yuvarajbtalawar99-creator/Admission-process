@@ -39,7 +39,7 @@ const fileFilter = (
   cb(null, true);
 };
 
-// Internal multer instance
+// Internal multer instance for multi-field Step 6 uploads
 const multerInstance = multer({
   storage,
   fileFilter,
@@ -108,7 +108,6 @@ export const uploadDocuments = (req: Request, res: Response, next: NextFunction)
           // Double-check file signature against declared mime-type
           const isValid = verifyMagicBytes(file.path, file.mimetype);
           if (!isValid) {
-            // Delete invalid disguised file immediately
             try {
               fs.unlinkSync(file.path);
             } catch (unlinkErr) {
@@ -119,9 +118,8 @@ export const uploadDocuments = (req: Request, res: Response, next: NextFunction)
           }
 
           // Document Quality Validation (Color + Blur)
-          const qualityResult = await validateDocument(fieldName, file.path);
+          const qualityResult = await validateDocument(fieldName, file.path, file.originalname);
           if (!qualityResult.success) {
-            // Delete failed upload immediately
             try {
               fs.unlinkSync(file.path);
             } catch (unlinkErr) {
@@ -170,7 +168,7 @@ export const uploadFeeReceiptMiddleware = (req: Request, res: Response, next: Ne
       }
 
       // Document Quality Validation (Blur Only for Fee Receipt)
-      const qualityResult = await validateDocument(file.fieldname, file.path);
+      const qualityResult = await validateDocument(file.fieldname, file.path, file.originalname);
       if (!qualityResult.success) {
         try {
           fs.unlinkSync(file.path);
@@ -191,3 +189,20 @@ export const uploadFeeReceiptMiddleware = (req: Request, res: Response, next: Ne
   });
 };
 
+// Multer instance for instant single-document quality validation
+const singleValidationMulterInstance = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+}).single('document');
+
+export const singleDocumentValidationMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  singleValidationMulterInstance(req, res, (err: any) => {
+    if (err) {
+      return next(err);
+    }
+    next();
+  });
+};

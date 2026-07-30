@@ -1,7 +1,7 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { authorizeRoles } from '../middleware/rbac.middleware';
-import { uploadDocuments, uploadFeeReceiptMiddleware } from '../middleware/upload.middleware';
+import { uploadDocuments, uploadFeeReceiptMiddleware, singleDocumentValidationMiddleware } from '../middleware/upload.middleware';
 import * as admissionController from '../controllers/admission.controller';
 
 const router = express.Router();
@@ -25,6 +25,7 @@ studentRouter.put('/personal', admissionController.saveStep2);        // Step 2
 studentRouter.put('/parent', admissionController.saveStep3);           // Step 3
 studentRouter.put('/address', admissionController.saveStep4);          // Step 4
 studentRouter.put('/academic', admissionController.saveStep5);         // Step 5
+studentRouter.post('/validate-document', singleDocumentValidationMiddleware, admissionController.validateSingleDocument); // Instant single document quality validation
 studentRouter.post('/documents', uploadDocuments, admissionController.saveStep6); // Step 6
 studentRouter.post('/submit', admissionController.submitApplication);  // Step 7
 

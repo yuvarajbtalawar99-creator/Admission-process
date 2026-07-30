@@ -1,23 +1,18 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     LayoutDashboard,
     Users,
     FileText,
-    Settings,
     LogOut,
-    Menu,
-    X,
-    GraduationCap,
-    User,
     HelpCircle
 } from 'lucide-react';
+import AdmissionHeader from '../components/AdmissionHeader';
 
 const DashboardLayout = () => {
     const { user, logout } = useAuth();
     const [isSidebarOpen, setSidebarOpen] = useState(false);
-    const navigate = useNavigate();
 
     const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
 
@@ -38,130 +33,89 @@ const DashboardLayout = () => {
     const navItems = getNavItems();
 
     return (
-        <div className="admission-portal-theme min-h-screen bg-[#f3f4f6] flex overflow-x-hidden w-full">
-            {/* Mobile Sidebar Overlay */}
-            {isSidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/30 z-40 lg:hidden"
-                    onClick={toggleSidebar}
-                />
-            )}
+        <div className="admission-portal-theme h-screen w-full bg-[#f3f4f6] flex flex-col overflow-hidden">
+            {/* Sticky Fixed Header - Always visible at z-50 */}
+            <AdmissionHeader toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
 
-            {/* Sidebar */}
-            <aside className={`
-                fixed lg:static inset-y-0 left-0 z-50
-                w-[260px] bg-white border-r border-slate-200
-                transform transition-transform duration-300 ease-in-out
-                ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-                flex flex-col
-            `}>
-                <div className="h-16 flex items-center px-6 gap-3 border-b border-slate-100">
-                    <div className="shrink-0">
-                      <div 
-                        className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center bg-white"
-                        style={{ backgroundColor: '#ffffff' }}
-                      >
-                        <img 
-                          src="/logo.png" 
-                          alt="JCE Logo" 
-                          className="w-full h-full object-cover bg-white rounded-full" 
-                          style={{ backgroundColor: '#ffffff' }}
-                        />
-                      </div>
+            {/* Layout Wrapper Below Header */}
+            <div className="flex-1 flex min-w-0 overflow-hidden relative">
+                {/* Mobile Sidebar Backdrop Overlay - Opens below header */}
+                {isSidebarOpen && (
+                    <div
+                        className="fixed inset-0 top-[60px] sm:top-[68px] bg-black/40 z-40 lg:hidden backdrop-blur-xs"
+                        onClick={toggleSidebar}
+                    />
+                )}
+
+                {/* Mobile Drawer & Desktop Sidebar - Starts cleanly below header on mobile */}
+                <aside className={`
+                    fixed lg:static top-[60px] sm:top-[68px] bottom-0 left-0 z-40
+                    w-[260px] bg-white border-r border-slate-200
+                    transform transition-transform duration-300 ease-in-out
+                    ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+                    flex flex-col flex-shrink-0 h-[calc(100vh-60px)] sm:h-[calc(100vh-68px)] lg:h-full overflow-y-auto shadow-lg lg:shadow-none
+                `}>
+                    <div className="pt-4 sm:pt-5 pb-3 px-6 block border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+                        <span className="font-bold text-xs text-slate-700 tracking-wider uppercase block">Navigation Menu</span>
                     </div>
-                    <span className="font-bold text-lg text-slate-900 tracking-tight">JCER Admission Portal</span>
-                </div>
 
-                <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
-                    {navItems.map((item) => (
+                    <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+                        {navItems.map((item) => (
+                            <NavLink
+                                key={item.name}
+                                to={item.path}
+                                className={({ isActive }) => `
+                                    flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                                    ${isActive
+                                        ? 'bg-primary-50 text-primary-700 font-semibold'
+                                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
+                                `}
+                                onClick={() => setSidebarOpen(false)}
+                            >
+                                <item.icon size={18} className="text-current" />
+                                {item.name}
+                            </NavLink>
+                        ))}
+
+                        <div className="pt-6 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                            System
+                        </div>
+
                         <NavLink
-                            key={item.name}
-                            to={item.path}
+                            to="/support"
                             className={({ isActive }) => `
                                 flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                                ${isActive
-                                    ? 'bg-primary-50 text-primary-700 font-semibold'
-                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
+                                ${isActive ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
                             `}
-                            onClick={() => setSidebarOpen(false)}
                         >
-                            <item.icon size={18} className="text-current" />
-                            {item.name}
+                            <HelpCircle size={18} className="text-current" />
+                            Support
                         </NavLink>
-                    ))}
+                    </nav>
 
-                    <div className="pt-6 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
-                        System
-                    </div>
-
-                    <NavLink
-                        to="/support"
-                        className={({ isActive }) => `
-                            flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                            ${isActive ? 'bg-primary-50 text-primary-700 font-semibold' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
-                        `}
-                    >
-                        <HelpCircle size={18} className="text-current" />
-                        Support
-                    </NavLink>
-                </nav>
-
-                <div className="p-3 mt-auto mb-3 mx-3 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center">
-                        <User size={16} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{user?.name || "Student User"}</p>
-                        <p className="text-xs text-slate-500 truncate">ID: {user?.id?.substring(0,8) || `ADM-${new Date().getFullYear()}`}</p>
-                    </div>
-                </div>
-
-                <div className="px-3 pb-4">
-                    <button
-                        onClick={logout}
-                        className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                        <LogOut size={18} />
-                        Logout
-                    </button>
-                </div>
-            </aside>
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col min-w-0 h-screen overflow-x-hidden overflow-y-auto bg-[#f3f4f6]">
-                {/* Top Header — Clean, minimal per Stitch design */}
-                <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 lg:px-10 sticky top-0 z-50">
-                    <div className="flex items-center gap-4">
-                        <button
-                            className="lg:hidden text-slate-500 hover:text-slate-900 p-1.5 hover:bg-slate-50 rounded-lg"
-                            onClick={toggleSidebar}
-                        >
-                            <Menu size={20} />
-                        </button>
-                        <h2 className="hidden sm:block text-sm font-semibold text-slate-700">
-                            Admission Services Portal
-                        </h2>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-
-                        
-                        <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-sm font-bold text-slate-900">{user?.name || "Student User"}</p>
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ID: {user?.id?.substring(0,8) || `ADM-${new Date().getFullYear()}`}</p>
-                            </div>
-                            <div className="bg-primary-600/10 rounded-full p-1 border-2 border-primary-600">
-                                <div className="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-xs font-bold">
-                                    {user?.name?.[0] || 'S'}
-                                </div>
-                            </div>
+                    <div className="p-3 mt-auto mb-3 mx-3 bg-slate-50 border border-slate-100 rounded-lg flex items-center gap-2.5 flex-shrink-0">
+                        <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center font-bold text-sm shrink-0">
+                            {user?.name?.[0]?.toUpperCase() || 'S'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 truncate">{user?.name || "Student User"}</p>
+                            <p className="text-xs text-slate-500 truncate">ID: {user?.id?.substring(0,8) || `ADM-${new Date().getFullYear()}`}</p>
                         </div>
                     </div>
-                </header>
 
-                {/* Page Content */}
-                <main className="flex-1 overflow-y-auto p-6 lg:p-8 relative z-10">
+                    <div className="px-3 pb-4 flex-shrink-0">
+                        <button
+                            onClick={logout}
+                            className="flex w-full items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <LogOut size={18} />
+                            Logout
+                        </button>
+                    </div>
+                </aside>
+
+                {/* Main Content Area */}
+                <main className="flex-1 flex flex-col min-w-0 overflow-y-auto bg-[#f3f4f6] relative z-10 p-4 sm:p-6 lg:p-8">
                     <div className="max-w-[1200px] mx-auto w-full animate-fade-in pb-8">
                         <Outlet />
                     </div>

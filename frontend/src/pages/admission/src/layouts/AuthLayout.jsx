@@ -1,13 +1,12 @@
 import React from 'react';
-import { Outlet, Navigate, Link } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { GraduationCap, ArrowRight } from 'lucide-react';
+import AdmissionHeader from '../components/AdmissionHeader';
 
 const AuthLayout = () => {
     const { token, user } = useAuth();
     
     // IMAGE CONFIGURATION:
-    // To use your college photo, place 'college-view.jpg' in the 'public/' folder.
     const collegeImgPath = "/college-view.jpg";
     const fallbackImg = "https://images.unsplash.com/photo-1498243639159-414ccead8c51?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80";
 
@@ -18,58 +17,13 @@ const AuthLayout = () => {
     }
 
     return (
-        <div className="admission-portal-theme min-h-screen bg-slate-50 font-display flex flex-col overflow-y-auto">
-            {/* Top Navigation Bar */}
-            <header className="w-full bg-white border-b border-slate-200 shadow-sm z-50 flex-shrink-0">
-              <div className="max-w-7xl mx-auto flex items-center gap-3 sm:gap-5 px-4 sm:px-6 py-2.5 sm:py-3">
-                
-                {/* Logo */}
-                <div 
-                  className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 bg-white rounded-full overflow-hidden flex items-center justify-center shadow-sm"
-                  style={{ backgroundColor: '#ffffff' }}
-                >
-                  <img
-                    src="/logo.png"
-                    alt="JCER Logo"
-                    className="w-full h-full object-cover bg-white rounded-full"
-                    style={{ backgroundColor: '#ffffff' }}
-                  />
-                </div>
+        <div className="admission-portal-theme h-screen w-full bg-slate-50 font-display flex flex-col overflow-hidden">
+            {/* Sticky Fixed Header - Always visible across all admission auth pages */}
+            <AdmissionHeader />
 
-                {/* College Details */}
-                <div className="flex flex-col justify-center flex-1 space-y-0.5">
-                  
-                  {/* College Name */}
-                  <h1 
-                    className="text-[#0B4F8A] text-sm md:text-lg lg:text-xl font-extrabold leading-tight tracking-tight uppercase"
-                    style={{ color: '#0B4F8A', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif", fontWeight: '800' }}
-                  >
-                    JAIN COLLEGE OF ENGINEERING & RESEARCH
-                  </h1>
-                  
-                  {/* Approval Line */}
-                  <p 
-                    className="text-[9px] sm:text-[10px] md:text-xs text-gray-800 font-medium leading-snug"
-                    style={{ color: '#1f2937', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}
-                  >
-                    (Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)
-                  </p>
-                  
-                  {/* Accreditation */}
-                  <p 
-                    className="text-[10px] sm:text-xs md:text-sm font-bold text-indigo-600"
-                    style={{ color: '#4f46e5', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}
-                  >
-                    NBA Accredited Programs – ECE & ME
-                  </p>
-                  
-                </div>
-                
-              </div>
-            </header>
-
-            <main className="flex-1 w-full max-w-7xl mx-auto p-3 sm:p-5 lg:p-6 flex flex-col justify-start items-center h-auto min-h-0">
-                <div className="w-full max-w-[1050px] grid grid-cols-1 lg:grid-cols-2 items-stretch bg-white rounded-2xl shadow-3xl border border-slate-200 h-auto animate-fade-in text-slate-900">
+            {/* Scrollable Main Content Area */}
+            <main className="flex-1 overflow-y-auto w-full p-3 sm:p-5 lg:p-6 flex flex-col justify-start items-center">
+                <div className="w-full max-w-[1050px] grid grid-cols-1 lg:grid-cols-2 items-stretch bg-white rounded-2xl shadow-3xl border border-slate-200 h-auto animate-fade-in text-slate-900 my-auto">
                     
                     {/* Left Side: Visual/Branding Section (HIDDEN ON MOBILE) */}
                     <div className="hidden lg:flex relative bg-slate-900 border-r border-slate-200 h-full flex-col justify-end rounded-l-2xl overflow-hidden min-h-[440px]">

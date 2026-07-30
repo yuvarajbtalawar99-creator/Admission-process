@@ -6,6 +6,7 @@ import securityEvents from '../services/securityEvents.service';
 import AuditLog from '../models/AuditLog';
 import AdmissionDocument from '../models/AdmissionDocument';
 import Admission from '../models/Admission';
+import { validateDocument } from '../utils/documentValidation.util';
 
 interface AuthRequest extends Request {
   user?: { id: string; role: string };
@@ -26,6 +27,42 @@ const DOCUMENT_FIELD_MAP: Record<string, keyof AdmissionDocument> = {
 };
 
 // ─── Student Endpoints ───────────────────────────────────────────────────────
+
+/** POST /api/student/validate-document (Instant Single File Validation) */
+export const validateSingleDocument = async (
+  req: AuthRequest, res: Response, _next: NextFunction
+): Promise<any> => {
+  try {
+    const file = req.file;
+    const documentType = req.body.documentType || req.body.docType || (file ? file.fieldname : 'unknown');
+
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded for validation.' });
+    }
+
+    // Perform quality validation (Color + Blur)
+    const result = await validateDocument(documentType, file.path, file.originalname);
+
+    // Delete temp validation file immediately
+    try {
+      fs.unlinkSync(file.path);
+    } catch (e) {
+      // Ignore
+    }
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        reason: result.reason,
+        message: result.message,
+      });
+    }
+
+    return res.json({ success: true, message: 'Document validation passed!' });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, message: err.message || 'Validation failed.' });
+  }
+};
 
 /** GET /api/student/my-admission */
 export const getMyAdmission = async (

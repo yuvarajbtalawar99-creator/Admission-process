@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import fs from 'fs';
+import path from 'path';
 import logger from './logger.util';
 
 export interface ValidationResult {
@@ -21,47 +22,56 @@ export function normalizeDocumentType(docType: string): string {
   const clean = docType.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
   const map: Record<string, string> = {
+    // 1. Passport Photo (Color + Blur)
     'photo': 'photo',
     'passportphoto': 'photo',
     'recentpassportphoto': 'photo',
 
+    // 2. Aadhaar Card (Color + Blur)
     'aadhaar': 'aadhaar',
     'aadhaarcard': 'aadhaar',
 
+    // 3. SSLC / 10th Marks Card (Color + Blur)
     'tenthmarksheet': 'tenthMarksheet',
+    'sslcmarkscard': 'tenthMarksheet',
     '10thmarkscard': 'tenthMarksheet',
     'sslc10thmarkscard': 'tenthMarksheet',
-    'sslcmarkscard': 'tenthMarksheet',
     'sslc': 'tenthMarksheet',
 
+    // 4. PUC / 12th Marks Card (Color + Blur)
     'twelfthmarksheet': 'twelfthMarksheet',
+    'pucmarkscard': 'twelfthMarksheet',
     '12thmarkscard': 'twelfthMarksheet',
     'puc12thmarkscard': 'twelfthMarksheet',
-    'pucmarkscard': 'twelfthMarksheet',
     'puc': 'twelfthMarksheet',
 
+    // 5. Entrance Score Card (CET/DCET) (Color + Blur)
     'cetscorecard': 'cetScoreCard',
     'entrancescorecardcetdcet': 'cetScoreCard',
     'entrancescorecard': 'cetScoreCard',
     'cetdcet': 'cetScoreCard',
     'cet': 'cetScoreCard',
 
+    // 6. E-Signature (Blur Only)
     'signature': 'signature',
     'esignature': 'signature',
 
+    // 7. Income Certificate (Blur Only)
     'incomecertificate': 'incomeCertificate',
     'incomecert': 'incomeCertificate',
+    'gapcertificate': 'gapCertificate', // Frontend maps income certificate field to gapCertificate
+    'gapcert': 'gapCertificate',
 
+    // 8. Caste Certificate (Blur Only)
     'castecertificate': 'casteCertificate',
     'castecert': 'casteCertificate',
 
+    // 9. 7 Years Study Certificate (Blur Only)
     'domicilecertificate': 'domicileCertificate',
-    '7yearsstudycertificate': 'domicileCertificate',
     'studycertificate': 'domicileCertificate',
+    '7yearsstudycertificate': 'domicileCertificate',
 
-    'gapcertificate': 'gapCertificate',
-    'gapcert': 'gapCertificate',
-
+    // 10. Fees Paid Receipt (Blur Only)
     'feespaidreceipt': 'feesPaidReceipt',
     'feereceipt': 'feesPaidReceipt',
     'admissionfeereceipt': 'admissionFeeReceipt',
@@ -74,12 +84,14 @@ export function normalizeDocumentType(docType: string): string {
  * Configuration matrix specifying required quality validations per document type.
  */
 export const DOCUMENT_VALIDATION_CONFIG: Record<string, DocumentRule> = {
+  // Color + Blur required
   photo: { checkColor: true, checkBlur: true },
   aadhaar: { checkColor: true, checkBlur: true },
   tenthMarksheet: { checkColor: true, checkBlur: true },
   twelfthMarksheet: { checkColor: true, checkBlur: true },
   cetScoreCard: { checkColor: true, checkBlur: true },
 
+  // Blur ONLY (Do NOT perform color detection)
   signature: { checkColor: false, checkBlur: true },
   incomeCertificate: { checkColor: false, checkBlur: true },
   casteCertificate: { checkColor: false, checkBlur: true },
@@ -90,57 +102,61 @@ export const DOCUMENT_VALIDATION_CONFIG: Record<string, DocumentRule> = {
 };
 
 /**
- * Validates if an image is in color (rejects Black & White or Grayscale images).
+ * Validates if an image is in color.
+ * Calculates grayscale pixel percentage using RGB channel tolerance.
+ * If image is mostly grayscale (>= 92.0%), rejects it as BLACK_AND_WHITE_IMAGE.
  */
-export async function validateColor(input: string | Buffer): Promise<boolean> {
+export async function validateColor(input: string | Buffer, tolerance: number = 18): Promise<{ isColor: boolean; grayscalePercentage: number }> {
   try {
     const pipeline = typeof input === 'string' ? sharp(input) : sharp(input);
 
     const { data, info } = await pipeline
-      .resize(250, 250, { fit: 'inside' })
+      .resize(300, 300, { fit: 'inside' })
       .toFormat('png')
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    // Single channel images are strictly monochrome / grayscale
+    // Single-channel image is 100% grayscale
     if (info.channels === 1) {
-      return false;
+      return { isColor: false, grayscalePercentage: 100.0 };
     }
 
     const channels = info.channels;
     const totalPixels = info.width * info.height;
-    let colorPixelCount = 0;
+    let grayscalePixelCount = 0;
 
     for (let i = 0; i < data.length; i += channels) {
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
 
-      const max = Math.max(r, g, b);
-      const min = Math.min(r, g, b);
-      const delta = max - min;
+      // A pixel is grayscale if RGB channel differences are within tolerance (accounts for JPEG noise)
+      const diffRG = Math.abs(r - g);
+      const diffGB = Math.abs(g - b);
+      const diffRB = Math.abs(r - b);
 
-      // A pixel is considered colored if maximum channel divergence > 18
-      if (delta > 18) {
-        colorPixelCount++;
+      if (diffRG <= tolerance && diffGB <= tolerance && diffRB <= tolerance) {
+        grayscalePixelCount++;
       }
     }
 
-    const colorRatio = colorPixelCount / totalPixels;
+    const grayscalePercentage = (grayscalePixelCount / totalPixels) * 100;
 
-    // Minimum color threshold: at least 2.5% of pixels must have distinct color
-    return colorRatio >= 0.025;
+    // If 92.0% or more pixels are grayscale, classify as BLACK_AND_WHITE_IMAGE
+    const isColor = grayscalePercentage < 92.0;
+
+    return { isColor, grayscalePercentage };
   } catch (error) {
     logger.error('Error during color validation:', error);
-    // If sharp cannot process non-image format, pass through safely
-    return true;
+    // Safe fallback for unreadable formats like non-raster PDFs
+    return { isColor: true, grayscalePercentage: 0 };
   }
 }
 
 /**
  * Validates if an image is clear (rejects blurry images using Variance of Laplacian).
  */
-export async function validateBlur(input: string | Buffer, blurThreshold: number = 85): Promise<boolean> {
+export async function validateBlur(input: string | Buffer, blurThreshold: number = 85): Promise<{ isSharp: boolean; blurScore: number }> {
   try {
     const pipeline = typeof input === 'string' ? sharp(input) : sharp(input);
 
@@ -153,12 +169,9 @@ export async function validateBlur(input: string | Buffer, blurThreshold: number
     const width = info.width;
     const height = info.height;
 
-    if (width < 3 || height < 3) return true;
+    if (width < 3 || height < 3) return { isSharp: true, blurScore: 999 };
 
-    // 3x3 Laplacian Operator Kernel:
-    // [  0,  1,  0 ]
-    // [  1, -4,  1 ]
-    // [  0,  1,  0 ]
+    // 3x3 Laplacian Operator Kernel
     let sum = 0;
     const laplacianValues: number[] = [];
 
@@ -179,7 +192,7 @@ export async function validateBlur(input: string | Buffer, blurThreshold: number
     }
 
     const count = laplacianValues.length;
-    if (count === 0) return true;
+    if (count === 0) return { isSharp: true, blurScore: 999 };
 
     const mean = sum / count;
     let varianceSum = 0;
@@ -189,49 +202,89 @@ export async function validateBlur(input: string | Buffer, blurThreshold: number
       varianceSum += diff * diff;
     }
 
-    const variance = varianceSum / count;
+    const blurScore = varianceSum / count;
+    const isSharp = blurScore >= blurThreshold;
 
-    // Sharp images have high Laplacian variance; blurry images have low variance
-    return variance >= blurThreshold;
+    return { isSharp, blurScore };
   } catch (error) {
     logger.error('Error during blur validation:', error);
-    return true;
+    return { isSharp: true, blurScore: 999 };
   }
 }
 
 /**
  * Main entry point: Validates an uploaded document based on its type rules.
+ * Prints detailed debug logs as requested.
  */
 export async function validateDocument(
   documentType: string,
-  input: string | Buffer
+  input: string | Buffer,
+  fileName?: string
 ): Promise<ValidationResult> {
   const normType = normalizeDocumentType(documentType);
   const rule = DOCUMENT_VALIDATION_CONFIG[normType] || { checkColor: false, checkBlur: true };
+  const actualFileName = fileName || (typeof input === 'string' ? path.basename(input) : 'Selected Buffer');
 
-  // 1. Color Validation (if required for document type)
+  console.log('====================================================');
+  console.log(`📄 Document Validation Started`);
+  console.log(`• Document Type           : ${documentType} (Normalized: ${normType})`);
+  console.log(`• Selected File Name      : ${actualFileName}`);
+  console.log(`• Validation Started      : YES`);
+  console.log(`• Color Validation Required: ${rule.checkColor ? 'YES' : 'NO'}`);
+  console.log(`• Blur Validation Required : ${rule.checkBlur ? 'YES' : 'NO'}`);
+
+  let colorPass = true;
+  let colorDetails = 'SKIPPED (Not required for this document)';
+
+  // 1. Color Validation (only if required for document type)
   if (rule.checkColor) {
-    const isColor = await validateColor(input);
+    const { isColor, grayscalePercentage } = await validateColor(input);
+    colorPass = isColor;
+    colorDetails = `${isColor ? 'PASS' : 'FAIL'} (Grayscale: ${grayscalePercentage.toFixed(2)}%)`;
+    console.log(`• Color Validation Result  : ${colorDetails}`);
+
     if (!isColor) {
-      return {
+      const result: ValidationResult = {
         success: false,
         reason: 'BLACK_AND_WHITE_IMAGE',
-        message: 'Please upload a clear color photograph of the original document.',
+        message: 'Black & White image detected. Please upload a clear color photograph of the original document.',
       };
+      console.log(`• Blur Validation Result   : SKIPPED (Blocked by Color check)`);
+      console.log(`• Final Decision           : REJECTED`);
+      console.log(`• Upload Blocked           : YES`);
+      console.log(`• Reason                   : ${result.reason} - "${result.message}"`);
+      console.log('====================================================\n');
+      return result;
     }
+  } else {
+    console.log(`• Color Validation Result  : ${colorDetails}`);
   }
 
   // 2. Blur Validation (required for all specified documents)
   if (rule.checkBlur) {
-    const isSharp = await validateBlur(input);
+    const { isSharp, blurScore } = await validateBlur(input);
+    const blurDetails = `${isSharp ? 'PASS' : 'FAIL'} (Blur Score: ${blurScore.toFixed(2)})`;
+    console.log(`• Blur Validation Result   : ${blurDetails}`);
+
     if (!isSharp) {
-      return {
+      const result: ValidationResult = {
         success: false,
         reason: 'BLURRY_IMAGE',
-        message: 'Please upload a clearer image.',
+        message: 'The uploaded image is blurry. Please upload a clearer image.',
       };
+      console.log(`• Final Decision           : REJECTED`);
+      console.log(`• Upload Blocked           : YES`);
+      console.log(`• Reason                   : ${result.reason} - "${result.message}"`);
+      console.log('====================================================\n');
+      return result;
     }
+  } else {
+    console.log(`• Blur Validation Result   : SKIPPED`);
   }
+
+  console.log(`• Final Decision           : PASSED`);
+  console.log(`• Upload Blocked           : NO`);
+  console.log('====================================================\n');
 
   return { success: true };
 }
