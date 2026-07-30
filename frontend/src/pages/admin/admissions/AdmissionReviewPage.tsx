@@ -337,7 +337,6 @@ export const AdmissionReviewPage: React.FC = () => {
         return;
       }
  
-      // Map code to label for confirmation
       const reasonLabels: Record<string, string> = {
         'DOC_NOT_VERIFIED': 'Documents Not Verified',
         'INCOMPLETE_DOCUMENTS': 'Incomplete Documents',
@@ -356,26 +355,26 @@ export const AdmissionReviewPage: React.FC = () => {
       );
       if (!confirmed) return;
     }
- 
-    if (status === 'APPROVED' && (!documentsVerified || !feesVerified || !eligibilityVerified)) {
-      toast.error('Please complete all verification checks before final approval.');
+
+    if (status === 'APPROVED' && (!documentsVerified || !eligibilityVerified)) {
+      toast.error('Please complete document and eligibility verification checks before approving the application.');
       return;
     }
- 
+
     if (status === 'ENROLLED') {
       const confirmed = window.confirm(
         `Are you sure you want to finalize this admission?\n\nThis will auto-generate the USN/Enrollment details and register the student user.`
       );
       if (!confirmed) return;
     }
- 
+
     setUpdating(true);
     try {
       if (status === 'APPROVED') {
-        // Auto-save the ticked checklist values to DB first to bypass backend enforcement checks
+        // Auto-save the ticked checklist values to DB
         await admissionService.verifyChecklist(app.id, {
           documentsVerified,
-          feesVerified,
+          feesVerified: false,
           eligibilityVerified,
           verificationRemarks
         });
@@ -396,9 +395,9 @@ export const AdmissionReviewPage: React.FC = () => {
         label = reasonLabels[rejectionReasonCode] || rejectionReasonCode;
       }
       await admissionService.updateStatus(app.id, status, remarks, label, rejectionReasonCode);
-      toast.success(status === 'APPROVED' ? 'Application verified and forwarded to Principal' : `Application marked as ${status}`);
+      toast.success(status === 'APPROVED' ? 'Application approved successfully. Student can now pay ₹500 Admission Processing Fee.' : `Application marked as ${status}`);
       if (status === 'APPROVED') {
-        navigate('/admin/admissions/verified');
+        navigate('/admin/admissions/queue');
       } else if (status === 'REJECTED') {
         navigate('/admin/admissions/rejected');
       } else if (status === 'ENROLLED') {
@@ -966,43 +965,49 @@ export const AdmissionReviewPage: React.FC = () => {
             
             {(app.applicationStatus === 'SUBMITTED' || app.applicationStatus === 'UNDER_REVIEW') && (
               <button disabled={updating} onClick={() => handleUpdateStatus('APPROVED')}
-                className="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md shadow-indigo-600/10">
-                <ShieldCheck size={16} /> Verify & Forward to Principal
+                className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md shadow-emerald-600/10">
+                <CheckCircle2 size={16} /> Approve Application
               </button>
             )}
 
             {app.applicationStatus === 'APPROVED' && (
-              <div className="flex flex-col gap-4 w-full items-end">
-                {!app.approvedByAdminId ? (
-                  <div className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800/60 rounded-xl p-4 text-center w-full">
-                    <p className="text-sm font-black text-indigo-800 dark:text-indigo-400 flex items-center justify-center gap-2">
-                      <ShieldCheck size={18} /> Sent to Principal for Verification
-                    </p>
-                    <p className="text-xs text-indigo-600 dark:text-indigo-500 font-semibold mt-1">
-                      This application has been verified by Admin and is awaiting Principal's final approval.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/60 rounded-xl p-4 text-center w-full">
-                      <p className="text-sm font-black text-emerald-800 dark:text-emerald-400 flex items-center justify-center gap-2">
-                        <CheckCircle2 size={18} /> Approved by Principal
-                      </p>
-                      <p className="text-xs text-emerald-600 dark:text-emerald-500 font-semibold mt-1">
-                        Principal has reviewed and approved this application. You can now finalize the enrollment.
-                      </p>
-                      {app.approvalRemarks && (
-                        <p className="text-[11px] text-neutral-500 italic mt-2">
-                          Remarks: "{app.approvalRemarks}"
-                        </p>
-                      )}
-                    </div>
-                    <button disabled={updating} onClick={() => handleUpdateStatus('ENROLLED')}
-                      className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md shadow-emerald-600/10 self-end cursor-pointer">
-                      <CheckCircle2 size={16} /> Finalize & Enroll Student
-                    </button>
-                  </>
-                )}
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/60 rounded-xl p-4 text-center w-full">
+                <p className="text-sm font-black text-amber-800 dark:text-amber-400 flex items-center justify-center gap-2">
+                  <CheckCircle2 size={18} /> Application Approved
+                </p>
+                <p className="text-xs text-amber-600 dark:text-amber-500 font-semibold mt-1">
+                  Application approved by Admin. Awaiting student to pay ₹500 Admission Processing Fee and upload official receipt.
+                </p>
+              </div>
+            )}
+
+            {app.applicationStatus === 'FEE_RECEIPT_UPLOADED' && (
+              <div className="bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-200 dark:border-cyan-800/60 rounded-xl p-4 text-center w-full flex flex-col md:flex-row items-center justify-between gap-3">
+                <div className="text-left">
+                  <p className="text-sm font-black text-cyan-800 dark:text-cyan-400 flex items-center gap-2">
+                    <CheckCircle2 size={18} /> Fee Receipt Uploaded by Student
+                  </p>
+                  <p className="text-xs text-cyan-600 dark:text-cyan-500 font-semibold mt-1">
+                    Student has uploaded the ₹500 Admission Processing Fee receipt. Please review in Admission Fees Queue.
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate(`/admin/admissions/fee-review/${app.id}`)}
+                  className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white font-extrabold text-xs rounded-xl transition-all shadow"
+                >
+                  Go to Fee Review Workspace
+                </button>
+              </div>
+            )}
+
+            {app.applicationStatus === 'FEE_VERIFIED' && (
+              <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-800/60 rounded-xl p-4 text-center w-full">
+                <p className="text-sm font-black text-sky-800 dark:text-sky-400 flex items-center justify-center gap-2">
+                  <ShieldCheck size={18} /> Fee Verified & Forwarded to Principal
+                </p>
+                <p className="text-xs text-sky-600 dark:text-sky-500 font-semibold mt-1">
+                  Fee receipt verified by Admin and forwarded to Principal for final admission confirmation.
+                </p>
               </div>
             )}
 
@@ -1012,7 +1017,7 @@ export const AdmissionReviewPage: React.FC = () => {
                   <CheckCircle2 size={18} /> Student Enrolled Successfully
                 </p>
                 <p className="text-xs text-emerald-600 dark:text-emerald-500 font-semibold mt-1">
-                  The student account has been registered and credentials sent.
+                  The student admission has been confirmed by Principal and enrolled into ERP.
                 </p>
               </div>
             )}

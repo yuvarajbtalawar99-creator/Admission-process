@@ -7,7 +7,9 @@ export type AdmissionStatus =
   | 'DRAFT'         // just registered, form in progress (replaces REGISTERED)
   | 'SUBMITTED'     // student submitted all 7 steps
   | 'UNDER_REVIEW'  // admin is reviewing
-  | 'APPROVED'      // admin approved
+  | 'APPROVED'      // admin approved application & docs (waiting for fee receipt)
+  | 'FEE_RECEIPT_UPLOADED' // student uploaded fee receipt
+  | 'FEE_VERIFIED'  // admin verified fee receipt (forwarded to principal)
   | 'REJECTED'      // admin rejected
   | 'ENROLLED'      // fully enrolled in ERP (locked)
   | 'CANCELLATION_REQUESTED' // student requested cancellation
@@ -38,6 +40,19 @@ class Admission extends Model {
   public verifiedByAdminId!: string | null;
   public verifiedAt!: Date | null;
   
+  // Fee Verification Accountability
+  public admissionFeeReceiptUrl!: string | null;
+  public feeReceiptUploadedAt!: Date | null;
+  public feeVerifiedByAdminId!: string | null;
+  public feeVerifiedAt!: Date | null;
+  public feeVerificationRemarks!: string | null;
+  public feeRejectionReason!: string | null;
+
+  // Principal Accountability
+  public principalReviewedBy!: string | null;
+  public principalReviewedAt!: Date | null;
+  public principalRemarks!: string | null;
+
   // Approval Accountability
   public approvedByAdminId!: string | null;
   public approvalRemarks!: string | null;
@@ -122,7 +137,7 @@ Admission.init(
       allowNull: true,
     },
     applicationStatus: {
-      type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'ENROLLED', 'CANCELLATION_REQUESTED', 'CANCELLED'),
+      type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'FEE_RECEIPT_UPLOADED', 'FEE_VERIFIED', 'REJECTED', 'ENROLLED', 'CANCELLATION_REQUESTED', 'CANCELLED'),
       allowNull: false,
       defaultValue: 'DRAFT',
     },
@@ -163,6 +178,42 @@ Admission.init(
     },
     verifiedAt: {
       type: DataTypes.DATE,
+      allowNull: true,
+    },
+    admissionFeeReceiptUrl: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    feeReceiptUploadedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    feeVerifiedByAdminId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    feeVerifiedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    feeVerificationRemarks: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    feeRejectionReason: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    principalReviewedBy: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    principalReviewedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    principalRemarks: {
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     approvedByAdminId: {

@@ -1,6 +1,11 @@
 @import './variables.css';
 @import './animations.css';
 
+html, body, #root {
+  min-height: 100%;
+  overflow-y: auto;
+}
+
 /* Custom Modern Pastel Mesh Gradient Background - Light Mode */
 body {
   background-color: #f1f4fa;

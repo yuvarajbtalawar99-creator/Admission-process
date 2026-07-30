@@ -202,14 +202,26 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
     fetchStudentsList();
   };
 
+  const [viewModalLoading, setViewModalLoading] = useState(false);
+
   const handleViewStudent = async (id: string) => {
     try {
+      setSelectedStudent(null);
+      setViewModalLoading(true);
+      setViewModalOpen(true);
       const data = await admissionService.getApplication(id);
       setSelectedStudent(data);
-      setViewModalOpen(true);
     } catch (e) {
       toast.error('Failed to load student details');
+      setViewModalOpen(false);
+    } finally {
+      setViewModalLoading(false);
     }
+  };
+
+  const handleCloseViewModal = () => {
+    setViewModalOpen(false);
+    setSelectedStudent(null);
   };
 
   const handleDownloadPDF = async (id: string) => {
@@ -990,62 +1002,69 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
       )}
 
       {/* View Profile Modal */}
-      {viewModalOpen && selectedStudent && (
+      {viewModalOpen && (
         <div className="fixed inset-0 bg-neutral-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl w-[94vw] h-[90vh] flex flex-col shadow-2xl animate-in fade-in duration-200 overflow-hidden">
             
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-neutral-155 dark:border-neutral-800 p-6 shrink-0 bg-neutral-50/50 dark:bg-neutral-800/10">
-              <div className="flex items-center gap-4">
-                <div className="size-16 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shrink-0">
-                  {selectedStudent.studentdocuments?.photoUrl ? (
-                    <img src={getPhotoUrl(selectedStudent.studentdocuments.photoUrl)} alt="photo" className="w-full h-full object-cover" />
-                  ) : (
-                    <User size={28} className="text-neutral-400" />
-                  )}
-                </div>
-                <div>
+            {viewModalLoading || !selectedStudent ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 space-y-4">
+                <Loader2 className="w-10 h-10 text-violet-600 animate-spin" />
+                <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Loading Student Profile...</p>
+              </div>
+            ) : (
+              <>
+                {/* Modal Header */}
+                <div className="flex items-center justify-between border-b border-neutral-155 dark:border-neutral-800 p-6 shrink-0 bg-neutral-50/50 dark:bg-neutral-800/10">
+                  <div className="flex items-center gap-4">
+                    <div className="size-16 rounded-full overflow-hidden bg-neutral-100 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shrink-0">
+                      {selectedStudent.studentdocuments?.photoUrl ? (
+                        <img src={getPhotoUrl(selectedStudent.studentdocuments.photoUrl)} alt="photo" className="w-full h-full object-cover" />
+                      ) : (
+                        <User size={28} className="text-neutral-400" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-black text-neutral-900 dark:text-white uppercase tracking-wide">
+                          {selectedStudent.user ? `${selectedStudent.user.firstName || ''} ${selectedStudent.user.lastName || ''}`.trim() : 'Student Profile'}
+                        </h3>
+                        <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${STATUS_COLOR_MAP[selectedStudent.applicationStatus] || STATUS_COLOR_MAP.DRAFT}`}>
+                          {STATUS_LABEL_MAP[selectedStudent.applicationStatus] || selectedStudent.applicationStatus}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold text-neutral-500 mt-1">
+                        <span>App No: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.applicationNumber}</strong></span>
+                        <span className="hidden sm:inline">•</span>
+                        <span>Branch: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.branch?.name || 'N/A'}</strong></span>
+                        <span className="hidden sm:inline">•</span>
+                        <span>Type: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.admissionType || 'N/A'}</strong></span>
+                      </div>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-black text-neutral-900 dark:text-white uppercase tracking-wide">
-                      {selectedStudent.user ? `${selectedStudent.user.firstName || ''} ${selectedStudent.user.lastName || ''}`.trim() : 'Student Profile'}
-                    </h3>
-                    <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border ${STATUS_COLOR_MAP[selectedStudent.applicationStatus] || STATUS_COLOR_MAP.DRAFT}`}>
-                      {STATUS_LABEL_MAP[selectedStudent.applicationStatus] || selectedStudent.applicationStatus}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold text-neutral-500 mt-1">
-                    <span>App No: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.applicationNumber}</strong></span>
-                    <span className="hidden sm:inline">•</span>
-                    <span>Branch: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.branch?.name || 'N/A'}</strong></span>
-                    <span className="hidden sm:inline">•</span>
-                    <span>Type: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.admissionType || 'N/A'}</strong></span>
+                    {selectedStudent.applicationStatus === 'ENROLLED' && (
+                      <button 
+                        type="button"
+                        onClick={(e) => handleOpenCancelModal(e, selectedStudent)}
+                        className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-md"
+                      >
+                        <Ban size={14} /> Cancel Admission
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => handleDownloadPDF(selectedStudent.id)}
+                      className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-md"
+                    >
+                      <Download size={14} /> Download PDF
+                    </button>
+                    <button 
+                      onClick={handleCloseViewModal} 
+                      className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors border border-neutral-205 dark:border-neutral-800 text-neutral-500 hover:text-neutral-800 dark:hover:text-white"
+                    >
+                      <X size={20} />
+                    </button>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {selectedStudent.applicationStatus === 'ENROLLED' && (
-                  <button 
-                    type="button"
-                    onClick={(e) => handleOpenCancelModal(e, selectedStudent)}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-md"
-                  >
-                    <Ban size={14} /> Cancel Admission
-                  </button>
-                )}
-                <button 
-                  onClick={() => handleDownloadPDF(selectedStudent.id)}
-                  className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-2 shadow-md"
-                >
-                  <Download size={14} /> Download PDF
-                </button>
-                <button 
-                  onClick={() => setViewModalOpen(false)} 
-                  className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors border border-neutral-205 dark:border-neutral-800 text-neutral-500 hover:text-neutral-800 dark:hover:text-white"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
 
             {/* Modal Body: Scrollable Internally */}
             <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 bg-slate-50/30 dark:bg-neutral-900/30">
@@ -1628,10 +1647,12 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
               </div>
 
             </div>
+          </>
+        )}
 
-          </div>
-        </div>
-      )}
+      </div>
+    </div>
+  )}
 
       {/* Direct Cancel Admission Modal (Two-Step Workflow) */}
       {cancelDirectModalOpen && selectedStudent && (

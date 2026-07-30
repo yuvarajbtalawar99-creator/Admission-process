@@ -81,9 +81,9 @@ export const PrincipalLayout: React.FC = () => {
 
   useEffect(() => {
     const fetchCount = () => {
-      // Principal reviews verified (APPROVED) admissions awaiting enrollment
+      // Principal reviews fee-verified admissions awaiting final enrollment sign-off
       admissionService.getStats().then(stats => {
-        setPendingCount(stats.approved || 0);
+        setPendingCount(stats.feeVerified || 0);
       }).catch(err => console.error('Error loading Principal stats:', err));
     };
 

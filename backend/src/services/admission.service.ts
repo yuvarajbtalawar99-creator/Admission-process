@@ -12,6 +12,7 @@ import RejectionReason from '../models/RejectionReason';
 import db from '../config/database';
 import { ForbiddenException } from '../utils/error.util';
 import redisService from './redis.service';
+import emailService from './email.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -139,15 +140,22 @@ function computeStepStatus(admission: any) {
     timeline.resubmittedAt = admission.resubmittedAt;
   }
   
-  if (['UNDER_REVIEW', 'APPROVED', 'ENROLLED', 'REJECTED'].includes(admission?.applicationStatus)) {
+  if (['UNDER_REVIEW', 'APPROVED', 'FEE_RECEIPT_UPLOADED', 'FEE_VERIFIED', 'ENROLLED', 'REJECTED'].includes(admission?.applicationStatus)) {
     timeline.reviewStartedAt = admission?.reviewedAt || admission?.updatedAt;
   }
-  if (['APPROVED', 'ENROLLED'].includes(admission?.applicationStatus)) {
+  if (['APPROVED', 'FEE_RECEIPT_UPLOADED', 'FEE_VERIFIED', 'ENROLLED'].includes(admission?.applicationStatus)) {
     timeline.documentsVerifiedAt = admission?.reviewedAt || admission?.updatedAt;
     timeline.approvedAt = admission?.reviewedAt || admission?.updatedAt;
   }
+  if (['FEE_RECEIPT_UPLOADED', 'FEE_VERIFIED', 'ENROLLED'].includes(admission?.applicationStatus) || admission?.feeReceiptUploadedAt) {
+    timeline.feeReceiptUploadedAt = admission?.feeReceiptUploadedAt || admission?.updatedAt;
+  }
+  if (['FEE_VERIFIED', 'ENROLLED'].includes(admission?.applicationStatus) || admission?.feeVerifiedAt) {
+    timeline.feeVerifiedAt = admission?.feeVerifiedAt || admission?.updatedAt;
+    timeline.forwardedToPrincipalAt = admission?.feeVerifiedAt || admission?.updatedAt;
+  }
   if (admission?.applicationStatus === 'ENROLLED') {
-    timeline.usnAssignedAt = admission?.reviewedAt || admission?.updatedAt;
+    timeline.usnAssignedAt = admission?.principalReviewedAt || admission?.reviewedAt || admission?.updatedAt;
   }
   if (admission?.applicationStatus === 'REJECTED') {
     timeline.rejectedAt = admission?.reviewedAt || admission?.updatedAt;
@@ -172,6 +180,11 @@ function computeStepStatus(admission: any) {
     adminRemarks: admission?.adminRemarks || null,
     rejectionReason: admission?.rejectionReason || null,
     rejectionReasonCode: admission?.rejectionReasonCode || null,
+    feeReceiptUploadedAt: admission?.feeReceiptUploadedAt || null,
+    admissionFeeReceiptUrl: admission?.admissionFeeReceiptUrl || null,
+    feeVerifiedAt: admission?.feeVerifiedAt || null,
+    feeVerificationRemarks: admission?.feeVerificationRemarks || null,
+    feeRejectionReason: admission?.feeRejectionReason || null,
     cancellationReason: admission?.cancellationReason || null,
     cancellationRemarks: admission?.cancellationRemarks || null,
     cancellationRequestedAt: admission?.cancellationRequestedAt || null,
@@ -803,9 +816,9 @@ class AdmissionService {
           throw new Error('Only an ADMIN, SUPER_ADMIN, or PRINCIPAL can verify applications.');
         }
 
-        // ENFORCE CHECKLIST (Admin Validation)
-        if (!admission.documentsVerified || !admission.feesVerified || !admission.eligibilityVerified) {
-          throw new Error('All verification steps (Documents, Fees, Eligibility) must be completed before approval.');
+        // ENFORCE CHECKLIST (Admin Document & Eligibility Validation)
+        if (!admission.documentsVerified || !admission.eligibilityVerified) {
+          throw new Error('Documents and Eligibility verification must be completed before application approval.');
         }
 
         await admission.update({
@@ -814,6 +827,20 @@ class AdmissionService {
           reviewedBy: adminUserId,
           reviewedAt: new Date(),
         }, { transaction });
+
+        // Trigger Notification to Student to visit office and pay ₹500 fee
+        try {
+          const user = await User.findByPk(admission.userId, { transaction });
+          if (user) {
+            await emailService.sendApplicationApprovedNotification(
+              user.email,
+              `${user.firstName} ${user.lastName}`.trim(),
+              admission.applicationNumber
+            );
+          }
+        } catch (emailErr: any) {
+          console.error('Failed to send application approval email:', emailErr.message);
+        }
 
       } else if (status === 'ENROLLED') {
         if (adminUser.role !== 'SUPER_ADMIN' && adminUser.role !== 'ADMIN' && adminUser.role !== 'PRINCIPAL') {
@@ -958,13 +985,126 @@ class AdmissionService {
     }
   }
 
+  /** Student: Upload official ₹500 fee receipt image/PDF */
+  async uploadFeeReceipt(userId: string, receiptUrl: string): Promise<any> {
+    const admission = await Admission.findOne({ where: { userId } });
+    if (!admission) throw new Error('Application not found.');
+
+    if (!['APPROVED', 'FEE_RECEIPT_UPLOADED'].includes(admission.applicationStatus)) {
+      throw new Error('Fee receipt can only be uploaded after application approval.');
+    }
+
+    const transaction = await db.transaction();
+    try {
+      let docs = await AdmissionDocument.findOne({ where: { admissionId: admission.id }, transaction });
+      if (docs) {
+        await docs.update({ admissionFeeReceiptUrl: receiptUrl }, { transaction });
+      } else {
+        await AdmissionDocument.create({ admissionId: admission.id, admissionFeeReceiptUrl: receiptUrl }, { transaction });
+      }
+
+      await admission.update({
+        admissionFeeReceiptUrl: receiptUrl,
+        applicationStatus: 'FEE_RECEIPT_UPLOADED',
+        feeReceiptUploadedAt: new Date(),
+        feeRejectionReason: null,
+      }, { transaction });
+
+      await transaction.commit();
+      await this.invalidateCache(userId);
+
+      // Trigger Email/SMS notification to Admin team
+      try {
+        const user = await User.findByPk(userId);
+        if (user) {
+          await emailService.sendFeeReceiptUploadedNotification({
+            studentName: `${user.firstName} ${user.lastName}`.trim(),
+            applicationNumber: admission.applicationNumber,
+            studentEmail: user.email,
+          });
+        }
+      } catch (err: any) {
+        console.error('Failed to send fee receipt upload notification email:', err.message);
+      }
+
+      return { success: true, message: 'Fee receipt uploaded successfully.' };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  }
+
+  /** Admin: Verify uploaded fee receipt and forward to Principal */
+  async verifyFeeReceipt(
+    admissionId: string,
+    adminUserId: string,
+    payload: { approve: boolean; remarks?: string; rejectionReason?: string }
+  ): Promise<any> {
+    const transaction = await db.transaction();
+    try {
+      const admission = await Admission.findByPk(admissionId, { transaction, lock: true });
+      if (!admission) throw new Error('Application not found.');
+
+      if (payload.approve) {
+        await admission.update({
+          feesVerified: true,
+          applicationStatus: 'FEE_VERIFIED',
+          feeVerifiedByAdminId: adminUserId,
+          feeVerifiedAt: new Date(),
+          feeVerificationRemarks: payload.remarks || null,
+          feeRejectionReason: null,
+        }, { transaction });
+
+        // Trigger Notification to Principal
+        try {
+          const user = await User.findByPk(admission.userId);
+          if (user) {
+            await emailService.sendFeeVerifiedNotificationToPrincipal({
+              studentName: `${user.firstName} ${user.lastName}`.trim(),
+              applicationNumber: admission.applicationNumber,
+            });
+          }
+        } catch (err: any) {
+          console.error('Failed to send fee verified notification to principal:', err.message);
+        }
+      } else {
+        await admission.update({
+          feesVerified: false,
+          applicationStatus: 'APPROVED', // Require student to re-upload receipt
+          feeRejectionReason: payload.rejectionReason || payload.remarks || 'Uploaded fee receipt was rejected. Please upload a clear official receipt.',
+          feeVerificationRemarks: payload.remarks || null,
+        }, { transaction });
+      }
+
+      await transaction.commit();
+      await this.invalidateCacheByAdmissionId(admissionId);
+      return { success: true, message: payload.approve ? 'Fee receipt verified and forwarded to Principal.' : 'Fee receipt rejected.' };
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  }
+
   /** Admin: stats for dashboard */
   async getDashboardStats(): Promise<any> {
     const cacheKey = 'admin:stats';
     const cached = await redisService.getCache(cacheKey);
     if (cached) return cached;
 
-    const [total, draftCount, submitted, resubmitted, underReview, approvedCount, _approvedByPrincipalCount, rejected, enrolled, cancellationRequests] = await Promise.all([
+    const [
+      total,
+      draftCount,
+      submitted,
+      resubmitted,
+      underReview,
+      approvedCount,
+      _approvedByPrincipalCount,
+      rejected,
+      enrolled,
+      cancellationRequests,
+      feeReceiptUploadedCount,
+      feeVerifiedCount,
+    ] = await Promise.all([
       Admission.count(),
       Admission.count({ where: { applicationStatus: 'DRAFT' } }),
       Admission.count({
@@ -993,15 +1133,17 @@ class AdmissionService {
           rejectionReasonCode: null
         }
       }),
-      Admission.count({ where: { applicationStatus: 'APPROVED', approvedByAdminId: null } }),
-      Admission.count({ where: { applicationStatus: 'APPROVED', approvedByAdminId: { [Op.ne]: null } } }),
+      Admission.count({ where: { applicationStatus: 'APPROVED' } }),
+      Admission.count({ where: { applicationStatus: 'FEE_VERIFIED' } }),
       Admission.count({ where: { applicationStatus: 'REJECTED' } }),
       Admission.count({ where: { applicationStatus: 'ENROLLED' } }),
       Admission.count({ where: { applicationStatus: 'CANCELLATION_REQUESTED' } }),
+      Admission.count({ where: { applicationStatus: 'FEE_RECEIPT_UPLOADED' } }),
+      Admission.count({ where: { applicationStatus: 'FEE_VERIFIED' } }),
     ]);
 
     const recent = await Admission.findAll({
-      where: { applicationStatus: { [Op.in]: ['SUBMITTED', 'UNDER_REVIEW'] } },
+      where: { applicationStatus: { [Op.in]: ['SUBMITTED', 'UNDER_REVIEW', 'FEE_RECEIPT_UPLOADED'] } },
       include: [
         { model: User, as: 'user', attributes: ['id', 'email', 'firstName', 'lastName', 'profileImage'] },
         { model: Department, as: 'branch' },
@@ -1021,6 +1163,8 @@ class AdmissionService {
       rejected, 
       enrolled, 
       cancellationRequests,
+      feeReceiptUploaded: feeReceiptUploadedCount,
+      feeVerified: feeVerifiedCount,
       recent 
     };
 

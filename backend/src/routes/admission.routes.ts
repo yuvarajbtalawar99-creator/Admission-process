@@ -1,7 +1,7 @@
 import express from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { authorizeRoles } from '../middleware/rbac.middleware';
-import { uploadDocuments } from '../middleware/upload.middleware';
+import { uploadDocuments, uploadFeeReceiptMiddleware } from '../middleware/upload.middleware';
 import * as admissionController from '../controllers/admission.controller';
 
 const router = express.Router();
@@ -35,6 +35,9 @@ studentRouter.post('/check-cet', admissionController.checkCet);
 // Cancellation
 studentRouter.post('/cancellation-request', admissionController.requestAdmissionCancellation);
 
+// Fee Receipt Upload
+studentRouter.post('/upload-fee-receipt', uploadFeeReceiptMiddleware, admissionController.uploadFeeReceipt);
+
 // ─── Application routes (student) ─────────────────────────────────────────────
 const applicationRouter = express.Router();
 applicationRouter.use(authMiddleware);
@@ -53,6 +56,7 @@ adminAdmissionRouter.get('/admissions/:id/documents/:field', admissionController
 adminAdmissionRouter.get('/admissions/:id', admissionController.getAdmissionById);
 adminAdmissionRouter.put('/admissions/:id/status', admissionController.updateAdmissionStatus);
 adminAdmissionRouter.put('/admissions/:id/verify', admissionController.verifyAdmissionChecklist);
+adminAdmissionRouter.post('/admissions/:id/fee-verify', admissionController.verifyFeeReceipt);
 adminAdmissionRouter.post('/admissions/:id/cancellation-process', admissionController.processCancellationRequest);
 adminAdmissionRouter.post('/admissions/:id/cancellation-direct', admissionController.directCancelAdmission);
 adminAdmissionRouter.get('/stats', admissionController.getAdminStats);

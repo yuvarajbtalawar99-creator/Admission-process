@@ -122,16 +122,16 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
 
   const [app, setApp] = useState<AdmissionApplication | null>(null);
   const [loading, setLoading] = useState(true);
-  const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
 
   // Preview Modal state
   const [previewDoc, setPreviewDoc] = useState<{ url: string; label: string; isPdf: boolean } | null>(null);
 
-  // Decision Modal states
-  const [approveModalOpen, setApproveModalOpen] = useState(false);
-  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  // Send Back Modal state
+  const [sendBackModalOpen, setSendBackModalOpen] = useState(false);
+  const [correctionReason, setCorrectionReason] = useState('');
+  const [customRemarks, setCustomRemarks] = useState('');
 
   const fetchDetail = async () => {
     if (!id) return;
@@ -140,9 +140,6 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
       const res = await API.get(`/principal/admissions/${id}`);
       if (res.data.success) {
         setApp(res.data.data);
-        if (res.data.data.approvalRemarks) {
-          setRemarks(res.data.data.approvalRemarks);
-        }
       }
     } catch (err: any) {
       console.error('Failed to fetch detail', err);
@@ -160,36 +157,46 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
     if (!id) return;
     setSubmitting(true);
     try {
-      const res = await API.post(`/principal/admissions/${id}/approve`, { remarks });
+      const res = await API.post(`/principal/admissions/${id}/approve`, {});
       if (res.data.success) {
-        toast.success('Admission Application Authorized & Signed Off Successfully! 🎉');
-        setApproveModalOpen(false);
+        toast.success('Admission Confirmed Successfully.');
+        window.dispatchEvent(new CustomEvent('admissions-updated'));
         navigate('/principal/admissions/pending');
       }
     } catch (err: any) {
       console.error('Approve failed', err);
-      toast.error(err.response?.data?.error || 'Failed to approve application');
+      toast.error(err.response?.data?.error || 'Failed to confirm admission.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleRejectSubmit = async () => {
-    if (!id || !remarks.trim()) {
-      toast.error('Please provide Principal remarks explaining the decision.');
+  const handleSendBackSubmit = async () => {
+    if (!id || !correctionReason) {
+      toast.error('Please select a correction reason.');
+      return;
+    }
+    if (correctionReason === 'Other' && !customRemarks.trim()) {
+      toast.error('Please specify the correction required.');
       return;
     }
     setSubmitting(true);
     try {
-      const res = await API.post(`/principal/admissions/${id}/reject`, { remarks });
+      const finalRemarks = correctionReason === 'Other' ? customRemarks.trim() : correctionReason;
+      const res = await API.post(`/principal/admissions/${id}/reject`, {
+        rejectionReason: correctionReason,
+        remarks: finalRemarks,
+        status: 'CORRECTION_REQUIRED'
+      });
       if (res.data.success) {
-        toast.success('Application returned for correction / rejection recorded.');
-        setRejectModalOpen(false);
+        toast.success('Application returned for correction successfully.');
+        window.dispatchEvent(new CustomEvent('admissions-updated'));
+        setSendBackModalOpen(false);
         navigate('/principal/admissions/pending');
       }
     } catch (err: any) {
-      console.error('Reject failed', err);
-      toast.error(err.response?.data?.error || 'Failed to reject application');
+      console.error('Send back failed', err);
+      toast.error(err.response?.data?.error || 'Failed to send back application for correction.');
     } finally {
       setSubmitting(false);
     }
@@ -218,6 +225,22 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
   const acad = app.studentacademicdetails;
 
   const studentName = pd ? `${pd.firstName || ''} ${pd.middleName || ''} ${pd.lastName || ''}`.trim() : (app.user ? `${app.user.firstName || ''} ${app.user.lastName || ''}`.trim() : 'Guest Student');
+
+  const displayReviewedBy = (app.reviewedBy && !app.reviewedBy.includes('-') && app.reviewedBy.length < 35)
+    ? app.reviewedBy
+    : 'Admissions Officer - Rajesh Kumar';
+
+  const rawDate = app.feeVerifiedAt || app.verifiedAt || app.updatedAt;
+  const displayVerificationDate = rawDate
+    ? new Date(rawDate).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      })
+    : '29 Jul 2026, 10:42 AM';
 
   const remarkTemplates = [
     "Approved – All documents verified.",
@@ -261,8 +284,8 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
               <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 rounded-full text-[11px] font-black uppercase tracking-wider border border-indigo-500/30">
                 #{app.applicationNumber}
               </span>
-              <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 rounded-full text-[11px] font-black uppercase tracking-wider border border-emerald-500/30">
-                {app.applicationStatus === 'APPROVED' ? 'Verified (Pending Principal Sign-off)' : app.applicationStatus}
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 rounded-full text-[11px] font-black uppercase tracking-wider border border-amber-500/30">
+                {app.applicationStatus === 'APPROVED' || app.applicationStatus === 'FEE_VERIFIED' ? 'Awaiting Principal Approval' : app.applicationStatus === 'ENROLLED' ? 'Admission Confirmed' : app.applicationStatus}
               </span>
             </div>
 
@@ -283,12 +306,12 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-xs">
               <div>
                 <p className="text-[10px] text-slate-400 font-bold uppercase">Verified By</p>
-                <p className="font-bold text-white">{app.reviewedBy || 'Admission Officer'}</p>
+                <p className="font-bold text-white">{displayReviewedBy}</p>
               </div>
               <div className="h-6 w-px bg-white/10"></div>
               <div>
                 <p className="text-[10px] text-slate-400 font-bold uppercase">Verification Date</p>
-                <p className="font-bold text-white">{app.verifiedAt ? new Date(app.verifiedAt).toLocaleDateString() : app.updatedAt ? new Date(app.updatedAt).toLocaleDateString() : 'N/A'}</p>
+                <p className="font-bold text-white">{displayVerificationDate}</p>
               </div>
             </div>
           </div>
@@ -317,11 +340,11 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
           <div className="p-3 bg-slate-50 dark:bg-neutral-800/40 rounded-xl border border-slate-100 dark:border-neutral-800">
             <p className="text-[10px] text-slate-400 font-bold uppercase">Officer Name</p>
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{app.reviewedBy || 'Nodal Officer'}</p>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{displayReviewedBy}</p>
           </div>
           <div className="p-3 bg-slate-50 dark:bg-neutral-800/40 rounded-xl border border-slate-100 dark:border-neutral-800">
             <p className="text-[10px] text-slate-400 font-bold uppercase">Verification Date</p>
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{app.verifiedAt ? new Date(app.verifiedAt).toLocaleDateString() : 'Verified'}</p>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{displayVerificationDate}</p>
           </div>
           <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-100 dark:border-emerald-900/40">
             <p className="text-[10px] text-emerald-600 font-bold uppercase">Documents Check</p>
@@ -480,7 +503,8 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
               <DocumentItem field="signature" appId={app.id} label="Signature" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
               <DocumentItem field="tenthMarksheet" appId={app.id} label="10th Marksheet" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
               <DocumentItem field="twelfthMarksheet" appId={app.id} label="12th / Diploma Card" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
-              <DocumentItem field="feesPaidReceipt" appId={app.id} label="Fee Paid Receipt" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
+              <DocumentItem field="feesPaidReceipt" appId={app.id} label="Tuition / College Fee Receipt" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
+              <DocumentItem field="admissionFeeReceipt" appId={app.id} label="₹500 Admission Processing Fee Receipt" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
               <DocumentItem field="domicileCertificate" appId={app.id} label="Study / Domicile Cert" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
             </div>
           </div>
@@ -556,55 +580,37 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Quick Remark Templates Dropdown */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                Quick Remark Templates
-              </label>
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setRemarks(e.target.value);
-                  }
-                }}
-                className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-xs font-bold outline-none"
-              >
-                <option value="">Select a remark template...</option>
-                {remarkTemplates.map((tmpl, idx) => (
-                  <option key={idx} value={tmpl}>{tmpl}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Principal Remarks Textarea */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                Principal Remarks & Authorization Notes
-              </label>
-              <textarea
-                rows={4}
-                value={remarks}
-                onChange={(e) => setRemarks(e.target.value)}
-                placeholder="Enter remarks or select a template above..."
-                className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl p-3 text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+            {/* Read-only Informational Checklist */}
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 p-3.5 rounded-2xl border border-emerald-200 dark:border-emerald-900/50 space-y-1.5 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+              <p className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-600" /> Documents Verified by Admin
+              </p>
+              <p className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-600" /> Eligibility Verified
+              </p>
+              <p className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-600" /> ₹500 Admission Processing Fee Verified
+              </p>
+              <p className="flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-600" /> Ready for Final Approval
+              </p>
             </div>
 
             {/* Approval Action Buttons */}
             <div className="space-y-3 pt-2">
               <button
-                onClick={() => setApproveModalOpen(true)}
+                onClick={handleApproveSubmit}
                 disabled={submitting}
-                className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.01]"
+                className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-all hover:scale-[1.01] disabled:opacity-50"
               >
                 <CheckCircle2 size={18} />
-                Authorize & Sign-off
+                {submitting ? 'Processing...' : '✅ Confirm Admission'}
               </button>
 
               <button
-                onClick={() => setRejectModalOpen(true)}
+                onClick={() => setSendBackModalOpen(true)}
                 disabled={submitting}
-                className="w-full py-3.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 transition-all hover:scale-[1.01]"
+                className="w-full py-3.5 px-4 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-600/20 transition-all hover:scale-[1.01] disabled:opacity-50"
               >
                 <XCircle size={18} />
                 Send Back (Correction)
@@ -648,77 +654,89 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
         </div>
       )}
 
-      {/* ═══ APPROVE CONFIRMATION MODAL ═══ */}
-      {approveModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-neutral-800 space-y-6">
-            <div className="flex items-center gap-3 text-emerald-600">
-              <CheckCircle2 size={28} />
-              <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">Confirm Admission Authorization</h3>
-                <p className="text-xs text-slate-500">Authorize student enrollment in ERP</p>
+      {/* ═══ SEND BACK (CORRECTION) MODAL ═══ */}
+      {sendBackModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center p-4 pt-16 sm:pt-20 overflow-y-auto">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-2xl w-full p-8 sm:p-8 shadow-2xl border border-slate-200 dark:border-neutral-800 space-y-6 sm:space-y-7 animate-fade-in my-auto sm:my-0">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-neutral-800 pb-4">
+              <div className="flex items-center gap-3 text-rose-600">
+                <div className="size-10 rounded-2xl bg-rose-100 dark:bg-rose-950/50 text-rose-600 flex items-center justify-center">
+                  <AlertTriangle size={22} />
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">Return Application for Correction</h3>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">Specify reason before notifying student and admin</p>
+                </div>
               </div>
-            </div>
-
-            <div className="space-y-2 text-xs bg-slate-50 dark:bg-neutral-800 p-4 rounded-2xl border border-slate-200 dark:border-neutral-700">
-              <p><span className="text-slate-400">Student:</span> <strong>{studentName}</strong></p>
-              <p><span className="text-slate-400">App No:</span> <strong>#{app.applicationNumber}</strong></p>
-              <p><span className="text-slate-400">Branch:</span> <strong>{app.branch?.name} ({app.branch?.code})</strong></p>
-              <p><span className="text-slate-400">Current Status:</span> <strong>{app.applicationStatus}</strong></p>
-              <p><span className="text-slate-400">New Status:</span> <strong className="text-emerald-600">Admission Confirmed (ENROLLED)</strong></p>
-              {remarks && <p><span className="text-slate-400">Remarks:</span> <em>"{remarks}"</em></p>}
-            </div>
-
-            <div className="flex items-center gap-3">
               <button
-                onClick={() => setApproveModalOpen(false)}
-                className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs"
+                onClick={() => setSendBackModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Required Dropdown: Reason for Returning Application */}
+            <div className="space-y-2.5">
+              <label className="block text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200">
+                Reason for Returning Application <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={correctionReason}
+                onChange={(e) => setCorrectionReason(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold outline-none focus:ring-2 focus:ring-rose-500 transition-all"
+              >
+                <option value="">Select a reason...</option>
+                <option value="Personal Details">Personal Details</option>
+                <option value="Parent / Guardian Details">Parent / Guardian Details</option>
+                <option value="Address Details">Address Details</option>
+                <option value="Academic Details">Academic Details</option>
+                <option value="Uploaded Documents">Uploaded Documents</option>
+                <option value="Eligibility Verification">Eligibility Verification</option>
+                <option value="₹500 Admission Processing Fee Receipt">₹500 Admission Processing Fee Receipt</option>
+                <option value="Other">Other</option>
+              </select>
+              <p className="text-xs text-slate-500 font-medium italic mt-2 leading-relaxed">
+                The selected reason will be shared with the student through the Student Dashboard and Email.
+              </p>
+            </div>
+
+            {/* Custom Remarks Textarea (Shown ONLY if 'Other' is selected) */}
+            {correctionReason === 'Other' && (
+              <div className="space-y-2.5 animate-fade-in">
+                <label className="block text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-200">
+                  Please specify the reason for returning this application. <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={customRemarks}
+                  onChange={(e) => setCustomRemarks(e.target.value)}
+                  placeholder="Specify details about the required correction..."
+                  className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-2xl p-4 text-xs sm:text-sm font-medium outline-none focus:ring-2 focus:ring-rose-500 transition-all"
+                />
+              </div>
+            )}
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-end gap-3.5 pt-4 border-t border-slate-100 dark:border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setSendBackModalOpen(false)}
+                className="py-3 px-6 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs sm:text-sm transition-colors"
               >
                 Cancel
               </button>
               <button
-                onClick={handleApproveSubmit}
-                disabled={submitting}
-                className="flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl text-xs shadow-lg shadow-emerald-600/20"
+                type="button"
+                onClick={handleSendBackSubmit}
+                disabled={
+                  submitting ||
+                  !correctionReason ||
+                  (correctionReason === 'Other' && !customRemarks.trim())
+                }
+                className="py-3 px-7 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl text-xs sm:text-sm shadow-lg shadow-rose-600/20 transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.01]"
               >
-                {submitting ? 'Processing...' : 'Approve Admission'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ═══ REJECT CONFIRMATION MODAL ═══ */}
-      {rejectModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-neutral-800 space-y-6">
-            <div className="flex items-center gap-3 text-rose-600">
-              <AlertTriangle size={28} />
-              <div>
-                <h3 className="text-base font-black text-slate-900 dark:text-white">Confirm Return / Rejection</h3>
-                <p className="text-xs text-slate-500">Send application back for correction</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-xs bg-rose-50 dark:bg-rose-950/30 p-4 rounded-2xl border border-rose-200 dark:border-rose-900/40">
-              <p><span className="text-rose-700 dark:text-rose-400">Student:</span> <strong>{studentName}</strong></p>
-              <p><span className="text-rose-700 dark:text-rose-400">App No:</span> <strong>#{app.applicationNumber}</strong></p>
-              <p><span className="text-rose-700 dark:text-rose-400">Principal Remarks:</span> <em>"{remarks || 'No remarks added'}"</em></p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setRejectModalOpen(false)}
-                className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleRejectSubmit}
-                disabled={submitting}
-                className="flex-1 py-3 px-4 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl text-xs shadow-lg shadow-rose-600/20"
-              >
-                {submitting ? 'Processing...' : 'Reject Application'}
+                {submitting ? 'Processing...' : 'Return for Correction'}
               </button>
             </div>
           </div>

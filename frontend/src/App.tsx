@@ -38,6 +38,8 @@ import AdmissionReviewPage from './pages/admin/admissions/AdmissionReviewPage';
 import PrincipalManagementPage from './pages/admin/users/PrincipalManagementPage';
 import StudentsDashboardPage from './pages/admin/admissions/StudentsDashboardPage';
 import CancellationRequestsPage from './pages/admin/admissions/CancellationRequestsPage';
+import AdmissionFeesQueuePage from './pages/admin/admissions/AdmissionFeesQueuePage';
+import FeeReviewPage from './pages/admin/admissions/FeeReviewPage';
 import AdminNotificationsPage from './pages/admin/communications/AdminNotificationsPage';
 import AdminAnnouncementsPage from './pages/admin/communications/AdminAnnouncementsPage';
 import AdminAnalyticsPage from './pages/admin/analytics/AdminAnalyticsPage';
@@ -192,6 +194,8 @@ export const App: React.FC = () => (
               <Route path="admissions/resubmitted" element={<AdmissionQueuePage defaultStatus="RESUBMITTED" />} />
               <Route path="admissions/rejected"    element={<AdmissionQueuePage defaultStatus="REJECTED" />} />
               <Route path="admissions/verified"    element={<AdmissionQueuePage defaultStatus="APPROVED" />} />
+              <Route path="admissions/fees"        element={<AdmissionFeesQueuePage />} />
+              <Route path="admissions/fee-review/:id" element={<FeeReviewPage />} />
               <Route path="admissions/approved"    element={<AdmissionQueuePage defaultStatus="ENROLLED" />} />
               <Route path="admissions/cancellations" element={<CancellationRequestsPage />} />
               <Route path="admissions/history"     element={<AdmissionQueuePage defaultStatus="ALL" />} />
@@ -214,8 +218,8 @@ export const App: React.FC = () => (
             <Route path="principal" element={<PrincipalLayout />}>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard"              element={<PrincipalDashboardPage />} />
-              <Route path="admissions"             element={<PrincipalAdmissionQueuePage defaultStatus="APPROVED" />} />
-              <Route path="admissions/pending"     element={<PrincipalAdmissionQueuePage defaultStatus="APPROVED" />} />
+              <Route path="admissions"             element={<PrincipalAdmissionQueuePage defaultStatus="FEE_VERIFIED" />} />
+              <Route path="admissions/pending"     element={<PrincipalAdmissionQueuePage defaultStatus="FEE_VERIFIED" />} />
               <Route path="admissions/approved"    element={<PrincipalAdmissionQueuePage defaultStatus="ENROLLED" />} />
               <Route path="admissions/rejected"    element={<PrincipalAdmissionQueuePage defaultStatus="REJECTED" />} />
               <Route path="admissions/history"     element={<PrincipalAdmissionQueuePage defaultStatus="ALL" />} />

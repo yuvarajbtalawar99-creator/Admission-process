@@ -1,4 +1,3 @@
-import React from 'react';
 import {
     Send,
     Search,
@@ -6,7 +5,9 @@ import {
     CheckCircle,
     XCircle,
     Clock,
-    Award
+    Award,
+    Upload,
+    FileCheck
 } from 'lucide-react';
 
 const TIMELINE_STEPS = [
@@ -64,6 +65,33 @@ const TIMELINE_STEPS = [
         activeBg: 'bg-emerald-100',
         activeBorder: 'border-emerald-300',
         lineColor: 'bg-emerald-300'
+    },
+    {
+        key: 'feeReceiptUploadedAt',
+        label: 'Fee Receipt Uploaded',
+        icon: Upload,
+        activeColor: 'text-cyan-600',
+        activeBg: 'bg-cyan-100',
+        activeBorder: 'border-cyan-300',
+        lineColor: 'bg-cyan-300'
+    },
+    {
+        key: 'feeVerifiedAt',
+        label: 'Fee Verified',
+        icon: FileCheck,
+        activeColor: 'text-sky-600',
+        activeBg: 'bg-sky-100',
+        activeBorder: 'border-sky-300',
+        lineColor: 'bg-sky-300'
+    },
+    {
+        key: 'forwardedToPrincipalAt',
+        label: 'Forwarded to Principal',
+        icon: Send,
+        activeColor: 'text-violet-600',
+        activeBg: 'bg-violet-100',
+        activeBorder: 'border-violet-300',
+        lineColor: 'bg-violet-300'
     },
     {
         key: 'usnAssignedAt',

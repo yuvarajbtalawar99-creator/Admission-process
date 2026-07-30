@@ -237,21 +237,21 @@ const Register = () => {
     };
 
     return (
-        <div className="w-full animate-fade-in max-w-sm mx-auto lg:mx-0">
-            <div className="mb-6 sm:mb-8 lg:mb-10 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-[11px] font-bold uppercase tracking-widest mb-3 sm:mb-4">
-                    <GraduationCap size={14} />
+        <div className="w-full animate-fade-in max-w-md mx-auto lg:mx-0">
+            <div className="mb-3 sm:mb-4 text-center lg:text-left">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-primary-100 text-primary-700 rounded-full text-[10px] font-bold uppercase tracking-widest mb-1.5 sm:mb-2">
+                    <GraduationCap size={13} />
                     Admission 2026
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1 sm:mb-2">Student Registration</h2>
-                <p className="text-sm sm:text-base text-slate-500">Create your account to begin the admission process</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">Student Registration</h2>
+                <p className="text-xs text-slate-500">Create your account to begin the admission process</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-2.5 sm:space-y-3">
                 {/* Name row */}
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700" htmlFor="firstName">
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-700" htmlFor="firstName">
                             First Name <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -260,13 +260,13 @@ const Register = () => {
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleChange}
-                            className="w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-xs sm:text-sm text-slate-900 placeholder:text-slate-400"
                             placeholder="John"
                             required
                         />
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700" htmlFor="lastName">
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-700" htmlFor="lastName">
                             Last Name <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -275,7 +275,7 @@ const Register = () => {
                             name="lastName"
                             value={formData.lastName}
                             onChange={handleChange}
-                            className="w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-xs sm:text-sm text-slate-900 placeholder:text-slate-400"
                             placeholder="Doe"
                             required
                         />
@@ -283,9 +283,9 @@ const Register = () => {
                 </div>
 
                 {/* Email */}
-                <div className="space-y-2">
-                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2" htmlFor="email">
-                        <Mail size={18} className="text-slate-400" />
+                <div className="space-y-1">
+                    <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5" htmlFor="email">
+                        <Mail size={14} className="text-slate-400" />
                         Email Address <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -294,20 +294,20 @@ const Register = () => {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-xs sm:text-sm text-slate-900 placeholder:text-slate-400"
                         placeholder="student@example.com"
                         required
                     />
                 </div>
 
                 {/* Phone */}
-                <div className="space-y-2">
+                <div className="space-y-1">
                     <div className="flex items-center justify-between">
-                        <label className="text-sm font-semibold text-slate-700 flex items-center gap-2" htmlFor="phone">
-                            <Phone size={18} className="text-slate-400" />
+                        <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5" htmlFor="phone">
+                            <Phone size={14} className="text-slate-400" />
                             Mobile Number <span className="text-red-500">*</span>
                         </label>
-                        {isCheckingPhone && <span className="text-[10px] text-primary-600 font-semibold animate-pulse">Checking uniqueness...</span>}
+                        {isCheckingPhone && <span className="text-[10px] text-primary-600 font-semibold animate-pulse">Checking...</span>}
                     </div>
                     <input
                         type="tel"
@@ -316,18 +316,18 @@ const Register = () => {
                         value={formData.phone}
                         onChange={handleChange}
                         maxLength={10}
-                        className={`w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border rounded-lg focus:ring-2 transition-all text-slate-900 placeholder:text-slate-400 ${phoneError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 focus:ring-primary-600 focus:border-primary-600'}`}
+                        className={`w-full px-3 py-2 bg-slate-50 border rounded-lg focus:ring-2 transition-all text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 ${phoneError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 focus:ring-primary-600 focus:border-primary-600'}`}
                         placeholder="9876543210"
                         required
                     />
-                    {phoneError && <p className="text-xs text-red-500 font-medium">{phoneError}</p>}
+                    {phoneError && <p className="text-[11px] text-red-500 font-medium">{phoneError}</p>}
                 </div>
 
-                {/* Password & Confirm */}
-                <div className="space-y-3">
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700 flex items-center gap-2" htmlFor="password">
-                            <Lock size={18} className="text-slate-400" />
+                {/* Password & Confirm side-by-side */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5" htmlFor="password">
+                            <Lock size={14} className="text-slate-400" />
                             Password <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
@@ -337,23 +337,23 @@ const Register = () => {
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
-                                className={`w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border rounded-lg focus:ring-2 transition-all text-slate-900 placeholder:text-slate-400 ${passwordError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 focus:ring-primary-600 focus:border-primary-600'}`}
+                                className={`w-full px-3 py-2 bg-slate-50 border rounded-lg focus:ring-2 transition-all text-xs sm:text-sm text-slate-900 placeholder:text-slate-400 ${passwordError ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 focus:ring-primary-600 focus:border-primary-600'}`}
                                 placeholder="••••••••"
                                 required
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                             >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                             </button>
                         </div>
-                        {passwordError && <p className="text-xs text-red-500 font-medium">{passwordError}</p>}
+                        {passwordError && <p className="text-[11px] text-red-500 font-medium">{passwordError}</p>}
                     </div>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-semibold text-slate-700" htmlFor="confirmPassword">
+                    <div className="space-y-1">
+                        <label className="text-xs font-semibold text-slate-700" htmlFor="confirmPassword">
                             Confirm Password <span className="text-red-500">*</span>
                         </label>
                         <input
@@ -362,7 +362,7 @@ const Register = () => {
                             name="confirmPassword"
                             value={formData.confirmPassword}
                             onChange={handleChange}
-                            className="w-full px-4 py-2.5 sm:py-3.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-slate-900 placeholder:text-slate-400"
+                            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-600 focus:border-primary-600 transition-all text-xs sm:text-sm text-slate-900 placeholder:text-slate-400"
                             placeholder="••••••••"
                             required
                         />
@@ -372,23 +372,23 @@ const Register = () => {
                 <button
                     type="submit"
                     disabled={loading || !!phoneError || !!passwordError}
-                    className="w-full py-3.5 sm:py-4 px-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg shadow-lg shadow-primary-600/25 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base mt-2"
+                    className="w-full py-2.5 px-4 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-lg shadow-md shadow-primary-600/20 transition-all duration-200 flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm mt-1"
                 >
                     {loading ? (
                         <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
+                            <Loader2 className="w-4 h-4 animate-spin" />
                             <span>Sending Email OTP...</span>
                         </>
                     ) : (
                         <>
                             <span>Continue Registration</span>
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </>
                     )}
                 </button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-slate-600">
+            <div className="mt-3 text-center text-xs text-slate-600">
                 Already registered?{' '}
                 <Link to="/admission/login" className="font-bold text-primary-600 hover:underline">
                     Log in here

@@ -128,9 +128,11 @@ export const PrincipalAdmissionQueuePage: React.FC<PrincipalAdmissionQueuePagePr
 
   const getStatusBadge = (appStatus: string) => {
     switch (appStatus) {
+      case 'FEE_VERIFIED':
       case 'APPROVED':
-        return <span className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 font-bold border border-amber-200">Pending Sign-off</span>;
+        return <span className="px-2.5 py-1 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 font-bold border border-amber-200">Awaiting Principal Approval</span>;
       case 'ENROLLED':
+      case 'ADMISSION_CONFIRMED':
         return <span className="px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 font-bold border border-emerald-200">Admission Confirmed</span>;
       case 'REJECTED':
         return <span className="px-2.5 py-1 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 font-bold border border-rose-200">Returned / Rejected</span>;

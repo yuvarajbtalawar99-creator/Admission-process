@@ -18,14 +18,14 @@ const AuthLayout = () => {
     }
 
     return (
-        <div className="admission-portal-theme min-h-screen bg-slate-50 font-display flex flex-col">
+        <div className="admission-portal-theme min-h-screen bg-slate-50 font-display flex flex-col overflow-y-auto">
             {/* Top Navigation Bar */}
-            <header className="w-full bg-white border-b border-slate-200 shadow-sm z-50">
-              <div className="max-w-7xl mx-auto flex items-center gap-4 sm:gap-6 px-6 py-4">
+            <header className="w-full bg-white border-b border-slate-200 shadow-sm z-50 flex-shrink-0">
+              <div className="max-w-7xl mx-auto flex items-center gap-3 sm:gap-5 px-4 sm:px-6 py-2.5 sm:py-3">
                 
                 {/* Logo */}
                 <div 
-                  className="flex-shrink-0 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 bg-white rounded-full overflow-hidden flex items-center justify-center shadow-sm"
+                  className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 bg-white rounded-full overflow-hidden flex items-center justify-center shadow-sm"
                   style={{ backgroundColor: '#ffffff' }}
                 >
                   <img
@@ -37,11 +37,11 @@ const AuthLayout = () => {
                 </div>
 
                 {/* College Details */}
-                <div className="flex flex-col justify-center flex-1 space-y-0.5 sm:space-y-1">
+                <div className="flex flex-col justify-center flex-1 space-y-0.5">
                   
                   {/* College Name */}
                   <h1 
-                    className="text-[#0B4F8A] text-base md:text-xl lg:text-2xl font-extrabold leading-tight tracking-tight uppercase"
+                    className="text-[#0B4F8A] text-sm md:text-lg lg:text-xl font-extrabold leading-tight tracking-tight uppercase"
                     style={{ color: '#0B4F8A', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif", fontWeight: '800' }}
                   >
                     JAIN COLLEGE OF ENGINEERING & RESEARCH
@@ -49,7 +49,7 @@ const AuthLayout = () => {
                   
                   {/* Approval Line */}
                   <p 
-                    className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm text-gray-800 font-medium leading-snug"
+                    className="text-[9px] sm:text-[10px] md:text-xs text-gray-800 font-medium leading-snug"
                     style={{ color: '#1f2937', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}
                   >
                     (Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)
@@ -57,7 +57,7 @@ const AuthLayout = () => {
                   
                   {/* Accreditation */}
                   <p 
-                    className="text-[10px] sm:text-xs md:text-sm lg:text-base font-bold text-indigo-600"
+                    className="text-[10px] sm:text-xs md:text-sm font-bold text-indigo-600"
                     style={{ color: '#4f46e5', fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}
                   >
                     NBA Accredited Programs – ECE & ME
@@ -68,11 +68,11 @@ const AuthLayout = () => {
               </div>
             </header>
 
-            <main className="flex-1 flex items-center justify-center p-3 sm:p-6 lg:p-8">
-                <div className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 bg-white rounded-2xl shadow-3xl overflow-hidden border border-slate-200 min-h-0 lg:min-h-[650px] animate-fade-in text-slate-900">
+            <main className="flex-1 w-full max-w-7xl mx-auto p-3 sm:p-5 lg:p-6 flex flex-col justify-start items-center h-auto min-h-0">
+                <div className="w-full max-w-[1050px] grid grid-cols-1 lg:grid-cols-2 items-stretch bg-white rounded-2xl shadow-3xl border border-slate-200 h-auto animate-fade-in text-slate-900">
                     
                     {/* Left Side: Visual/Branding Section (HIDDEN ON MOBILE) */}
-                    <div className="hidden lg:block relative overflow-hidden bg-slate-900 border-r border-slate-200">
+                    <div className="hidden lg:flex relative bg-slate-900 border-r border-slate-200 h-full flex-col justify-end rounded-l-2xl overflow-hidden min-h-[440px]">
                         {/* Background Layer with Dual Fallback Logic */}
                         <div 
                             className="absolute inset-0 bg-cover bg-center animate-background-zoom transition-all duration-700" 
@@ -85,24 +85,24 @@ const AuthLayout = () => {
                         <div className="absolute inset-0 bg-gradient-to-br from-black/50 to-black/70 pointer-events-none"></div>
                         
                         {/* Content Overlay */}
-                        <div className="relative h-full flex flex-col justify-end p-12 text-white">
-                            <div className="mb-10 space-y-4">
-                                <span className="bg-white/20 backdrop-blur-lg px-4 py-1.5 rounded-full text-[11px] font-extrabold uppercase tracking-[0.2em] mb-6 inline-block border border-white/20">
+                        <div className="relative h-full flex flex-col justify-end p-6 lg:p-8 xl:p-10 text-white">
+                            <div className="mb-4 xl:mb-8 space-y-2.5 xl:space-y-3">
+                                <span className="bg-white/20 backdrop-blur-lg px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-[0.2em] mb-3 inline-block border border-white/20">
                                     Welcome Back
                                 </span>
-                                <h1 className="text-5xl font-extrabold leading-[1.1] mb-5 text-shadow-premium">
+                                <h1 className="text-2xl lg:text-3xl xl:text-4xl font-extrabold leading-[1.15] mb-3 text-shadow-premium">
                                     Empowering Your <br />
                                     <span className="text-primary-300">Academic Journey.</span>
                                 </h1>
-                                <p className="text-white/80 text-lg leading-relaxed max-w-md font-medium">
+                                <p className="text-white/80 text-xs lg:text-sm xl:text-base leading-relaxed max-w-md font-medium">
                                     Access your academic records, course registrations, and institutional resources in one secure portal.
                                 </p>
                             </div>
                             
-                            <div className="flex items-center gap-6 pt-10 border-t border-white/10">
-                                <div className="flex -space-x-3">
+                            <div className="flex items-center gap-4 pt-4 xl:pt-6 border-t border-white/10">
+                                <div className="flex -space-x-2.5">
                                     {[1, 2, 3].map((i) => (
-                                        <div key={i} className="size-11 rounded-full border-2 border-slate-900 bg-slate-800 overflow-hidden ring-4 ring-white/5">
+                                        <div key={i} className="size-9 rounded-full border-2 border-slate-900 bg-slate-800 overflow-hidden ring-2 ring-white/10">
                                             <img 
                                                 src={`https://i.pravatar.cc/100?u=${i}`} 
                                                 alt={`Student ${i}`} 
@@ -112,23 +112,23 @@ const AuthLayout = () => {
                                     ))}
                                 </div>
                                 <div className="space-y-0.5">
-                                    <p className="text-sm font-extrabold">Join 5,000+ students today</p>
-                                    <p className="text-[11px] text-white/50 font-medium">Trusted by leading academic institutions</p>
+                                    <p className="text-xs font-extrabold">Join 5,000+ students today</p>
+                                    <p className="text-[10px] text-white/60 font-medium">Trusted by leading academic institutions</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Right Side: Form Content (Outlet) */}
-                    <div className="p-4 sm:p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-white relative z-10">
+                    <div className="p-5 sm:p-7 lg:p-8 xl:p-9 flex flex-col justify-center bg-white relative z-10 h-full rounded-r-2xl">
                         <Outlet />
                     </div>
                 </div>
             </main>
 
-            <footer className="py-6 px-10 border-t border-slate-200 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
-                <p className="text-xs text-slate-500 font-medium">© 2026 Jain College of Engineering & Research, Belagavi. All rights reserved.</p>
-                <div className="flex items-center gap-8">
+            <footer className="py-2.5 sm:py-3.5 px-6 border-t border-slate-200 bg-white flex flex-col md:flex-row items-center justify-between gap-2 sm:gap-4 flex-shrink-0 mt-auto">
+                <p className="text-xs text-slate-500 font-medium text-center md:text-left">© 2026 Jain College of Engineering & Research, Belagavi. All rights reserved.</p>
+                <div className="flex items-center gap-6">
                     <a href="#" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Privacy Policy</a>
                     <a href="#" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Terms</a>
                     <a href="#" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Support</a>

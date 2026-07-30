@@ -8,6 +8,8 @@ export type AdmissionStatus =
   | 'SUBMITTED'
   | 'UNDER_REVIEW'
   | 'APPROVED'
+  | 'FEE_RECEIPT_UPLOADED'
+  | 'FEE_VERIFIED'
   | 'REJECTED'
   | 'ENROLLED'
   | 'CANCELLATION_REQUESTED'
@@ -35,6 +37,12 @@ export interface AdmissionApplication {
   reviewedAt: string | null;
   approvedByAdminId?: string | null;
   approvalRemarks?: string | null;
+  feeReceiptUploadedAt?: string | null;
+  admissionFeeReceiptUrl?: string | null;
+  feeVerifiedByAdminId?: string | null;
+  feeVerifiedAt?: string | null;
+  feeVerificationRemarks?: string | null;
+  feeRejectionReason?: string | null;
   createdAt: string;
   updatedAt: string;
   verifiedAt?: string | null;
@@ -148,6 +156,7 @@ export interface AdmissionApplication {
     domicileCertificateUrl: string | null;
     gapCertificateUrl: string | null;
     feesPaidReceiptUrl: string | null;
+    admissionFeeReceiptUrl?: string | null;
   } | null;
 }
 
@@ -169,6 +178,8 @@ export interface AdmissionStats {
   rejected: number;
   enrolled: number;
   cancellationRequests?: number;
+  feeReceiptUploaded?: number;
+  feeVerified?: number;
   recent: AdmissionApplication[];
 }
 
@@ -243,6 +254,20 @@ const admissionService = {
   /** PUT /api/admin/admissions/:id/verify */
   verifyChecklist: async (id: string, payload: { documentsVerified?: boolean, feesVerified?: boolean, eligibilityVerified?: boolean, verificationRemarks?: string }): Promise<void> => {
     await API.put(`/admin/admissions/${id}/verify`, payload);
+    window.dispatchEvent(new CustomEvent('admissions-updated'));
+  },
+
+  /** POST /api/admin/admissions/:id/fee-verify */
+  verifyFeeReceipt: async (id: string, payload: { approve: boolean; remarks?: string; rejectionReason?: string }): Promise<void> => {
+    await API.post(`/admin/admissions/${id}/fee-verify`, payload);
+    window.dispatchEvent(new CustomEvent('admissions-updated'));
+  },
+
+  /** POST /api/student/upload-fee-receipt */
+  uploadFeeReceipt: async (formData: FormData): Promise<void> => {
+    await API.post('/student/upload-fee-receipt', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     window.dispatchEvent(new CustomEvent('admissions-updated'));
   },
 

@@ -123,3 +123,33 @@ export const uploadDocuments = (req: Request, res: Response, next: NextFunction)
   });
 };
 
+const feeReceiptMulterInstance = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5 MB limit
+  },
+}).single('admissionFeeReceipt');
+
+export const uploadFeeReceiptMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+  feeReceiptMulterInstance(req, res, (err: any) => {
+    if (err) {
+      return next(err);
+    }
+
+    if (req.file) {
+      const file = req.file;
+      const isValid = verifyMagicBytes(file.path, file.mimetype);
+      if (!isValid) {
+        try {
+          fs.unlinkSync(file.path);
+        } catch (unlinkErr) {
+          logger.error(`Failed to delete invalid upload: ${file.path}`, unlinkErr);
+        }
+        return next(new BadRequestError(`File validation failed. Disguised files or macro scripts are not allowed.`));
+      }
+    }
+    next();
+  });
+};
+

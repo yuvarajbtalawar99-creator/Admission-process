@@ -341,6 +341,55 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
     const [cancelReason, setCancelReason] = useState('');
     const [cancelRemarks, setCancelRemarks] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+        if (!validTypes.includes(file.type)) {
+            toast.error('Invalid file type. Please upload a PDF, JPG, or PNG file.');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('File size exceeds 5MB limit.');
+            return;
+        }
+
+        setSelectedFile(file);
+    };
+
+    const handleUploadReceipt = async () => {
+        if (!selectedFile) return;
+        setIsUploading(true);
+        setUploadProgress(20);
+
+        try {
+            const formData = new FormData();
+            formData.append('admissionFeeReceipt', selectedFile);
+
+            setUploadProgress(60);
+            const res = await api.post('/student/upload-fee-receipt', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+
+            setUploadProgress(100);
+            if (res.data.success) {
+                toast.success('Fee receipt uploaded successfully! Admin has been notified.');
+                setSelectedFile(null);
+                if (refetch) refetch();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to upload fee receipt.');
+        } finally {
+            setIsUploading(false);
+            setUploadProgress(0);
+        }
+    };
 
     const handleCancelSubmit = async () => {
         if (!cancelReason) return;
@@ -368,15 +417,19 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
             case 'UNDER_REVIEW':
                 return { label: 'Under Review', icon: Search, color: 'text-amber-600', bg: 'bg-amber-100', desc: 'An administrator is currently reviewing your application.' };
             case 'DOCUMENT_VERIFIED':
-                return { label: 'Documents Verified', icon: ShieldCheck, color: 'text-teal-600', bg: 'bg-teal-100', desc: 'Your documents have been verified. Awaiting final decision.' };
+                return { label: 'Documents Verified', icon: ShieldCheck, color: 'text-teal-600', bg: 'bg-teal-100', desc: 'Your documents have been verified. Awaiting fee payment.' };
             case 'APPROVED':
+                return { label: 'Admission Approved', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100', desc: 'Your application has been approved! Please pay ₹500 fee at college office and upload official receipt below.' };
+            case 'FEE_RECEIPT_UPLOADED':
+                return { label: 'Fee Receipt Uploaded', icon: Clock, color: 'text-cyan-600', bg: 'bg-cyan-100', desc: 'Fee Receipt Uploaded - Waiting for College Verification.' };
+            case 'FEE_VERIFIED':
+                return { label: 'Fee Verified & Forwarded', icon: ShieldCheck, color: 'text-sky-600', bg: 'bg-sky-100', desc: 'Your fee receipt has been verified and forwarded to Principal for final sign-off.' };
             case 'ADMISSION_CONFIRMED':
-                return { label: 'Admission Confirmed', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100', desc: 'Your admission has been approved!' };
             case 'ENROLLED':
             case 'USN_ASSIGNED':
-                return { label: 'Admission Confirmed 🎉', icon: Award, color: 'text-purple-600', bg: 'bg-purple-100', desc: 'Congratulations! Your admission has been confirmed. Please carry your application copy when visiting the college.' };
+                return { label: '🎉 Admission Confirmed', icon: Award, color: 'text-purple-600', bg: 'bg-purple-100', desc: 'Congratulations! Your admission has been officially confirmed by the Principal of Jain College of Engineering & Research.' };
             case 'REJECTED':
-                return { label: 'Application Rejected', icon: XCircle, color: 'text-red-600', bg: 'bg-red-100', desc: 'Your application was not approved.' };
+                return { label: 'Correction Required', icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100', desc: 'Your application has been returned by the Principal / Admissions Committee for correction. Please review the reason below and click Edit & Resubmit.' };
             case 'CANCELLATION_REQUESTED':
                 return { label: 'Cancellation Requested', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100', desc: 'Your request for admission cancellation is under review.' };
             case 'CANCELLED':
@@ -437,6 +490,118 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
                     </div>
                 )}
             </div>
+
+            {/* ═════════ ADMISSION APPROVED & FEE RECEIPT UPLOAD CARD ═════════ */}
+            {(applicationStatus === 'APPROVED' || applicationStatus === 'FEE_RECEIPT_UPLOADED' || applicationStatus === 'FEE_VERIFIED') && (
+                <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 rounded-2xl border-2 border-amber-300 p-6 md:p-8 shadow-lg space-y-6 animate-fade-in">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-200/80 pb-5">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                                <Sparkles size={22} className="text-amber-600" />
+                                <h2 className="text-xl font-black text-slate-900 tracking-tight">Admission Approved</h2>
+                            </div>
+                            <p className="text-xs font-extrabold text-amber-700 uppercase tracking-widest">Congratulations!</p>
+                        </div>
+                        <div className="bg-amber-100 text-amber-900 text-xs font-bold px-3.5 py-1.5 rounded-xl border border-amber-300 flex items-center gap-2">
+                            <Clock size={16} className="text-amber-700" />
+                            <span>Visit College Office within 7 Days</span>
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                        Your admission application has been approved. Please visit the <strong>Jain College of Engineering & Research Admission Office</strong> within 7 days and pay the <strong>₹500 Admission Processing Fee</strong>.
+                        After receiving the official college fee receipt, upload a clear photo or PDF of the receipt below to continue the admission process.
+                    </p>
+
+                    {/* Current Status Banner */}
+                    <div className="flex items-center justify-between bg-amber-100/60 border border-amber-200 rounded-xl px-4 py-3">
+                        <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">Current Status</span>
+                        <span className={`text-xs font-black px-3 py-1 rounded-full ${
+                            applicationStatus === 'FEE_RECEIPT_UPLOADED'
+                                ? 'bg-cyan-600 text-white'
+                                : applicationStatus === 'FEE_VERIFIED'
+                                ? 'bg-sky-600 text-white'
+                                : 'bg-amber-600 text-white'
+                        }`}>
+                            {applicationStatus === 'FEE_RECEIPT_UPLOADED' ? 'Fee Receipt Uploaded - Waiting for College Verification' :
+                             applicationStatus === 'FEE_VERIFIED' ? 'Fee Receipt Verified & Forwarded to Principal' :
+                             'Waiting for Fee Receipt'}
+                        </span>
+                    </div>
+
+                    {/* Drag & Drop Upload Zone */}
+                    <div className="bg-white rounded-2xl border-2 border-dashed border-amber-300 p-6 flex flex-col items-center justify-center text-center space-y-4 hover:border-amber-500 transition-colors">
+                        <input
+                            type="file"
+                            id="fee-receipt-input"
+                            accept="image/png, image/jpeg, image/jpg, application/pdf"
+                            className="hidden"
+                            onChange={handleFileChange}
+                            disabled={isUploading || applicationStatus === 'FEE_VERIFIED'}
+                        />
+
+                        {selectedFile ? (
+                            <div className="w-full space-y-4">
+                                <div className="flex items-center justify-between bg-amber-50 p-4 rounded-xl border border-amber-200 text-left">
+                                    <div className="flex items-center gap-3 overflow-hidden">
+                                        <FileText size={32} className="text-amber-600 flex-shrink-0" />
+                                        <div className="truncate">
+                                            <p className="text-xs font-bold text-slate-900 truncate">{selectedFile.name}</p>
+                                            <p className="text-[10px] text-slate-500 font-medium">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedFile(null)}
+                                        className="text-xs font-bold text-red-600 hover:underline px-2 py-1"
+                                    >
+                                        Change File
+                                    </button>
+                                </div>
+
+                                {isUploading && (
+                                    <div className="space-y-1.5">
+                                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                            <div className="bg-amber-600 h-full rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
+                                        </div>
+                                        <p className="text-[10px] font-bold text-amber-700">Uploading receipt... {uploadProgress}%</p>
+                                    </div>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={handleUploadReceipt}
+                                    disabled={isUploading}
+                                    className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                                >
+                                    {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                                    {applicationStatus === 'FEE_RECEIPT_UPLOADED' ? 'Replace Receipt' : 'Upload Receipt'}
+                                </button>
+                            </div>
+                        ) : (
+                            <label
+                                htmlFor="fee-receipt-input"
+                                className="cursor-pointer space-y-3 flex flex-col items-center w-full"
+                            >
+                                <div className="size-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-inner">
+                                    <Upload size={28} />
+                                </div>
+                                <div className="space-y-1">
+                                    <p className="text-xs font-bold text-slate-900">
+                                        Drag & Drop official college fee receipt here, or <span className="text-amber-700 underline">browse</span>
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 font-medium">
+                                        Supported Formats: PDF, JPG, PNG (Max file size: 5MB)
+                                    </p>
+                                </div>
+                                <span className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition-colors inline-block mt-2">
+                                    {applicationStatus === 'FEE_RECEIPT_UPLOADED' ? 'Replace Receipt' : 'Upload Fee Receipt'}
+                                </span>
+                            </label>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Correction / Rejection Reason */}
             {isRejected && (stepStatus?.rejectionReason || stepStatus?.adminRemarks) && (

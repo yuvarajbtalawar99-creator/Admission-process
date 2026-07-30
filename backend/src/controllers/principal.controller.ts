@@ -12,6 +12,7 @@ import RejectionReason from '../models/RejectionReason';
 import AuditLog from '../models/AuditLog';
 import Notification from '../models/Notification';
 import admissionService from '../services/admission.service';
+import emailService from '../services/email.service';
 import db from '../config/database';
 
 interface AuthRequest extends Request {
@@ -55,7 +56,7 @@ export const getDashboardData = async (
     try {
       const totalStudents = await User.count({ where: { role: 'STUDENT' }, transaction });
       const pendingAdmissionsCount = await Admission.count({
-        where: { applicationStatus: 'APPROVED', approvedByAdminId: null },
+        where: { [Op.or]: [{ applicationStatus: 'FEE_VERIFIED' }, { applicationStatus: 'APPROVED', feesVerified: true }] },
         transaction
       });
       const enrolledCount = await Admission.count({
@@ -73,8 +74,8 @@ export const getDashboardData = async (
         {
           id: 'admissions',
           priority: 'HIGH' as const,
-          title: `${pendingAdmissionsCount} Admission${pendingAdmissionsCount > 1 ? 's' : ''} Awaiting Review`,
-          description: 'Applications verified by admin pending final principal review.',
+          title: `${pendingAdmissionsCount} Admission${pendingAdmissionsCount > 1 ? 's' : ''} Awaiting Final Confirmation`,
+          description: 'Applications verified by admin pending final principal confirmation.',
           actionText: 'Review Admissions',
           link: '/principal/admissions',
           count: pendingAdmissionsCount,
@@ -164,9 +165,11 @@ export const listAdmissions = async (
 
     const where: any = {};
     if (status && status !== 'ALL') {
-      if (status === 'APPROVED') {
-        where.applicationStatus = 'APPROVED';
-        where.approvedByAdminId = null;
+      if (status === 'APPROVED' || status === 'FEE_VERIFIED') {
+        where[Op.or] = [
+          { applicationStatus: 'FEE_VERIFIED' },
+          { applicationStatus: 'APPROVED', feesVerified: true }
+        ];
       } else if (status === 'ENROLLED') {
         where.applicationStatus = 'ENROLLED';
       } else if (status === 'REJECTED') {
@@ -236,19 +239,9 @@ export const getAdmissionById = async (
 ): Promise<any> => {
   try {
     const { id } = req.params;
-    const admission = await Admission.findByPk(id, {
-      include: [
-        { model: User, as: 'user', attributes: ['id', 'email', 'firstName', 'lastName', 'phone', 'profileImage'] },
-        { model: Department, as: 'branch' },
-        { model: AdmissionPersonalDetail, as: 'studentpersonaldetails' },
-        { model: AdmissionParentDetail, as: 'studentparentdetails' },
-        { model: AdmissionAddress, as: 'studentaddress' },
-        { model: AdmissionAcademicDetail, as: 'studentacademicdetails' },
-        { model: AdmissionDocument, as: 'studentdocuments' },
-      ]
-    });
-    if (!admission) return res.status(404).json({ error: 'Application not found.' });
-    return res.json({ success: true, data: admission });
+    const data = await admissionService.getApplicationById(id);
+    if (!data) return res.status(404).json({ error: 'Application not found.' });
+    return res.json({ success: true, data });
   } catch (err) {
     return next(err);
   }
@@ -265,8 +258,10 @@ export const getPendingAdmissions = async (
 
     const list = await Admission.findAll({
       where: { 
-        applicationStatus: 'APPROVED',
-        approvedByAdminId: null
+        [Op.or]: [
+          { applicationStatus: 'FEE_VERIFIED' },
+          { applicationStatus: 'APPROVED', feesVerified: true }
+        ]
       },
       include: [
         { model: User, as: 'user', attributes: ['id', 'email', 'firstName', 'lastName', 'phone', 'profileImage'] },
@@ -302,39 +297,101 @@ export const decideAdmission = async (
 ): Promise<any> => {
   try {
     const { id } = req.params;
-    const { decision, remarks, rejectReasonCode } = req.body;
+    const { remarks, rejectionReason, rejectReasonCode } = req.body;
+    let decision = req.body.decision || req.body.status;
 
-    const validDecisions = ['APPROVED', 'REJECTED', 'UNDER_REVIEW', 'ENROLLED'];
+    if (!decision) {
+      if (req.path.endsWith('/approve')) {
+        decision = 'APPROVED';
+      } else {
+        decision = 'REJECTED';
+      }
+    }
+
+    const validDecisions = ['APPROVED', 'REJECTED', 'CORRECTION_REQUIRED', 'UNDER_REVIEW', 'ENROLLED'];
     if (!validDecisions.includes(decision)) {
       return res.status(400).json({ error: 'Invalid decision type.' });
     }
 
-    const targetStatus = decision === 'APPROVED' ? 'ENROLLED' : decision;
+    // Use REJECTED as the valid PostgreSQL ENUM value for return for correction
+    const targetStatus = decision === 'APPROVED' ? 'ENROLLED' : 'REJECTED';
 
     const enrollmentNumber = await admissionService.updateStatus(
       id,
       targetStatus as any,
       req.user!.id,
       remarks,
-      undefined,
+      rejectionReason || remarks,
       rejectReasonCode
     );
 
-    // Audit Log
+    // Save principal audit accountability
+    const admission = await Admission.findByPk(id);
+    const principalUser = await User.findByPk(req.user!.id);
+    const principalName = principalUser ? `${principalUser.firstName || ''} ${principalUser.lastName || ''}`.trim() : 'Principal';
+
+    if (admission) {
+      await admission.update({
+        principalReviewedBy: req.user!.id,
+        principalReviewedAt: new Date(),
+        principalRemarks: remarks || rejectionReason || null,
+      });
+
+      // Send final confirmation email/SMS if ENROLLED
+      if (targetStatus === 'ENROLLED' && enrollmentNumber) {
+        try {
+          const user = await User.findByPk(admission.userId);
+          if (user) {
+            await emailService.sendAdmissionConfirmedNotification(
+              user.email,
+              `${user.firstName} ${user.lastName}`.trim(),
+              admission.applicationNumber,
+              enrollmentNumber
+            );
+          }
+        } catch (err: any) {
+          console.error('Failed to send final admission confirmed email:', err.message);
+        }
+      } else if (targetStatus === 'REJECTED') {
+        try {
+          const user = await User.findByPk(admission.userId);
+          if (user) {
+            await emailService.sendCorrectionRequiredNotification(
+              user.email,
+              `${user.firstName} ${user.lastName}`.trim(),
+              admission.applicationNumber,
+              rejectionReason || remarks || 'Correction Required',
+              remarks
+            );
+          }
+        } catch (err: any) {
+          console.error('Failed to send correction required email:', err.message);
+        }
+      }
+    }
+
+    // Audit Log recording Principal Name, Date & Time, Selected Reason, Optional Remarks
     await AuditLog.create({
       userId: req.user!.id,
-      action: `PRINCIPAL_${decision}_ADMISSION`,
+      action: `PRINCIPAL_${targetStatus === 'ENROLLED' ? 'APPROVED' : 'RETURNED_CORRECTION'}_ADMISSION`,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'],
-      details: { admissionId: id, decision, remarks, enrollmentNumber },
+      details: {
+        admissionId: id,
+        applicationNumber: admission?.applicationNumber,
+        principalName,
+        timestamp: new Date(),
+        correctionReason: rejectionReason || remarks || 'Correction Required',
+        remarks: remarks || null,
+        enrollmentNumber
+      },
     });
 
     return res.json({
       success: true,
-      message: `Admission application has been ${decision.toLowerCase()} successfully.`,
+      message: `Admission application has been ${targetStatus === 'ENROLLED' ? 'approved' : 'returned for correction'} successfully.`,
       data: {
         enrollmentNumber,
-        studentEmail: 'credentials_sent_via_email',
         credentialsSent: true,
       }
     });

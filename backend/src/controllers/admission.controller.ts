@@ -21,6 +21,8 @@ const DOCUMENT_FIELD_MAP: Record<string, keyof AdmissionDocument> = {
   casteCertificate: 'casteCertificateUrl',
   domicileCertificate: 'domicileCertificateUrl',
   gapCertificate: 'gapCertificateUrl',
+  feesPaidReceipt: 'feesPaidReceiptUrl',
+  admissionFeeReceipt: 'admissionFeeReceiptUrl',
 };
 
 // ─── Student Endpoints ───────────────────────────────────────────────────────
@@ -686,5 +688,53 @@ export const directCancelAdmission = async (
     return res.json({ success: true, message: 'Admission cancelled directly by administrator' });
   } catch (err) {
     return next(err);
+  }
+};
+
+/** POST /api/student/upload-fee-receipt */
+export const uploadFeeReceipt = async (
+  req: AuthRequest, res: Response, _next: NextFunction
+): Promise<any> => {
+  try {
+    const file = req.file;
+    let receiptUrl = req.body.receiptUrl;
+    if (file) {
+      receiptUrl = `/uploads/${file.filename}`;
+    }
+    if (!receiptUrl) {
+      return res.status(400).json({ success: false, message: 'Fee receipt file is required.' });
+    }
+
+    const result = await admissionService.uploadFeeReceipt(req.user!.id, receiptUrl);
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+};
+
+/** POST /api/admin/admissions/:id/fee-verify */
+export const verifyFeeReceipt = async (
+  req: AuthRequest, res: Response, _next: NextFunction
+): Promise<any> => {
+  try {
+    const { id } = req.params;
+    const { approve, remarks, rejectionReason } = req.body;
+    if (typeof approve !== 'boolean') {
+      return res.status(400).json({ error: 'approve parameter (boolean) is required.' });
+    }
+
+    const result = await admissionService.verifyFeeReceipt(id, req.user!.id, { approve, remarks, rejectionReason });
+    
+    await AuditLog.create({
+      userId: req.user!.id,
+      action: approve ? 'ADMIN_VERIFIED_FEE_RECEIPT' : 'ADMIN_REJECTED_FEE_RECEIPT',
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'],
+      details: { admissionId: id, approve, remarks, rejectionReason },
+    });
+
+    return res.json(result);
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message || 'Server error' });
   }
 };

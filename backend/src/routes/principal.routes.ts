@@ -19,6 +19,8 @@ router.get('/admissions/pending', principalController.getPendingAdmissions);
 router.get('/admissions/:id/documents/:field', admissionController.viewAdmissionDocument);
 router.get('/admissions/:id', principalController.getAdmissionById);
 router.put('/admissions/:id/decide', principalController.decideAdmission);
+router.post('/admissions/:id/approve', principalController.decideAdmission);
+router.post('/admissions/:id/reject', principalController.decideAdmission);
 router.put('/admissions/bulk/approve', principalController.bulkApproveAdmissions);
 
 // Budget Requests
