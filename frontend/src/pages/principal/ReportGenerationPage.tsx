@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import API from '../../services/api';
 import admissionService, { AdmissionApplication } from '../../services/admission.service';
 import { toast } from 'react-toastify';
+import { getAcademicYear } from '../../utils/date.util';
 import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import { 
@@ -42,7 +43,7 @@ export const ReportGenerationPage: React.FC = () => {
   const [selectedReport, setSelectedReport] = useState<string>('APPROVED_ADMISSIONS');
   const [branchFilter, setBranchFilter] = useState<string>('ALL');
   const [quotaFilter, setQuotaFilter] = useState<string>('ALL');
-  const [yearFilter, setYearFilter] = useState<string>('2026-2027');
+  const [yearFilter, setYearFilter] = useState<string>('ALL');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [search, setSearch] = useState<string>('');
@@ -165,7 +166,7 @@ export const ReportGenerationPage: React.FC = () => {
 
     const exportRows = applications.map((app, idx) => ({
       'Sl No': idx + 1,
-      'Application Number': app.applicationNumber,
+      'Admission Number': app.applicationNumber,
       'Student Name': app.user ? `${app.user.firstName || ''} ${app.user.lastName || ''}`.trim() : 'N/A',
       'Phone': app.studentpersonaldetails?.phone || app.user?.phone || 'N/A',
       'Branch': app.branch?.code || 'N/A',
@@ -195,7 +196,7 @@ export const ReportGenerationPage: React.FC = () => {
 
     const exportRows = applications.map((app, idx) => ({
       'Sl No': idx + 1,
-      'Application Number': app.applicationNumber,
+      'Admission Number': app.applicationNumber,
       'Student Name': app.user ? `${app.user.firstName || ''} ${app.user.lastName || ''}`.trim() : 'N/A',
       'Phone': app.studentpersonaldetails?.phone || app.user?.phone || 'N/A',
       'Branch': app.branch?.code || 'N/A',
@@ -234,7 +235,7 @@ export const ReportGenerationPage: React.FC = () => {
 
     let startY = 30;
     doc.setFontSize(9);
-    doc.text('Sl | App No | Student Name | Branch | Quota | Status | Verified By | Submitted Date', 14, startY);
+    doc.text('Sl | Adm No | Student Name | Branch | Quota | Status | Verified By | Submitted Date', 14, startY);
 
     applications.slice(0, 30).forEach((app, idx) => {
       startY += 7;
@@ -360,8 +361,11 @@ export const ReportGenerationPage: React.FC = () => {
               className="w-full bg-slate-50 dark:bg-neutral-800 border border-slate-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-xs font-bold outline-none"
             >
               <option value="ALL">All Academic Years</option>
-              <option value="2026-2027">2026-2027</option>
-              <option value="2025-2026">2025-2026</option>
+              {Array.from({ length: 5 }).map((_, i) => {
+                const y = new Date().getFullYear() + i;
+                const opt = `${y}-${y + 1}`;
+                return <option key={opt} value={opt}>{opt}</option>;
+              })}
             </select>
           </div>
 
@@ -450,7 +454,7 @@ export const ReportGenerationPage: React.FC = () => {
               <thead>
                 <tr className="border-b border-slate-100 dark:border-neutral-800 text-slate-400 font-extrabold uppercase text-[10px] tracking-wider bg-slate-50/50 dark:bg-neutral-800/50">
                   <th className="py-3.5 px-4">#</th>
-                  <th className="py-3.5 px-4">App No</th>
+                  <th className="py-3.5 px-4">Admission No</th>
                   <th className="py-3.5 px-4">Student Name</th>
                   <th className="py-3.5 px-4">Phone</th>
                   <th className="py-3.5 px-4">Branch</th>

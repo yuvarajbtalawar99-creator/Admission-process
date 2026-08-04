@@ -45,6 +45,16 @@ export function normalizeDocumentType(docType: string): string {
     'puc12thmarkscard': 'twelfthMarksheet',
     'puc': 'twelfthMarksheet',
 
+    // Diploma 5th & 6th Semester Marks Cards (Color + Blur)
+    'diplomasemester5marksheet': 'diplomaSemester5Marksheet',
+    'diploma5thsemestermarkscard': 'diplomaSemester5Marksheet',
+    'diploma5thsemmarkscard': 'diplomaSemester5Marksheet',
+    'diploma5thsem': 'diplomaSemester5Marksheet',
+    'diplomasemester6marksheet': 'diplomaSemester6Marksheet',
+    'diploma6thsemestermarkscard': 'diplomaSemester6Marksheet',
+    'diploma6thsemmarkscard': 'diplomaSemester6Marksheet',
+    'diploma6thsem': 'diplomaSemester6Marksheet',
+
     // 5. Entrance Score Card (CET/DCET) (Color + Blur)
     'cetscorecard': 'cetScoreCard',
     'entrancescorecardcetdcet': 'cetScoreCard',
@@ -84,21 +94,23 @@ export function normalizeDocumentType(docType: string): string {
  * Configuration matrix specifying required quality validations per document type.
  */
 export const DOCUMENT_VALIDATION_CONFIG: Record<string, DocumentRule> = {
-  // Color + Blur required
-  photo: { checkColor: true, checkBlur: true },
-  aadhaar: { checkColor: true, checkBlur: true },
-  tenthMarksheet: { checkColor: true, checkBlur: true },
-  twelfthMarksheet: { checkColor: true, checkBlur: true },
-  cetScoreCard: { checkColor: true, checkBlur: true },
+  // ORIGINAL COLOR IMAGE REQUIRED
+  photo: { checkColor: true, checkBlur: false },
+  tenthMarksheet: { checkColor: true, checkBlur: false },
+  aadhaar: { checkColor: true, checkBlur: false },
+  feesPaidReceipt: { checkColor: true, checkBlur: false },
 
-  // Blur ONLY (Do NOT perform color detection)
-  signature: { checkColor: false, checkBlur: true },
-  incomeCertificate: { checkColor: false, checkBlur: true },
-  casteCertificate: { checkColor: false, checkBlur: true },
-  domicileCertificate: { checkColor: false, checkBlur: true },
-  gapCertificate: { checkColor: false, checkBlur: true },
-  feesPaidReceipt: { checkColor: false, checkBlur: true },
-  admissionFeeReceipt: { checkColor: false, checkBlur: true },
+  // COLOR OR BLACK & WHITE ACCEPTED
+  signature: { checkColor: false, checkBlur: false },
+  twelfthMarksheet: { checkColor: false, checkBlur: false },
+  diplomaSemester5Marksheet: { checkColor: false, checkBlur: false },
+  diplomaSemester6Marksheet: { checkColor: false, checkBlur: false },
+  cetScoreCard: { checkColor: false, checkBlur: false },
+  incomeCertificate: { checkColor: false, checkBlur: false },
+  casteCertificate: { checkColor: false, checkBlur: false },
+  domicileCertificate: { checkColor: false, checkBlur: false },
+  gapCertificate: { checkColor: false, checkBlur: false },
+  admissionFeeReceipt: { checkColor: false, checkBlur: false },
 };
 
 /**
@@ -247,7 +259,7 @@ export async function validateDocument(
       const result: ValidationResult = {
         success: false,
         reason: 'BLACK_AND_WHITE_IMAGE',
-        message: 'Black & White image detected. Please upload a clear color photograph of the original document.',
+        message: 'Please upload the original COLOR image of this document.',
       };
       console.log(`• Blur Validation Result   : SKIPPED (Blocked by Color check)`);
       console.log(`• Final Decision           : REJECTED`);

@@ -115,7 +115,7 @@ export const CancellationRequestsPage: React.FC = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400 size-4" />
             <input
               type="text"
-              placeholder="Search by student name or application number..."
+              placeholder="Search by student name or admission number..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full text-xs font-semibold pl-10 pr-4 py-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-xl focus:outline-none focus:border-violet-500 focus:bg-white dark:focus:bg-neutral-900 dark:text-white transition-all"
@@ -134,7 +134,7 @@ export const CancellationRequestsPage: React.FC = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50 text-neutral-450 font-black uppercase tracking-wider">
-                <th className="p-4">Application No</th>
+                <th className="p-4">Admission No</th>
                 <th className="p-4">Student Name</th>
                 <th className="p-4">Branch</th>
                 <th className="p-4">Admission Type</th>
@@ -268,7 +268,7 @@ export const CancellationRequestsPage: React.FC = () => {
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-black text-neutral-450 uppercase tracking-widest">Application Number</p>
+                <p className="text-[10px] font-black text-neutral-450 uppercase tracking-widest">Admission Number</p>
                 <p className="text-neutral-900 dark:text-white font-extrabold mt-0.5">{selectedApp.applicationNumber}</p>
               </div>
               <div>

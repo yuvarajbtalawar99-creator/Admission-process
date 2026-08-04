@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage",
     "migrate": "npx ts-node src/migrations/index.ts",
     "seed": "tsx src/seeds/index.ts",
+    "reset-db": "npx tsx src/scripts/resetDatabase.ts",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write src/**/*.ts",
     "type-check": "tsc --noEmit"

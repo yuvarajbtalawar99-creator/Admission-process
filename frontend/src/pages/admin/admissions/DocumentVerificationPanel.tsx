@@ -15,6 +15,8 @@ interface DocumentVerificationPanelProps {
     signatureUrl: string | null;
     tenthMarksheetUrl: string | null;
     twelfthMarksheetUrl: string | null;
+    diplomaSemester5MarksheetUrl?: string | null;
+    diplomaSemester6MarksheetUrl?: string | null;
     cetScoreCardUrl: string | null;
     aadhaarUrl: string | null;
     casteCertificateUrl: string | null;
@@ -33,6 +35,8 @@ export const DocumentVerificationPanel: React.FC<DocumentVerificationPanelProps>
     { id: 'signature', name: 'Signature', url: documents.signatureUrl, status: 'PENDING' },
     { id: 'tenth', name: '10th Marksheet', url: documents.tenthMarksheetUrl, status: 'PENDING' },
     { id: 'twelfth', name: '12th Marksheet', url: documents.twelfthMarksheetUrl, status: 'PENDING' },
+    { id: 'diplomaSemester5', name: 'Diploma 5th Sem Marksheet', url: documents.diplomaSemester5MarksheetUrl || null, status: 'PENDING' },
+    { id: 'diplomaSemester6', name: 'Diploma 6th Sem Marksheet', url: documents.diplomaSemester6MarksheetUrl || null, status: 'PENDING' },
     { id: 'cet', name: 'CET Score Card', url: documents.cetScoreCardUrl, status: 'PENDING' },
     { id: 'aadhaar', name: 'Aadhaar Card', url: documents.aadhaarUrl, status: 'PENDING' },
     { id: 'caste', name: 'Caste Certificate', url: documents.casteCertificateUrl, status: 'PENDING' },

@@ -9,6 +9,8 @@ class AdmissionDocument extends Model {
   public signatureUrl!: string | null;
   public tenthMarksheetUrl!: string | null;
   public twelfthMarksheetUrl!: string | null;
+  public diplomaSemester5MarksheetUrl!: string | null;
+  public diplomaSemester6MarksheetUrl!: string | null;
   public cetScoreCardUrl!: string | null;
   public aadhaarUrl!: string | null;
   public casteCertificateUrl!: string | null;
@@ -47,6 +49,14 @@ AdmissionDocument.init(
       allowNull: true,
     },
     twelfthMarksheetUrl: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    diplomaSemester5MarksheetUrl: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    diplomaSemester6MarksheetUrl: {
       type: DataTypes.STRING(255),
       allowNull: true,
     },

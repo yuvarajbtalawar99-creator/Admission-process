@@ -1,6 +1,10 @@
 @import './variables.css';
 @import './animations.css';
 
+html {
+  font-size: 90%; /* 14.4px root rem base -> ~10% uniform scale reduction across all Tailwind rem design tokens */
+}
+
 html, body, #root {
   min-height: 100%;
   overflow-y: auto;

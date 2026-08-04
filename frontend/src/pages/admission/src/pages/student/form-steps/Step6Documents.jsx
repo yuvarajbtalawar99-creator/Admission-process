@@ -12,41 +12,47 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
     const [compressing, setCompressing] = useState({});
     const [validating, setValidating] = useState({});
 
+    const isDiplomaApplicant = data?.qualification === 'DIPLOMA';
+
     const DOCS = [
-        { name: 'photo',           label: 'Recent Passport Photo',            icon: User,         note: 'JPG/PNG, max 500 KB' },
-        { name: 'signature',       label: 'E-Signature / Scanned Sign',        icon: ClipboardIcon, note: 'JPG/PNG, max 200 KB' },
-        { name: 'sslcMarkscard',   label: 'SSLC / 10th Marks Card',            icon: FileText,     note: 'JPG/PNG, max 1 MB' },
-        {
-            name: 'pucMarkscard',
-            label: data?.qualification === 'DIPLOMA' ? 'Diploma Marks Card' : 'PUC / 12th Marks Card',
-            icon: GraduationCap,
-            note: 'JPG/PNG, max 1 MB',
-        },
-        { name: 'aadhaar',          label: 'Aadhaar Card Copy',               icon: FileText,     note: 'JPG/PNG, max 1 MB' },
+        { name: 'photo',           label: 'Recent Passport Photo',            icon: User,          note: 'Accepted: JPG / PNG' },
+        { name: 'signature',       label: 'E-Signature / Scanned Sign',        icon: ClipboardIcon, note: 'Accepted: JPG / PNG' },
+        { name: 'sslcMarkscard',   label: 'SSLC / 10th Marks Card',            icon: FileText,      note: 'Accepted: JPG / PNG' },
+        ...(isDiplomaApplicant ? [
+            { name: 'diplomaSemester5Marksheet', label: 'Diploma 5th Semester Marks Card', icon: GraduationCap, note: 'Accepted: JPG / PNG' },
+            { name: 'diplomaSemester6Marksheet', label: 'Diploma 6th Semester Marks Card', icon: GraduationCap, note: 'Accepted: JPG / PNG' },
+        ] : [
+            { name: 'pucMarkscard',    label: 'PUC / 12th Marks Card',            icon: GraduationCap, note: 'Accepted: JPG / PNG' },
+        ]),
+        { name: 'aadhaar',          label: 'Aadhaar Card Copy',               icon: FileText,      note: 'Accepted: JPG / PNG' },
         {
             name: 'cetScoreCard',
             label: 'Entrance Score Card (CET/DCET)',
             icon: FileText,
-            note: data?.admissionType === 'MANAGEMENT' ? 'JPG/PNG (Optional for Management)' : 'JPG/PNG, max 1 MB',
+            note: data?.admissionType === 'MANAGEMENT' ? 'Accepted: JPG / PNG (Optional for Management)' : 'Accepted: JPG / PNG',
         },
-        { name: 'feesPaidReceipt',  label: 'Fees Paid Receipt',               icon: FileText,     note: 'JPG/PNG, max 1 MB' },
-        { name: 'casteCertificate',  label: 'Caste Certificate',              icon: Image,        note: 'JPG/PNG (Optional)' },
-        { name: 'incomeCertificate', label: 'Income Certificate',             icon: Image,        note: 'JPG/PNG (Optional)' },
-        { name: 'studyCertificate',  label: '7 Years Study Certificate',       icon: FileText,     note: 'JPG/PNG, max 1 MB' },
+        { name: 'feesPaidReceipt',  label: 'Fees Paid Receipt',               icon: FileText,      note: 'Accepted: JPG / PNG' },
+        { name: 'casteCertificate',  label: 'Caste Certificate',              icon: Image,         note: 'Accepted: JPG / PNG (Optional)' },
+        { name: 'incomeCertificate', label: 'Income Certificate',             icon: Image,         note: 'Accepted: JPG / PNG (Optional)' },
+        { name: 'studyCertificate',  label: '7 Years Study Certificate',       icon: FileText,      note: 'Accepted: JPG / PNG' },
     ];
 
     const API_FIELDS = {
-        photo:             'photo',
-        signature:         'signature',
-        sslcMarkscard:     'tenthMarksheet',
-        pucMarkscard:      'twelfthMarksheet',
-        aadhaar:           'aadhaar',
-        cetScoreCard:      'cetScoreCard',
-        casteCertificate:  'casteCertificate',
-        incomeCertificate: 'gapCertificate',
-        studyCertificate:  'domicileCertificate',
-        feesPaidReceipt:   'feesPaidReceipt',
+        photo:                     'photo',
+        signature:                 'signature',
+        sslcMarkscard:             'tenthMarksheet',
+        pucMarkscard:              'twelfthMarksheet',
+        diplomaSemester5Marksheet: 'diplomaSemester5Marksheet',
+        diplomaSemester6Marksheet: 'diplomaSemester6Marksheet',
+        aadhaar:                   'aadhaar',
+        cetScoreCard:              'cetScoreCard',
+        casteCertificate:          'casteCertificate',
+        incomeCertificate:         'gapCertificate',
+        studyCertificate:          'domicileCertificate',
+        feesPaidReceipt:           'feesPaidReceipt',
     };
+
+    const COLOR_REQUIRED_DOCS = ['photo', 'sslcMarkscard', 'aadhaar', 'feesPaidReceipt'];
 
     const handleFileChange = async (e, docName) => {
         const file = e.target.files[0];
@@ -55,45 +61,48 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
 
         if (!file) return;
 
-        // 1. Validate image mime type
+        // 1. Validate image format (JPG / JPEG / PNG)
         const typeCheck = validateImageType(file);
         if (!typeCheck.valid) {
             toast.error(typeCheck.error);
             return;
         }
 
-        // 2. Show "Validating document..." state immediately
-        setValidating(prev => ({ ...prev, [docName]: true }));
-        const valToastId = toast.loading(`Validating document...`);
+        const needsColorCheck = COLOR_REQUIRED_DOCS.includes(docName);
+        setCompressing(prev => ({ ...prev, [docName]: true }));
 
         try {
-            const formData = new FormData();
-            formData.append('document', file);
-            formData.append('documentType', API_FIELDS[docName] || docName);
+            // 2. Document-specific color validation check
+            if (needsColorCheck) {
+                const formData = new FormData();
+                formData.append('document', file);
+                formData.append('documentType', API_FIELDS[docName] || docName);
 
-            // Call backend quality validation endpoint immediately
-            const valRes = await api.post('/student/validate-document', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
+                const valRes = await api.post('/student/validate-document', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                });
 
-            toast.dismiss(valToastId);
-
-            if (valRes.data.success) {
-                // Validation PASSED! Now compress image for upload storage
-                setCompressing(prev => ({ ...prev, [docName]: true }));
-                const compressed = await compressDocumentImage(file, docName);
-                setFiles(prev => ({ ...prev, [docName]: compressed }));
-                toast.success(`Validation passed! ${file.name} ready for upload`, { duration: 3000 });
+                if (!valRes.data.success) {
+                    toast.error(valRes.data.message || 'Please upload the original COLOR image of this document.');
+                    setFiles(prev => ({ ...prev, [docName]: null }));
+                    return;
+                }
             }
+
+            // 3. Compress & store file for upload
+            const compressed = await compressDocumentImage(file, docName);
+            setFiles(prev => ({ ...prev, [docName]: compressed }));
+            toast.success(`${file.name} selected`, { duration: 3000 });
         } catch (err) {
-            toast.dismiss(valToastId);
-            const errMsg = err.response?.data?.message || 'Document validation failed. Please upload a clear color photo.';
-            
-            // STOP IMMEDIATELY! Do NOT store file, do NOT proceed with upload!
-            setFiles(prev => ({ ...prev, [docName]: null }));
-            toast.error(errMsg, { duration: 5000 });
+            if (needsColorCheck) {
+                const errMsg = err.response?.data?.message || 'Please upload the original COLOR image of this document.';
+                toast.error(errMsg);
+                setFiles(prev => ({ ...prev, [docName]: null }));
+            } else {
+                setFiles(prev => ({ ...prev, [docName]: file }));
+                toast.success(`${file.name} selected`, { duration: 3000 });
+            }
         } finally {
-            setValidating(prev => ({ ...prev, [docName]: false }));
             setCompressing(prev => ({ ...prev, [docName]: false }));
         }
     };
@@ -112,6 +121,22 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
             toast.error('Photo, Signature, and SSLC marks card are required');
             return;
         }
+
+        if (isDiplomaApplicant) {
+            const isDip5Present = files.diplomaSemester5Marksheet || data?.diplomaSemester5MarksheetUrl;
+            const isDip6Present = files.diplomaSemester6Marksheet || data?.diplomaSemester6MarksheetUrl;
+            if (!isDip5Present || !isDip6Present) {
+                toast.error('Diploma 5th Semester Marks Card and 6th Semester Marks Card are required');
+                return;
+            }
+        } else {
+            const isPucPresent = files.pucMarkscard || data?.pucMarkscard || data?.twelfthMarksheetUrl;
+            if (!isPucPresent) {
+                toast.error('PUC / 12th Marks Card is required');
+                return;
+            }
+        }
+
         if (!isAadhaarPresent) {
             toast.error('Aadhaar Card is required');
             return;
@@ -169,16 +194,18 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {DOCS.map(doc => {
                     const DB_MAP = {
-                        photo:             'photoUrl',
-                        signature:         'signatureUrl',
-                        sslcMarkscard:     'tenthMarksheetUrl',
-                        pucMarkscard:      'twelfthMarksheetUrl',
-                        aadhaar:           'aadhaarUrl',
-                        cetScoreCard:      'cetScoreCardUrl',
-                        casteCertificate:  'casteCertificateUrl',
-                        incomeCertificate: 'gapCertificateUrl',
-                        studyCertificate:  'domicileCertificateUrl',
-                        feesPaidReceipt:   'feesPaidReceiptUrl',
+                        photo:                     'photoUrl',
+                        signature:                 'signatureUrl',
+                        sslcMarkscard:             'tenthMarksheetUrl',
+                        pucMarkscard:              'twelfthMarksheetUrl',
+                        diplomaSemester5Marksheet: 'diplomaSemester5MarksheetUrl',
+                        diplomaSemester6Marksheet: 'diplomaSemester6MarksheetUrl',
+                        aadhaar:                   'aadhaarUrl',
+                        cetScoreCard:              'cetScoreCardUrl',
+                        casteCertificate:          'casteCertificateUrl',
+                        incomeCertificate:         'gapCertificateUrl',
+                        studyCertificate:          'domicileCertificateUrl',
+                        feesPaidReceipt:           'feesPaidReceiptUrl',
                     };
                     const isFileSelected  = !!files[doc.name];
                     const isFileInDb      = doc.name === 'aadhaar'
@@ -186,9 +213,8 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                         : !!(data?.[doc.name] || data?.[DB_MAP[doc.name]]);
                     const isComplete      = isFileSelected || isFileInDb;
                     const isCompressing   = !!compressing[doc.name];
-                    const isValidating    = !!validating[doc.name];
-                    const isBusy          = isCompressing || isValidating;
-                    const isRequired      = ['photo', 'signature', 'sslcMarkscard', 'aadhaar', 'feesPaidReceipt'].includes(doc.name) ||
+                    const isBusy          = isCompressing;
+                    const isRequired      = ['photo', 'signature', 'sslcMarkscard', 'pucMarkscard', 'diplomaSemester5Marksheet', 'diplomaSemester6Marksheet', 'aadhaar', 'feesPaidReceipt'].includes(doc.name) ||
                         (doc.name === 'cetScoreCard' && data?.admissionType !== 'MANAGEMENT');
 
                     return (
@@ -226,10 +252,8 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                                         ? 'border-dashed bg-white border-green-200 text-green-600 font-medium'
                                         : 'border-solid bg-slate-800 border-slate-800 text-white hover:bg-slate-900 hover:border-slate-900 font-medium'
                                 }`}>
-                                    {isValidating
-                                        ? <><Loader2 size={16} className="animate-spin text-amber-600" /> Validating document…</>
-                                        : isCompressing
-                                        ? <><Loader2 size={16} className="animate-spin text-amber-600" /> Compressing…</>
+                                    {isCompressing
+                                        ? <><Loader2 size={16} className="animate-spin text-amber-600" /> Processing…</>
                                         : <><UploadCloud size={16} /> {isComplete ? 'Update File' : 'Choose File'}</>
                                     }
                                 </div>

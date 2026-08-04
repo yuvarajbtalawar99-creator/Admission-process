@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, Transaction } from 'sequelize';
 import Admission from '../models/Admission';
 import AdmissionPersonalDetail from '../models/AdmissionPersonalDetail';
 import AdmissionParentDetail from '../models/AdmissionParentDetail';
@@ -9,6 +9,8 @@ import Department from '../models/Department';
 import User from '../models/User';
 import Student from '../models/Student';
 import RejectionReason from '../models/RejectionReason';
+import SystemConfiguration from '../models/SystemConfiguration';
+import AdmissionSequence from '../models/AdmissionSequence';
 import db from '../config/database';
 import { ForbiddenException } from '../utils/error.util';
 import redisService from './redis.service';
@@ -16,12 +18,69 @@ import emailService from './email.service';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-/** Generate a unique application number like APP-2024-00001 */
-async function generateApplicationNumber(): Promise<string> {
-  const year = new Date().getFullYear();
-  const count = await Admission.count();
-  const seq = String(count + 1).padStart(5, '0');
-  return `APP-${year}-${seq}`;
+/**
+ * Generate a unique Admission Number in format:
+ * JCER-{AdmissionYear}-{BranchCode}-{Sequence}
+ * Example: JCER-2028-CSE-00001
+ * 
+ * Rules:
+ * - AdmissionYear: Start year of active Academic Year (e.g., "2028-2029" -> "2028")
+ * - BranchCode: Code from Department master (e.g., "CSE", "ECE", "AIML"). Default "GEN" if branch not yet selected.
+ * - Sequence: Production-safe atomic sequence using dedicated AdmissionSequence row-locking.
+ */
+async function generateAdmissionNumber(
+  academicYear: string,
+  branchId?: string | number | null,
+  t?: Transaction
+): Promise<string> {
+  const startYear = academicYear ? academicYear.split(/[-–]/)[0].trim() : String(new Date().getFullYear());
+  
+  let branchCode = 'GEN';
+  if (branchId) {
+    const branch = await Department.findByPk(String(branchId));
+    if (branch && branch.code) {
+      branchCode = branch.code.toUpperCase();
+    }
+  }
+
+  const executeAtomicIncrement = async (transaction: Transaction) => {
+    let seqRecord = await AdmissionSequence.findOne({
+      where: { academicYear },
+      transaction,
+      lock: transaction.LOCK.UPDATE,
+    });
+
+    if (!seqRecord) {
+      seqRecord = await AdmissionSequence.create(
+        { academicYear, lastSequence: 0 },
+        { transaction }
+      );
+      seqRecord = await AdmissionSequence.findOne({
+        where: { academicYear },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+    }
+
+    const nextSeq = (seqRecord ? seqRecord.lastSequence : 0) + 1;
+    if (seqRecord) {
+      seqRecord.lastSequence = nextSeq;
+      await seqRecord.save({ transaction });
+    }
+
+    return String(nextSeq).padStart(5, '0');
+  };
+
+  let seqStr: string;
+  if (t) {
+    seqStr = await executeAtomicIncrement(t);
+  } else {
+    seqStr = await db.transaction(async (transaction) => {
+      return await executeAtomicIncrement(transaction);
+    });
+  }
+
+  return `JCER-${startYear}-${branchCode}-${seqStr}`;
 }
 
 
@@ -90,6 +149,9 @@ function serializeAdmission(admission: any): any {
     acad.pucPercentage = acad.twelfthPercentage;
     acad.pucAttempts = acad.twelfthAttempts;
   }
+  if (data.studentdocuments) {
+    data.documents = data.studentdocuments;
+  }
   return data;
 }
 
@@ -113,7 +175,9 @@ function computeStepStatus(admission: any) {
     { step: 5, completed: isLateral
         ? !!(acad?.tenthPercentage && acad?.diplomaPercentage)
         : !!(acad?.tenthPercentage && acad?.twelfthPercentage) },
-    { step: 6, completed: !!(docs?.photoUrl && docs?.tenthMarksheetUrl && docs?.feesPaidReceiptUrl) },
+    { step: 6, completed: isLateral
+        ? !!(docs?.photoUrl && docs?.tenthMarksheetUrl && docs?.diplomaSemester5MarksheetUrl && docs?.diplomaSemester6MarksheetUrl && docs?.feesPaidReceiptUrl)
+        : !!(docs?.photoUrl && docs?.tenthMarksheetUrl && docs?.twelfthMarksheetUrl && docs?.feesPaidReceiptUrl) },
     { step: 7, completed: admission?.applicationStatus === 'SUBMITTED' },
   ];
 
@@ -238,12 +302,18 @@ class AdmissionService {
     }
 
     if (!admission) {
-      const applicationNumber = await generateApplicationNumber();
+      const config = await SystemConfiguration.findOne();
+      const currentAcademicYear = config?.admissionCycle || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
       admission = await Admission.create({
         userId,
-        applicationNumber,
+        applicationNumber: null,
+        academicYear: currentAcademicYear,
         applicationStatus: 'DRAFT',
       });
+    } else if (!admission.academicYear) {
+      const config = await SystemConfiguration.findOne();
+      const currentAcademicYear = config?.admissionCycle || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+      await admission.update({ academicYear: currentAcademicYear });
     }
     return admission;
   }
@@ -273,13 +343,7 @@ class AdmissionService {
           where: { admissionId: admission.id },
           attributes: ['id', 'admissionId', 'firstName', 'middleName', 'lastName', 'caste', 'dateOfBirth', 'gender', 'category', 'religion', 'nationality', 'studiedInKarnataka', 'areaType']
         });
-        const docs = await AdmissionDocument.findOne({
-          where: { admissionId: admission.id },
-          attributes: ['photoUrl']
-        });
-        const result = personal ? (personal.toJSON ? personal.toJSON() : JSON.parse(JSON.stringify(personal))) : {};
-        result.photoUrl = docs?.photoUrl || null;
-        return result;
+        return personal;
       }
       case 'parent': {
         const data = await AdmissionParentDetail.findOne({
@@ -333,7 +397,7 @@ class AdmissionService {
       case 'documents': {
         const data = await AdmissionDocument.findOne({
           where: { admissionId: admission.id },
-          attributes: ['id', 'admissionId', 'photoUrl', 'signatureUrl', 'tenthMarksheetUrl', 'twelfthMarksheetUrl', 'cetScoreCardUrl', 'aadhaarUrl', 'casteCertificateUrl', 'domicileCertificateUrl', 'gapCertificateUrl']
+          attributes: ['id', 'admissionId', 'photoUrl', 'signatureUrl', 'tenthMarksheetUrl', 'twelfthMarksheetUrl', 'diplomaSemester5MarksheetUrl', 'diplomaSemester6MarksheetUrl', 'cetScoreCardUrl', 'aadhaarUrl', 'casteCertificateUrl', 'domicileCertificateUrl', 'gapCertificateUrl', 'feesPaidReceiptUrl']
         });
         return data;
       }
@@ -382,7 +446,15 @@ class AdmissionService {
   }): Promise<string> {
     const admission = await this.getOrCreate(userId);
     this.checkEditable(admission);
+    let applicationNumber = admission.applicationNumber;
+    if (!applicationNumber) {
+      const config = await SystemConfiguration.findOne();
+      const currentAcademicYear = admission.academicYear || config?.admissionCycle || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
+      applicationNumber = await generateAdmissionNumber(currentAcademicYear, payload.branchId);
+    }
+
     await admission.update({
+      applicationNumber,
       admissionType: payload.admissionType,
       branchId: payload.branchId ? String(payload.branchId) : null,
       aadhaar: payload.aadhaar,
@@ -604,6 +676,7 @@ class AdmissionService {
     academicYear?: string;
     startDate?: string;
     endDate?: string;
+    includeFullDetails?: boolean;
   }) {
     const {
       status,
@@ -620,7 +693,8 @@ class AdmissionService {
       district,
       academicYear,
       startDate,
-      endDate
+      endDate,
+      includeFullDetails = false,
     } = filters;
     const offset = (page - 1) * limit;
 
@@ -735,6 +809,12 @@ class AdmissionService {
         where: Object.keys(addressWhere).length > 0 ? addressWhere : undefined
       }
     ];
+
+    if (includeFullDetails) {
+      include.push({ model: AdmissionParentDetail, as: 'studentparentdetails', required: false });
+      include.push({ model: AdmissionAcademicDetail, as: 'studentacademicdetails', required: false });
+      include.push({ model: AdmissionDocument, as: 'studentdocuments', required: false });
+    }
 
     let order: any[] = [['createdAt', 'DESC']];
     if (sortBy === 'date') {

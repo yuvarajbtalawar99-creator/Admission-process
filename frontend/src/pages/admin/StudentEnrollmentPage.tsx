@@ -173,7 +173,12 @@ export const StudentEnrollmentPage: React.FC<StudentEnrollmentPageProps> = ({ de
       { label: 'Passport Photo',      url: d.photoUrl },
       { label: 'Signature',           url: d.signatureUrl },
       { label: '10th Marksheet',      url: d.tenthMarksheetUrl },
-      { label: isLateral ? 'Diploma Marks Card' : '12th Marksheet', url: d.twelfthMarksheetUrl },
+      ...(isLateral ? [
+        { label: 'Diploma 5th Sem Marksheet', url: d.diplomaSemester5MarksheetUrl },
+        { label: 'Diploma 6th Sem Marksheet', url: d.diplomaSemester6MarksheetUrl },
+      ] : [
+        { label: '12th Marksheet', url: d.twelfthMarksheetUrl },
+      ]),
       { label: 'CET Score Card',      url: d.cetScoreCardUrl },
       { label: 'Aadhaar Card',        url: d.aadhaarUrl },
       { label: 'Fees Paid Receipt',   url: d.feesPaidReceiptUrl },
@@ -240,7 +245,7 @@ export const StudentEnrollmentPage: React.FC<StudentEnrollmentPageProps> = ({ de
           <div className="relative w-full md:w-72">
             <input
               type="text"
-              placeholder="Search by name, email, app no..."
+              placeholder="Search by name, email, admission no..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-neutral-50 border border-neutral-200 rounded-xl py-2 px-3 pl-9 text-xs outline-none focus:ring-2 text-neutral-800 placeholder:text-neutral-400"

@@ -8,6 +8,7 @@ import Department from '../models/Department';
 import Fee from '../models/Fee';
 import Admission from '../models/Admission';
 import AuditLog from '../models/AuditLog';
+import SystemConfiguration from '../models/SystemConfiguration';
 import securityEvents from '../services/securityEvents.service';
 import db from '../config/database';
 
@@ -313,16 +314,25 @@ export const getAuditLogs = async (
   }
 };
 
-/** GET /api/admin/settings - Mock settings fetching */
+/** GET /api/admin/settings - Get system settings */
 export const getSettings = async (
   _req: AuthRequest, res: Response, next: NextFunction
 ): Promise<any> => {
   try {
+    let config = await SystemConfiguration.findOne();
+    if (!config) {
+      config = await SystemConfiguration.create({});
+    }
     return res.json({
       success: true,
       data: {
+        admissionOpen: config.admissionOpen,
+        collegeName: config.collegeName,
+        admissionCycle: config.admissionCycle,
+        admissionClosingDate: config.admissionClosingDate,
+        handbookUrl: config.handbookUrl,
         require2FA: true,
-        admissionsPortalOpen: true,
+        admissionsPortalOpen: config.admissionOpen,
         smtpServer: 'smtp.sendgrid.net',
         smsGateway: '************************'
       }
@@ -332,20 +342,62 @@ export const getSettings = async (
   }
 };
 
-/** PUT /api/admin/settings - Mock settings update */
+/** PUT /api/admin/settings - Update system settings */
 export const updateSettings = async (
   req: AuthRequest, res: Response, next: NextFunction
 ): Promise<any> => {
   try {
-    if (req.user!.role !== 'SUPER_ADMIN') {
-       return res.status(403).json({ success: false, error: 'Only SUPER_ADMIN can modify system settings.' });
+    let config = await SystemConfiguration.findOne();
+    if (!config) {
+      config = await SystemConfiguration.create({});
     }
 
-    // Update settings in DB/Env (mocked for now)
+    if (typeof req.body.admissionOpen === 'boolean') {
+      config.admissionOpen = req.body.admissionOpen;
+    }
+
+    if (req.body.admissionCycle || req.body.academicYear) {
+      config.admissionCycle = req.body.admissionCycle || req.body.academicYear;
+    }
+
+    if (req.body.admissionClosingDate !== undefined) {
+      config.admissionClosingDate = req.body.admissionClosingDate ? new Date(req.body.admissionClosingDate) : null;
+    }
+
+    await config.save();
+
     return res.json({
       success: true,
-      message: 'System settings updated successfully.',
-      data: req.body
+      message: `System settings updated successfully.`,
+      data: config
+    });
+  } catch (err) {
+    return next(err);
+  }
+};
+
+/** POST /api/admin/settings/handbook - Upload or replace Admission Handbook PDF */
+export const uploadHandbook = async (
+  req: AuthRequest, res: Response, next: NextFunction
+): Promise<any> => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No PDF file uploaded' });
+    }
+
+    const handbookUrl = `/uploads/${req.file.filename}`;
+    let config = await SystemConfiguration.findOne();
+    if (!config) {
+      config = await SystemConfiguration.create({});
+    }
+
+    config.handbookUrl = handbookUrl;
+    await config.save();
+
+    return res.json({
+      success: true,
+      message: 'Admission Handbook PDF uploaded successfully.',
+      handbookUrl
     });
   } catch (err) {
     return next(err);

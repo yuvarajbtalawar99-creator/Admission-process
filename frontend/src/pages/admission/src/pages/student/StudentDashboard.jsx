@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getAcademicYear } from '../../../../../utils/date.util';
 import {
     User,
     GraduationCap,
@@ -40,6 +41,7 @@ import { downloadAdmissionPDF } from '../../utils/pdfGenerator';
 const StudentDashboard = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
+    const [sysConfig, setSysConfig] = useState(null);
     const {
         stepStatus,
         loading,
@@ -47,6 +49,22 @@ const StudentDashboard = () => {
         isStepAccessible,
         refetch
     } = useApplicationStatus();
+
+    useEffect(() => {
+        api.get('/admin/settings')
+            .then(res => {
+                if (res.data?.success && res.data?.data) {
+                    setSysConfig(res.data.data);
+                }
+            })
+            .catch(() => {
+                api.get('/system/config').then(res => {
+                    if (res.data?.success && res.data?.data) {
+                        setSysConfig(res.data.data);
+                    }
+                }).catch(() => {});
+            });
+    }, []);
 
     if (loading) {
         return (
@@ -80,6 +98,21 @@ const StudentDashboard = () => {
     const isSubmitted = applicationStatus && applicationStatus !== 'DRAFT' && applicationStatus !== 'CORRECTION_REQUIRED';
     const timeline = stepStatus?.timeline || {};
 
+    const closingDateIso = sysConfig?.admissionClosingDate;
+    const isClosed = closingDateIso ? (new Date() > new Date(closingDateIso)) : false;
+
+    const computeFeeStatusText = (status, data) => {
+        if (data?.applicationFeeStatus) return data.applicationFeeStatus;
+        if (status === 'CANCELLED') return 'Refund Completed';
+        if (status === 'CANCELLATION_REQUESTED') return 'Refund Initiated';
+        if (status === 'FEE_VERIFIED' || status === 'ENROLLED' || status === 'USN_ASSIGNED' || data?.feesVerified) return 'Paid';
+        if (status === 'FEE_RECEIPT_UPLOADED' || data?.admissionFeeReceiptUrl) return 'Payment Verification Pending';
+        if (data?.admissionType === 'MANAGEMENT') return 'Not Applicable';
+        return 'Pending Payment';
+    };
+
+    const feeStatusText = computeFeeStatusText(applicationStatus, stepStatus);
+
     // ═══════ SUBMITTED STATUS DASHBOARD ═══════
     if (isSubmitted) {
         return <SubmittedDashboard
@@ -88,6 +121,9 @@ const StudentDashboard = () => {
             timeline={timeline}
             navigate={navigate}
             refetch={refetch}
+            closingDateIso={closingDateIso}
+            feeStatusText={feeStatusText}
+            isClosed={isClosed}
         />;
     }
 
@@ -148,7 +184,7 @@ const StudentDashboard = () => {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Application Dashboard</h1>
-                    <p className="text-slate-500 max-w-xl">Complete the following steps to submit your application for the 2026 Academic Year.</p>
+                    <p className="text-slate-500 max-w-xl">Complete the following steps to submit your application for the {stepStatus?.academicYear || getAcademicYear()} Academic Year.</p>
                 </div>
 
                 {/* Progress Card */}
@@ -289,54 +325,105 @@ const StudentDashboard = () => {
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 mb-1">Need Help?</h3>
                     <p className="text-sm text-slate-600 mb-6 leading-relaxed">Our admission officers are here to assist you with the process.</p>
-                    <button className="mt-auto py-2.5 px-4 rounded-lg border border-primary-600 text-primary-600 font-semibold text-sm hover:bg-primary-600 hover:text-white transition-all duration-300">
+                    <button 
+                        onClick={() => navigate('/admission/support')}
+                        className="mt-auto py-2.5 px-4 rounded-lg border border-primary-600 text-primary-600 font-semibold text-sm hover:bg-primary-600 hover:text-white transition-all duration-300"
+                    >
                         Contact Support
                     </button>
                 </div>
             </div>
 
-            {/* Footer */}
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="flex items-center gap-4 group">
-                    <div className="bg-amber-100 p-3 rounded-full text-amber-600 group-hover:scale-110 transition-transform">
-                        <Calendar size={24} />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Application Deadline</p>
-                        <p className="text-base font-bold text-slate-900">August 15, 2024 (11:59 PM)</p>
-                    </div>
+            {/* Dynamic Footer */}
+            <DashboardFooterInfo closingDateIso={closingDateIso} feeStatusText={feeStatusText} isClosed={isClosed} />
+        </div>
+    );
+};
+
+// ═══════════════════════════════════════════════
+//  DYNAMIC DASHBOARD FOOTER INFO COMPONENT
+// ═══════════════════════════════════════════════
+const DashboardFooterInfo = ({ closingDateIso, feeStatusText, isClosed }) => {
+    const handleHandbookDownload = () => {
+        window.open('/api/public/handbook', '_blank');
+    };
+
+    const formattedClosing = () => {
+        if (isClosed) {
+            return (
+                <span className="text-rose-600 font-black flex items-center gap-1.5">
+                    <span className="inline-block size-2 rounded-full bg-rose-600 animate-pulse" />
+                    Admissions Closed
+                </span>
+            );
+        }
+        if (!closingDateIso) return '31 Aug 2026 • 11:59 PM';
+        const d = new Date(closingDateIso);
+        if (isNaN(d.getTime())) return '31 Aug 2026 • 11:59 PM';
+        const formattedDate = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const formattedTime = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+        return `${formattedDate} • ${formattedTime}`;
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
+            {/* 1. ADMISSION CLOSING DATE */}
+            <div className="flex items-center gap-4 group">
+                <div className={`p-3 rounded-full group-hover:scale-110 transition-transform ${isClosed ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
+                    <Calendar size={24} />
                 </div>
-                <div className="flex items-center gap-4 group">
-                    <div className="bg-blue-100 p-3 rounded-full text-blue-600 group-hover:scale-110 transition-transform">
-                        <FileText size={24} />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Admission Handbook</p>
-                        <a href="#" className="text-base font-bold text-primary-600 hover:underline flex items-center gap-1.5">
-                            Download Guide <Download size={14} />
-                        </a>
-                    </div>
+                <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        {isClosed ? 'Status' : 'Admission Closes'}
+                    </p>
+                    <p className="text-base font-bold text-slate-900">{formattedClosing()}</p>
                 </div>
-                <div className="flex items-center gap-4 group">
-                    <div className="bg-purple-100 p-3 rounded-full text-purple-600 group-hover:scale-110 transition-transform">
-                        <CreditCard size={24} />
-                    </div>
-                    <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Application Fee Status</p>
-                        <p className="text-base font-bold text-slate-900">⏳ Pending Submission</p>
-                    </div>
+            </div>
+
+            {/* 2. ADMISSION HANDBOOK */}
+            <div className="flex items-center gap-4 group">
+                <div className="bg-blue-100 p-3 rounded-full text-blue-600 group-hover:scale-110 transition-transform">
+                    <FileText size={24} />
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Admission Handbook</p>
+                    <button
+                        type="button"
+                        onClick={handleHandbookDownload}
+                        className="text-base font-bold text-primary-600 hover:underline flex items-center gap-1.5 text-left cursor-pointer"
+                    >
+                        Download Handbook <Download size={14} />
+                    </button>
+                </div>
+            </div>
+
+            {/* 3. APPLICATION FEE STATUS */}
+            <div className="flex items-center gap-4 group">
+                <div className="bg-purple-100 p-3 rounded-full text-purple-600 group-hover:scale-110 transition-transform">
+                    <CreditCard size={24} />
+                </div>
+                <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Application Fee Status</p>
+                    <p className="text-base font-bold text-slate-900 flex items-center gap-1.5">
+                        <span className={`inline-block size-2.5 rounded-full ${
+                            feeStatusText === 'Paid' ? 'bg-emerald-500' :
+                            feeStatusText === 'Payment Verification Pending' ? 'bg-amber-500' :
+                            feeStatusText === 'Refund Completed' ? 'bg-purple-500' :
+                            'bg-slate-400'
+                        }`} />
+                        {feeStatusText || 'Pending Payment'}
+                    </p>
                 </div>
             </div>
         </div>
     );
 };
 
-
 // ═══════════════════════════════════════════════
 //  SUBMITTED STATUS DASHBOARD (Inner Component)
 // ═══════════════════════════════════════════════
 
-const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate, refetch }) => {
+const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate, refetch, closingDateIso, feeStatusText, isClosed }) => {
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [cancelReason, setCancelReason] = useState('');
     const [cancelRemarks, setCancelRemarks] = useState('');
@@ -474,7 +561,7 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
                         </div>
                         <p className="text-slate-600 text-sm font-medium leading-relaxed max-w-lg">{meta.desc}</p>
                         <p className="text-xs text-slate-400">
-                            Application Number: <span className="font-bold text-slate-700">{stepStatus?.applicationNumber || stepStatus?.studentId}</span>
+                            Admission Number: <span className="font-bold text-slate-700">{stepStatus?.applicationNumber || stepStatus?.studentId}</span>
                         </p>
                     </div>
                 </div>
@@ -740,19 +827,27 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
                                 </button>
                             )}
 
-                            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5 flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/admission/support')}
+                                className="w-full bg-white border border-slate-200 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg hover:border-primary-200 transition-all group text-left cursor-pointer"
+                            >
+                                <div className="w-12 h-12 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center group-hover:bg-primary-600 group-hover:text-white transition-colors">
                                     <LifeBuoy size={22} />
                                 </div>
                                 <div className="text-left">
                                     <p className="font-bold text-slate-900 text-sm">Need Help?</p>
                                     <p className="text-xs text-slate-400">Contact admissions office</p>
                                 </div>
-                            </div>
+                                <ArrowRight size={16} className="ml-auto text-slate-300 group-hover:text-primary-600 transition-colors" />
+                            </button>
                         </>
                     )}
                 </div>
             </div>
+
+            {/* Dynamic Footer */}
+            <DashboardFooterInfo closingDateIso={closingDateIso} feeStatusText={feeStatusText} isClosed={isClosed} />
 
             {/* Cancellation Request Modal */}
             {showCancelModal && (

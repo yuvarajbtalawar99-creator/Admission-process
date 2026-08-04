@@ -161,7 +161,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
         const board = data.sslcBoard;
         if (board === 'OTHER') {
-            return ""; 
+            return "";
         }
 
         const config = BOARDS_CONFIG[board];
@@ -178,7 +178,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
     const handleFieldChange = (name, val) => {
         const errorMsg = validateSubjectMark(name, val);
-        
+
         setValidationErrors(prev => ({
             ...prev,
             [name]: errorMsg
@@ -202,7 +202,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
             } else {
                 setValidationErrors(prev => ({ ...prev, sslcMaxMarksInput: "" }));
             }
-            
+
             if (obtained < 0) {
                 setValidationErrors(prev => ({ ...prev, sslcMarksObtainedInput: "Marks cannot be negative." }));
             } else if (maxMarks > 0 && obtained > maxMarks) {
@@ -311,6 +311,38 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
         return true;
     };
 
+    const validatePucMark = (val) => {
+        if (val === "" || val === undefined || val === null) return "";
+        const num = Number(val);
+        if (isNaN(num)) return "Enter a valid number.";
+        if (num < 0 || num > 100) return "Marks cannot exceed 100.";
+        return "";
+    };
+
+    const isPucFormValid = () => {
+        if (data.qualification === 'DIPLOMA') return true;
+
+        const subjectKeys = ['physicsMarks', 'chemistryMarks', 'mathsMarks', 'optionalMarks'];
+        for (const key of subjectKeys) {
+            const val = data[key];
+            if (val !== undefined && val !== "" && val !== null) {
+                const num = Number(val);
+                if (isNaN(num) || num < 0 || num > 100) return false;
+            }
+            if (validationErrors[key]) return false;
+        }
+
+        const phys = parseFloat(data.physicsMarks) || 0;
+        const math = parseFloat(data.mathsMarks) || 0;
+        const chem = parseFloat(data.chemistryMarks) || 0;
+        const opt = parseFloat(data.optionalMarks) || 0;
+        const total = phys + math + chem + opt;
+
+        if (total > 400) return false;
+
+        return true;
+    };
+
     const calculatePUC = (updatedData = data) => {
         const phys = parseFloat(updatedData.physicsMarks) || 0;
         const math = parseFloat(updatedData.mathsMarks) || 0;
@@ -319,7 +351,10 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
         const max = 400;
 
         const agg = phys + math + chem + opt;
-        const perc = (agg / max) * 100;
+        let perc = (agg / max) * 100;
+        if (perc > 100) perc = 100;
+        if (perc < 0) perc = 0;
+
         updateData({
             pucAggregate: agg,
             pucPercentage: perc.toFixed(2),
@@ -341,6 +376,11 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
         if (!isSslcFormValid()) {
             toast.error("Please fill all subject marks correctly before continuing.");
+            return;
+        }
+
+        if (data.qualification !== 'DIPLOMA' && !isPucFormValid()) {
+            toast.error("Please correct the PUC subject marks before continuing. Marks cannot exceed 100 per subject.");
             return;
         }
 
@@ -417,6 +457,15 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
     const handlePucChange = (e) => {
         const { name, value } = e.target;
         const updatedFields = { [name]: value };
+
+        if (['physicsMarks', 'chemistryMarks', 'mathsMarks', 'optionalMarks'].includes(name)) {
+            const err = validatePucMark(value);
+            setValidationErrors(prev => ({
+                ...prev,
+                [name]: err
+            }));
+        }
+
         updateData(updatedFields);
         calculatePUC({ ...data, ...updatedFields });
     };
@@ -472,10 +521,10 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
             }
 
             const isOther = board === 'OTHER';
-            const val = isOther 
+            const val = isOther
                 ? (field.name === 'sslcMaxMarksInput' ? (data.sslcMaxMarks || '') : (data.sslcMarksObtained || ''))
                 : (subjectMarks[field.name] || '');
-            
+
             const error = isOther
                 ? (field.name === 'sslcMaxMarksInput' ? validationErrors.sslcMaxMarksInput : validationErrors.sslcMarksObtainedInput)
                 : validationErrors[field.name];
@@ -505,26 +554,26 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
         });
     };
 
-    const sslcRegProps = data.sslcBoard === 'CBSE' 
+    const sslcRegProps = data.sslcBoard === 'CBSE'
         ? { minLength: 6, maxLength: 6, pattern: "\\d{6}", title: "Must be exactly 6 digits (Numeric only)" }
-        : data.sslcBoard === 'STATE' 
-        ? { minLength: 9, maxLength: 9, pattern: "\\d{9}", title: "Must be exactly 9 digits (Numeric only)" }
-        : { minLength: 4, maxLength: 20, title: "Enter valid register number" };
+        : data.sslcBoard === 'STATE'
+            ? { minLength: 9, maxLength: 9, pattern: "\\d{9}", title: "Must be exactly 9 digits (Numeric only)" }
+            : { minLength: 4, maxLength: 20, title: "Enter valid register number" };
 
-    const pucRegProps = data.pucBoard === 'STATE' 
+    const pucRegProps = data.pucBoard === 'STATE'
         ? { minLength: 7, maxLength: 10, title: "Usually 7-10 characters" }
-        : data.pucBoard === 'CBSE' 
-        ? { minLength: 6, maxLength: 8, title: "Usually 6-8 characters" }
-        : { minLength: 4, maxLength: 20, title: "Enter valid register number" };
+        : data.pucBoard === 'CBSE'
+            ? { minLength: 6, maxLength: 8, title: "Usually 6-8 characters" }
+            : { minLength: 4, maxLength: 20, title: "Enter valid register number" };
 
     const isSslcRegInvalid = data.sslcRegisterNumber && data.sslcBoard && (
-        sslcRegProps.pattern 
+        sslcRegProps.pattern
             ? !new RegExp(`^${sslcRegProps.pattern}$`).test(data.sslcRegisterNumber)
             : data.sslcRegisterNumber.length < sslcRegProps.minLength || data.sslcRegisterNumber.length > sslcRegProps.maxLength
     );
 
     const isPucRegInvalid = data.pucRegisterNumber && data.pucBoard && (
-        pucRegProps.pattern 
+        pucRegProps.pattern
             ? !new RegExp(`^${pucRegProps.pattern}$`).test(data.pucRegisterNumber)
             : data.pucRegisterNumber.length < pucRegProps.minLength || data.pucRegisterNumber.length > pucRegProps.maxLength
     );
@@ -534,11 +583,11 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
             {/* SSLC Section */}
             <div>
                 <SectionHeader icon={School} title="SSLC (10th Standard) Details" subtitle="Secondary education academic records" />
-                
+
                 {/* Core Board details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-5 pb-5 border-b border-slate-100">
                     <div className="space-y-1.5 col-span-1 md:col-span-2 lg:col-span-4">
-                        <label className="text-sm font-medium text-slate-700">School Name (As per SSLC) <span className="text-red-500">*</span></label>
+                        <label className="text-sm font-medium text-slate-700">School Name ( SSLC) <span className="text-red-500">*</span></label>
                         <input required type="text" name="sslcSchool" className="input-premium h-11 uppercase" value={data.sslcSchool || ''} onChange={handleChange} placeholder="Enter your 10th standard school name" />
                         {!data.sslcSchool && applicationStatus === 'REJECTED' && (
                             <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
@@ -643,117 +692,166 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
             {/* PUC Details (For Fresh Admissions) */}
             {data.qualification !== 'DIPLOMA' && (
-            <div>
-                <SectionHeader icon={GraduationCap} title="PUC (12th Standard) Details" subtitle="Required — Senior secondary records" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
-                        <label className="text-sm font-medium text-slate-700">School / College Name <span className="text-red-500">*</span></label>
-                        <input required type="text" name="pucSchool" className="input-premium h-11 uppercase" value={data.pucSchool || ''} onChange={handleChange} placeholder="Enter your 12th standard school/college name" />
-                        {!data.pucSchool && applicationStatus === 'REJECTED' && (
-                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                        )}
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Stream <span className="text-red-500">*</span></label>
-                        <SelectDropdown
-                            id="pucStream" name="pucStream" required
-                            value={data.pucStream || 'SCIENCE'}
-                            onChange={(val) => handleChange({ target: { name: 'pucStream', value: val } })}
-                            placeholder="Select stream..."
-                            options={[
-                                { value: 'SCIENCE', label: 'Science' },
-                            ]}
-                        />
-                        {!data.pucStream && applicationStatus === 'REJECTED' && (
-                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                        )}
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Board</label>
-                        <SelectDropdown
-                            id="pucBoard" name="pucBoard"
-                            value={data.pucBoard || ''}
-                            onChange={(val) => handleChange({ target: { name: 'pucBoard', value: val } })}
-                            placeholder="Select board..."
-                            options={[
-                                { value: 'STATE', label: 'State Board' },
-                                { value: 'CBSE', label: 'CBSE' },
-                                { value: 'ICSE', label: 'ICSE' },
-                                { value: 'OTHER', label: 'Other' },
-                            ]}
-                        />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Year of Passing</label>
-                        <input type="number" name="pucYear" className="input-premium h-11" value={data.pucYear || ''} onChange={handleChange} placeholder="Enter year of passing" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Register Number</label>
-                        <input type="text" name="pucRegisterNumber" className="input-premium h-11 uppercase" value={data.pucRegisterNumber || ''} onChange={handleChange} placeholder="Enter register number" {...pucRegProps} />
-                        {isPucRegInvalid && <p className="text-[10px] text-red-500 font-medium mt-1">⚠️ {pucRegProps.title}</p>}
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Physics Marks</label>
-                        <input type="number" name="physicsMarks" className="input-premium h-11" value={data.physicsMarks || ''} onChange={handlePucChange} placeholder="Enter physics marks" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Maths Marks</label>
-                        <input type="number" name="mathsMarks" className="input-premium h-11" value={data.mathsMarks || ''} onChange={handlePucChange} placeholder="Enter maths marks" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Chemistry</label>
-                        <input type="number" name="chemistryMarks" className="input-premium h-11" value={data.chemistryMarks || ''} onChange={handlePucChange} placeholder="Enter chemistry marks" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Biology/Computer Science</label>
-                        <input type="number" name="optionalMarks" className="input-premium h-11" value={data.optionalMarks || ''} onChange={handlePucChange} placeholder="Enter optional marks" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Percentage (%)</label>
-                        <input readOnly type="number" step="0.01" name="pucPercentage" className="input-premium h-11 text-primary-700 font-semibold bg-primary-50 border-primary-100 cursor-not-allowed" value={data.pucPercentage || ''} placeholder="0.00" />
+                <div>
+                    <SectionHeader icon={GraduationCap} title="PUC (12th Standard) Details" subtitle="Required — Senior secondary records" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div className="space-y-1.5 md:col-span-2 lg:col-span-3">
+                            <label className="text-sm font-medium text-slate-700">School / College Name <span className="text-red-500">*</span></label>
+                            <input required type="text" name="pucSchool" className="input-premium h-11 uppercase" value={data.pucSchool || ''} onChange={handleChange} placeholder="Enter your 12th standard school/college name" />
+                            {!data.pucSchool && applicationStatus === 'REJECTED' && (
+                                <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Board</label>
+                            <SelectDropdown
+                                id="pucBoard" name="pucBoard"
+                                value={data.pucBoard || ''}
+                                onChange={(val) => handleChange({ target: { name: 'pucBoard', value: val } })}
+                                placeholder="Select board..."
+                                options={[
+                                    { value: 'STATE', label: 'State Board' },
+                                    { value: 'CBSE', label: 'CBSE' },
+                                    { value: 'ICSE', label: 'ICSE' },
+                                    { value: 'OTHER', label: 'Other' },
+                                ]}
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Year of Passing</label>
+                            <input type="number" name="pucYear" className="input-premium h-11" value={data.pucYear || ''} onChange={handleChange} placeholder="Enter year of passing" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Register Number</label>
+                            <input type="text" name="pucRegisterNumber" className="input-premium h-11 uppercase" value={data.pucRegisterNumber || ''} onChange={handleChange} placeholder="Enter register number" {...pucRegProps} />
+                            {isPucRegInvalid && <p className="text-[10px] text-red-500 font-medium mt-1">⚠️ {pucRegProps.title}</p>}
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Physics Marks (Max 100)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                name="physicsMarks"
+                                className={`input-premium h-11 ${validationErrors.physicsMarks ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                                value={data.physicsMarks || ''}
+                                onChange={handlePucChange}
+                                placeholder="Enter physics marks"
+                            />
+                            {validationErrors.physicsMarks && (
+                                <p className="text-red-500 text-[11px] font-semibold mt-1 animate-fade-in">
+                                    {validationErrors.physicsMarks}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Chemistry Marks (Max 100)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                name="chemistryMarks"
+                                className={`input-premium h-11 ${validationErrors.chemistryMarks ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                                value={data.chemistryMarks || ''}
+                                onChange={handlePucChange}
+                                placeholder="Enter chemistry marks"
+                            />
+                            {validationErrors.chemistryMarks && (
+                                <p className="text-red-500 text-[11px] font-semibold mt-1 animate-fade-in">
+                                    {validationErrors.chemistryMarks}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Maths Marks (Max 100)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                name="mathsMarks"
+                                className={`input-premium h-11 ${validationErrors.mathsMarks ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                                value={data.mathsMarks || ''}
+                                onChange={handlePucChange}
+                                placeholder="Enter maths marks"
+                            />
+                            {validationErrors.mathsMarks && (
+                                <p className="text-red-500 text-[11px] font-semibold mt-1 animate-fade-in">
+                                    {validationErrors.mathsMarks}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Biology / Computer Science (Max 100)</label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                name="optionalMarks"
+                                className={`input-premium h-11 ${validationErrors.optionalMarks ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
+                                value={data.optionalMarks || ''}
+                                onChange={handlePucChange}
+                                placeholder="Enter optional marks"
+                            />
+                            {validationErrors.optionalMarks && (
+                                <p className="text-red-500 text-[11px] font-semibold mt-1 animate-fade-in">
+                                    {validationErrors.optionalMarks}
+                                </p>
+                            )}
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Maximum Marks</label>
+                            <input readOnly type="number" name="pucMaxMarks" className="input-premium h-11 text-slate-700 bg-slate-50 border-slate-200 cursor-not-allowed font-semibold" value={400} placeholder="400" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Total Obtained</label>
+                            <input readOnly type="number" name="pucAggregate" className="input-premium h-11 text-slate-700 bg-slate-50 border-slate-200 cursor-not-allowed font-semibold" value={data.pucAggregate || 0} placeholder="0" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Percentage (%)</label>
+                            <input readOnly type="number" step="0.01" name="pucPercentage" className="input-premium h-11 text-primary-700 font-semibold bg-primary-50 border-primary-100 cursor-not-allowed" value={data.pucPercentage || ''} placeholder="0.00" />
+                        </div>
                     </div>
                 </div>
-            </div>
             )}
 
             {/* Diploma Details (For Lateral Entry) */}
             {data.qualification === 'DIPLOMA' && (
-            <div>
-                <SectionHeader icon={BookOpen} title="Diploma Details" subtitle="Required — Vocational education records" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">University</label>
-                        <input type="text" name="diplomaUniversity" className="input-premium h-11 uppercase" value={data.diplomaUniversity || ''} onChange={handleChange} placeholder="Enter university" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Year of Passing</label>
-                        <input type="number" name="diplomaYear" className="input-premium h-11" value={data.diplomaYear || ''} onChange={handleChange} placeholder="Enter year of passing" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Register Number</label>
-                        <input type="text" name="diplomaRegisterNumber" className="input-premium h-11 uppercase" value={data.diplomaRegisterNumber || ''} onChange={handleChange} placeholder="Enter register number" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Final Year Max Marks</label>
-                        <input type="number" name="diplomaFinalYearMaxMarks" className="input-premium h-11" value={data.diplomaFinalYearMaxMarks || ''} onChange={handleChange} placeholder="Enter final year max marks" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Final Year Obtained</label>
-                        <input type="number" name="diplomaFinalYearObtained" className="input-premium h-11" value={data.diplomaFinalYearObtained || ''} onChange={handleChange} placeholder="Enter final year marks obtained" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-700">Percentage (%)</label>
-                        <input readOnly type="number" step="0.01" name="diplomaPercentage" className="input-premium h-11 text-primary-700 font-semibold bg-primary-50 border-primary-100 cursor-not-allowed" value={data.diplomaPercentage || ''} placeholder="0.00" />
+                <div>
+                    <SectionHeader icon={BookOpen} title="Diploma Details" subtitle="Required — Vocational education records" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">University</label>
+                            <input type="text" name="diplomaUniversity" className="input-premium h-11 uppercase" value={data.diplomaUniversity || ''} onChange={handleChange} placeholder="Enter university" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Year of Passing</label>
+                            <input type="number" name="diplomaYear" className="input-premium h-11" value={data.diplomaYear || ''} onChange={handleChange} placeholder="Enter year of passing" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Register Number</label>
+                            <input type="text" name="diplomaRegisterNumber" className="input-premium h-11 uppercase" value={data.diplomaRegisterNumber || ''} onChange={handleChange} placeholder="Enter register number" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Final Year Max Marks</label>
+                            <input type="number" name="diplomaFinalYearMaxMarks" className="input-premium h-11" value={data.diplomaFinalYearMaxMarks || ''} onChange={handleChange} placeholder="Enter final year max marks" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Final Year Obtained</label>
+                            <input type="number" name="diplomaFinalYearObtained" className="input-premium h-11" value={data.diplomaFinalYearObtained || ''} onChange={handleChange} placeholder="Enter final year marks obtained" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-slate-700">Percentage (%)</label>
+                            <input readOnly type="number" step="0.01" name="diplomaPercentage" className="input-premium h-11 text-primary-700 font-semibold bg-primary-50 border-primary-100 cursor-not-allowed" value={data.diplomaPercentage || ''} placeholder="0.00" />
+                        </div>
                     </div>
                 </div>
-            </div>
             )}
 
             <div className="pt-4 sm:pt-6 border-t border-slate-100 flex items-center justify-between gap-3 sticky bottom-0 bg-white/95 backdrop-blur-md p-3 sm:p-0 -mx-4 -mb-4 sm:mx-0 sm:mb-0 sm:static sm:bg-transparent z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:shadow-none">
                 <button type="button" onClick={onPrev} className="btn-secondary min-h-[44px] h-11 px-5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
                     <ChevronLeft size={16} /> Back
                 </button>
-                <button type="submit" disabled={loading || !isSslcFormValid()} className={`btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold ${(loading || !isSslcFormValid()) ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}>
+                <button type="submit" disabled={loading || !isSslcFormValid() || !isPucFormValid()} className={`btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold ${(loading || !isSslcFormValid() || !isPucFormValid()) ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}>
                     {loading ? <Loader2 size={18} className="animate-spin" /> : (
                         <>Save & Continue <ChevronRight size={16} /></>
                     )}

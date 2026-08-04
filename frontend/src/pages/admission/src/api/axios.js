@@ -38,8 +38,8 @@ api.interceptors.response.use(
     },
     (error) => {
         stopLoadingCallback();
-        // If unauthenticated/expired session, clear token and redirect to login
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        // If unauthenticated (401), clear token and redirect to login
+        if (error.response && error.response.status === 401) {
             const isAuthRoute = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/register');
             if (!isAuthRoute) {
                 forceLogout(true);

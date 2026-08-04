@@ -14,7 +14,7 @@ import authRoutes from './routes/auth.routes';
 import systemRoutes from './routes/system.routes';
 import adminRoutes from './routes/admin.routes';
 import adminOfficeRouter from './routes/admin-office.routes';
-import { getBranches } from './controllers/admission.controller';
+import { getBranches, downloadHandbook } from './controllers/admission.controller';
 import { studentRouter, applicationRouter, adminAdmissionRouter } from './routes/admission.routes';
 import principalRoutes from './routes/principal.routes';
 const app: Application = express();
@@ -71,6 +71,11 @@ v1Router.use('/system', systemRoutes);
 
 // Branches list (public-ish, used by admission Step 1)
 v1Router.get('/branches', getBranches as any);
+
+// Public Admission Handbook (No authentication required)
+v1Router.get('/public/handbook', downloadHandbook as any);
+v1Router.get('/public/admission-handbook.pdf', downloadHandbook as any);
+v1Router.get('/application/handbook', downloadHandbook as any);
 
 // Districts list (used by admission Step 4 dropdown)
 v1Router.get('/address/districts', (_req: Request, res: Response) => {

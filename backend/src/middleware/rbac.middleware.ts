@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from './auth.middleware';
 import Student from '../models/Student';
+import Admission from '../models/Admission';
 import Parent from '../models/Parent';
 
 // Role-to-Permissions Matrix mapping roles to allowed operations
@@ -107,16 +108,17 @@ export const enforceTenantIsolation = async (
 
     const { id: userId, role } = req.user;
 
-    // 1. If user is Student, enforce they only access their own student record
+    // 1. If user is Student, enforce they only access their own student/admission record
     if (role === 'STUDENT') {
       const student = await Student.findOne({ where: { userId } });
-      if (!student) {
-        return res.status(403).json({ error: 'Access Denied. Student record not found.' });
+      const admission = await Admission.findOne({ where: { userId } });
+      if (!student && !admission) {
+        return res.status(403).json({ error: 'Access Denied. Student/Admission record not found.' });
       }
 
       // Check if trying to view another student ID
       const targetStudentId = req.params.studentId || req.params.id || req.body.studentId;
-      if (targetStudentId && targetStudentId !== student.id) {
+      if (targetStudentId && student && targetStudentId !== student.id) {
         return res.status(403).json({ error: 'Access Denied. You can only access your own data.' });
       }
     }

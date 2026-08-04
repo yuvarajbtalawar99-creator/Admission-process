@@ -36,6 +36,7 @@ export interface AdmissionApplication {
   resubmittedAt?: string | null;
   reviewedAt: string | null;
   approvedByAdminId?: string | null;
+  approvedByAdminAt?: string | null;
   approvalRemarks?: string | null;
   feeReceiptUploadedAt?: string | null;
   admissionFeeReceiptUrl?: string | null;
@@ -43,6 +44,7 @@ export interface AdmissionApplication {
   feeVerifiedAt?: string | null;
   feeVerificationRemarks?: string | null;
   feeRejectionReason?: string | null;
+  enrolledAt?: string | null;
   createdAt: string;
   updatedAt: string;
   verifiedAt?: string | null;
@@ -77,6 +79,7 @@ export interface AdmissionApplication {
     lastName: string;
     middleName: string | null;
     dateOfBirth: string | null;
+    dob?: string | null;
     gender: string | null;
     category: string | null;
     religion: string | null;
@@ -86,6 +89,10 @@ export interface AdmissionApplication {
     caste?: string | null;
     studiedInKarnataka?: boolean | null;
     areaType?: string | null;
+    aadhaarNumber?: string | null;
+    bloodGroup?: string | null;
+    maritalStatus?: string | null;
+    alternatePhone?: string | null;
   } | null;
   studentparentdetails: {
     fatherName: string | null;
@@ -98,6 +105,7 @@ export interface AdmissionApplication {
     motherPhone: string | null;
     guardianName: string | null;
     guardianPhone: string | null;
+    parentPhone?: string | null;
   } | null;
   studentaddress: {
     currentAddressLine1: string | null;
@@ -110,6 +118,11 @@ export interface AdmissionApplication {
     permanentCity: string | null;
     permanentState: string | null;
     permanentPincode: string | null;
+    permanentAddress?: string | null;
+    currentAddress?: string | null;
+    permanentDistrict?: string | null;
+    currentDistrict?: string | null;
+    permanentTaluk?: string | null;
   } | null;
   studentacademicdetails: {
     tenthSchool: string | null;
@@ -118,14 +131,21 @@ export interface AdmissionApplication {
     tenthPercentage: number | null;
     tenthRegisterNumber?: string | null;
     tenthMarksObtained?: number | null;
+    tenthObtainedMarks?: number | null;
     tenthMaxMarks?: number | null;
     tenthAttempts?: number | null;
+    sslcBoard?: string | null;
+    sslcSchool?: string | null;
+    sslcYear?: number | null;
     twelfthSchool: string | null;
+    twelfthCollege?: string | null;
     twelfthBoard: string | null;
     twelfthPassingYear: number | null;
     twelfthPercentage: number | null;
     twelfthStream: string | null;
     twelfthRegisterNumber?: string | null;
+    twelfthMaxMarks?: number | null;
+    twelfthObtainedMarks?: number | null;
     twelfthAttempts?: number | null;
     physicsMarks?: number | null;
     mathsMarks?: number | null;
@@ -142,6 +162,8 @@ export interface AdmissionApplication {
     cetScore: number | null;
     cetRank: number | null;
     cetYear: number | null;
+    entranceRank?: number | null;
+    entranceAttempts?: number | null;
     hasGap: boolean;
     gapReason: string | null;
   } | null;
@@ -150,6 +172,8 @@ export interface AdmissionApplication {
     signatureUrl: string | null;
     tenthMarksheetUrl: string | null;
     twelfthMarksheetUrl: string | null;
+    diplomaSemester5MarksheetUrl?: string | null;
+    diplomaSemester6MarksheetUrl?: string | null;
     cetScoreCardUrl: string | null;
     aadhaarUrl: string | null;
     casteCertificateUrl: string | null;
@@ -203,6 +227,7 @@ const admissionService = {
     academicYear?: string;
     startDate?: string;
     endDate?: string;
+    includeFullDetails?: boolean;
   }): Promise<AdmissionListResult> {
     const query = new URLSearchParams();
     if (params.page)     query.set('page',     String(params.page));
@@ -220,6 +245,7 @@ const admissionService = {
     if (params.academicYear) query.set('academicYear', params.academicYear);
     if (params.startDate) query.set('startDate', params.startDate);
     if (params.endDate) query.set('endDate', params.endDate);
+    if (params.includeFullDetails) query.set('includeFullDetails', 'true');
 
     const res = await API.get(`/admin/admissions?${query.toString()}`);
     const data = res.data.data;

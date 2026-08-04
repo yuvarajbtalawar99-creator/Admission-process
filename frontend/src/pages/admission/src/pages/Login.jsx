@@ -39,8 +39,9 @@ const Login = () => {
         try {
             const response = await api.post('/auth/login', formData);
             if (response.data.success) {
+                const { token, user } = response.data.data;
                 toast.success('Login successful!');
-                login(response.data.data.token);
+                login(token, user);
                 navigate('/admission/dashboard');
             }
         } catch (error) {
@@ -129,11 +130,23 @@ const Login = () => {
                 </button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-slate-600">
-                Don't have an account?{' '}
-                <Link to="/admission/register" className="font-bold text-primary-600 hover:underline">
-                    Register here
-                </Link>
+            <div className="mt-6 text-center text-sm text-slate-600 space-y-2">
+                <div>
+                    Don't have an account?{' '}
+                    <Link to="/admission/register" className="font-bold text-primary-600 hover:underline">
+                        Register here
+                    </Link>
+                </div>
+                <div>
+                    <a
+                        href="/api/public/handbook"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-primary-600 transition-colors"
+                    >
+                        📘 Download Admission Handbook (PDF)
+                    </a>
+                </div>
             </div>
 
             {/* Forgot Password OTP Modal */}

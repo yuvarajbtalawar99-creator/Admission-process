@@ -132,7 +132,7 @@ export const FeeReviewPage: React.FC = () => {
           <span>Back to Admission Fees Queue</span>
         </Link>
         <div className="flex items-center space-x-2">
-          <span className="text-xs font-bold text-neutral-400">Application Number:</span>
+          <span className="text-xs font-bold text-neutral-400">Admission Number:</span>
           <span className="text-xs font-black text-neutral-900 bg-neutral-100 px-2.5 py-1 rounded-lg border border-neutral-200">
             {app.applicationNumber}
           </span>

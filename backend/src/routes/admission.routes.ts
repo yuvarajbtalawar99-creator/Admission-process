@@ -46,6 +46,7 @@ applicationRouter.use(authorizeRoles('STUDENT'));
 
 applicationRouter.get('/full-details', admissionController.getFullDetails);
 applicationRouter.get('/download-pdf', admissionController.downloadPDF);
+applicationRouter.get('/handbook', admissionController.downloadHandbook);
 
 // ─── Admin Routes ─────────────────────────────────────────────────────────────
 const adminAdmissionRouter = express.Router();

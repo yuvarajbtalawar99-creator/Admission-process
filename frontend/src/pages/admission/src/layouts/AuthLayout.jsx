@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, Navigate } from 'react-router-dom';
+import { Outlet, Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AdmissionHeader from '../components/AdmissionHeader';
 
@@ -81,11 +81,11 @@ const AuthLayout = () => {
             </main>
 
             <footer className="py-2.5 sm:py-3.5 px-6 border-t border-slate-200 bg-white flex flex-col md:flex-row items-center justify-between gap-2 sm:gap-4 flex-shrink-0 mt-auto">
-                <p className="text-xs text-slate-500 font-medium text-center md:text-left">© 2026 Jain College of Engineering & Research, Belagavi. All rights reserved.</p>
+                <p className="text-xs text-slate-500 font-medium text-center md:text-left">© {new Date().getFullYear()} Jain College of Engineering & Research, Belagavi. All rights reserved.</p>
                 <div className="flex items-center gap-6">
                     <a href="#" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Privacy Policy</a>
                     <a href="#" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Terms</a>
-                    <a href="#" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Support</a>
+                    <Link to="/admission/support" className="text-[11px] font-bold uppercase tracking-wider text-slate-400 hover:text-primary-600 transition-colors">Support</Link>
                 </div>
             </footer>
         </div>

@@ -132,7 +132,7 @@ export function getRegistrationOtpEmailHtml({ name, otp }: RegistrationOtpTempla
     <div class="header">
       <h1>Jain College of Engineering & Research</h1>
       <p>Online Admission Portal</p>
-      <div class="badge">Academic Year 2026–2027</div>
+      <div class="badge">Academic Year ${new Date().getFullYear()}–${new Date().getFullYear() + 1}</div>
     </div>
     
     <div class="body">

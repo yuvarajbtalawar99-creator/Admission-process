@@ -227,7 +227,7 @@ export const PrincipalAdmissionQueuePage: React.FC<PrincipalAdmissionQueuePagePr
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
             <input
               type="text"
-              placeholder="Search by App No, Student Name, Phone, CET/DCET No..."
+              placeholder="Search by Admission No, Student Name, Phone, CET/DCET No..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700/60 rounded-2xl pl-11 pr-4 py-2.5 text-xs font-medium outline-none focus:ring-2 focus:ring-indigo-500"
@@ -289,8 +289,11 @@ export const PrincipalAdmissionQueuePage: React.FC<PrincipalAdmissionQueuePagePr
             className="bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-1.5 text-xs font-bold outline-none"
           >
             <option value="ALL">All Academic Years</option>
-            <option value="2026-2027">2026-2027</option>
-            <option value="2025-2026">2025-2026</option>
+            {Array.from({ length: 5 }).map((_, i) => {
+              const y = new Date().getFullYear() + i;
+              const opt = `${y}-${y + 1}`;
+              return <option key={opt} value={opt}>{opt}</option>;
+            })}
           </select>
 
           {(branchId !== 'ALL' || admissionType !== 'ALL' || qualification !== 'ALL' || academicYear !== 'ALL' || search) && (
@@ -331,7 +334,7 @@ export const PrincipalAdmissionQueuePage: React.FC<PrincipalAdmissionQueuePagePr
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b border-neutral-100 dark:border-neutral-800 text-neutral-400 font-extrabold uppercase text-[10px] tracking-wider bg-neutral-50/50 dark:bg-neutral-800/50">
-                    <th className="py-4 px-6">App No</th>
+                    <th className="py-4 px-6">Admission No</th>
                     <th className="py-4 px-6">Student Name</th>
                     <th className="py-4 px-6">Branch</th>
                     <th className="py-4 px-6">Quota</th>

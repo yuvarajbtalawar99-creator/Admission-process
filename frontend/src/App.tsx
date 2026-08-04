@@ -29,12 +29,14 @@ import AdmissionAuthLayout from './pages/admission/src/layouts/AuthLayout';
 import AdmissionDashboardLayout from './pages/admission/src/layouts/DashboardLayout';
 import AdmissionStudentDashboard from './pages/admission/src/pages/student/StudentDashboard';
 import AdmissionForm from './pages/admission/src/pages/student/AdmissionForm';
+import AdmissionSupportPage from './pages/admission/src/pages/student/SupportPage';
 import './pages/admission/src/index.css';
 
 // ─── Admin Pages ──────────────────────────────────────────────────────────────
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdmissionQueuePage from './pages/admin/admissions/AdmissionQueuePage';
 import AdmissionReviewPage from './pages/admin/admissions/AdmissionReviewPage';
+import DocumentVerificationWorkspace from './pages/admin/admissions/DocumentVerificationWorkspace';
 import PrincipalManagementPage from './pages/admin/users/PrincipalManagementPage';
 import StudentsDashboardPage from './pages/admin/admissions/StudentsDashboardPage';
 import CancellationRequestsPage from './pages/admin/admissions/CancellationRequestsPage';
@@ -102,12 +104,16 @@ const AuthBootstrap: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           } else {
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            if (window.location.pathname !== '/login') forceLogout(true);
+            const isAdmissionRoute = window.location.pathname.startsWith('/admission');
+            const targetLogin = isAdmissionRoute ? '/admission/login' : '/login';
+            if (window.location.pathname !== targetLogin) forceLogout(true);
           }
         } catch {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          if (window.location.pathname !== '/login') forceLogout(true);
+          const isAdmissionRoute = window.location.pathname.startsWith('/admission');
+          const targetLogin = isAdmissionRoute ? '/admission/login' : '/login';
+          if (window.location.pathname !== targetLogin) forceLogout(true);
         }
       }
       setBootstrapped(true);
@@ -181,7 +187,9 @@ export const App: React.FC = () => (
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<AdmissionStudentDashboard />} />
               <Route path="application" element={<AdmissionForm />} />
+              <Route path="support" element={<AdmissionSupportPage />} />
             </Route>
+            <Route path="support" element={<Navigate to="/admission/support" replace />} />
 
             {/* ── Admin Portal ── */}
             <Route path="admin" element={<AdminLayout />}>
@@ -200,6 +208,7 @@ export const App: React.FC = () => (
               <Route path="admissions/cancellations" element={<CancellationRequestsPage />} />
               <Route path="admissions/history"     element={<AdmissionQueuePage defaultStatus="ALL" />} />
               <Route path="admissions/review/:id"  element={<AdmissionReviewPage />} />
+              <Route path="admissions/workspace/:id" element={<DocumentVerificationWorkspace />} />
 
               <Route path="students"         element={<StudentsDashboardPage />} />
               <Route path="users/principals" element={<PrincipalManagementPage />} />

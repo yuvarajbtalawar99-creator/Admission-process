@@ -17,6 +17,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import admissionService, { AdmissionApplication } from '../../services/admission.service';
+import { getAcademicYear } from '../../utils/date.util';
 import { toast } from 'react-toastify';
 
 export const PrincipalDashboardPage: React.FC = () => {
@@ -263,7 +264,7 @@ export const PrincipalDashboardPage: React.FC = () => {
               Welcome back, {user?.name || 'Principal'}
             </h1>
             <p className="text-slate-300 text-sm max-w-xl leading-relaxed font-medium">
-              Review verified admission files, sign off confirmed applications, and audit enrollment operations for Session 2026-2027.
+              Review verified admission files, sign off confirmed applications, and audit enrollment operations for Session {getAcademicYear()}.
             </p>
           </div>
 
@@ -356,7 +357,7 @@ export const PrincipalDashboardPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-neutral-800 text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-4">Application No</th>
+                  <th className="py-3 px-4">Admission No</th>
                   <th className="py-3 px-4">Student Name</th>
                   <th className="py-3 px-4">Branch</th>
                   <th className="py-3 px-4">Type</th>

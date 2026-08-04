@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { getAcademicYear } from '../../utils/date.util';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
+import { HeroSection } from '../../components/common/HeroSection';
 import {
   GraduationCap,
   User,
@@ -36,7 +38,7 @@ export const LandingPage: React.FC = () => {
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   // Theme state
-  const [isDark, setIsDark] = useState(() => {
+  const [isDark, setIsDark] = useState<boolean>(() => {
     return document.documentElement.classList.contains('dark') ||
       localStorage.getItem('theme') === 'dark';
   });
@@ -45,7 +47,7 @@ export const LandingPage: React.FC = () => {
   const [config, setConfig] = useState<PublicConfig>({
     collegeName: "Jain College of Engineering & Research",
     admissionOpen: true,
-    admissionCycle: "2026–27",
+    admissionCycle: getAcademicYear(),
     maintenanceMode: false,
     supportEmail: "admissions@jcer.org",
     supportPhone: "+91 831 2400400"
@@ -171,7 +173,7 @@ export const LandingPage: React.FC = () => {
         </main>
 
         <footer className="w-full max-w-7xl mx-auto px-6 py-6 border-t border-[#E2E8F0] dark:border-slate-800/80 text-center text-[11px] text-slate-550 dark:text-slate-450">
-          <p>© 2026 Jain College of Engineering & Research, Belagavi. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Jain College of Engineering & Research, Belagavi. All rights reserved.</p>
         </footer>
       </div>
     );
@@ -181,12 +183,6 @@ export const LandingPage: React.FC = () => {
   return (
     <div
       className="min-h-screen w-full flex flex-col justify-between relative bg-[#F8FAFC] dark:bg-[#0b0f19] text-[#1E293B] dark:text-slate-200 transition-colors duration-300 font-sans overflow-x-hidden"
-      style={{
-        backgroundImage: isDark
-          ? 'radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.08) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(15, 76, 129, 0.12) 0%, transparent 50%), radial-gradient(circle at 85% 30%, rgba(244, 180, 0, 0.04) 0%, transparent 40%)'
-          : 'radial-gradient(circle at 0% 0%, rgba(37, 99, 235, 0.04) 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(15, 76, 129, 0.04) 0%, transparent 50%), radial-gradient(circle at 85% 30%, rgba(244, 180, 0, 0.03) 0%, transparent 40%)',
-        backgroundAttachment: 'fixed'
-      }}
     >
       <style>{`
         @keyframes flowLine {
@@ -197,12 +193,12 @@ export const LandingPage: React.FC = () => {
             background-position: -100% 0;
           }
         }
-        .animate-flow-line {
+        .animate-flow-line-hero {
           background: linear-gradient(90deg, #E2E8F0 0%, #2563EB 25%, #F4B400 50%, #2563EB 75%, #E2E8F0 100%);
           background-size: 200% 100%;
           animation: flowLine 3s linear infinite;
         }
-        .dark .animate-flow-line {
+        .dark .animate-flow-line-hero {
           background: linear-gradient(90deg, #1E293B 0%, #3B82F6 25%, #F59E0B 50%, #3B82F6 75%, #1E293B 100%);
           background-size: 200% 100%;
           animation: flowLine 3s linear infinite;
@@ -226,108 +222,124 @@ export const LandingPage: React.FC = () => {
           border-color: #3b82f6 !important;
           color: #3b82f6 !important;
         }
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(16px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        /* Feature card glassmorphism */
+        .feature-glass {
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(16px) saturate(180%);
+          -webkit-backdrop-filter: blur(16px) saturate(180%);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .animate-slide-up-step {
-          animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        .feature-glass:hover {
+          background: rgba(255, 255, 255, 0.95);
+          border-color: rgba(37, 99, 235, 0.3);
+          transform: translateY(-6px) scale(1.03);
+          box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.15), 0 8px 16px -6px rgba(0, 0, 0, 0.08);
+        }
+        .dark .feature-glass {
+          background: rgba(15, 23, 42, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .dark .feature-glass:hover {
+          background: rgba(15, 23, 42, 0.85);
+          border-color: rgba(59, 130, 246, 0.4);
+          box-shadow: 0 20px 40px -12px rgba(59, 130, 246, 0.2), 0 8px 16px -6px rgba(0, 0, 0, 0.3);
+        }
+        /* Admission card premium glass */
+        .admission-glass {
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(24px) saturate(200%);
+          -webkit-backdrop-filter: blur(24px) saturate(200%);
+          border: 1px solid rgba(255, 255, 255, 0.5);
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .admission-glass:hover {
+          box-shadow: 0 32px 64px -16px rgba(15, 76, 129, 0.15), 0 16px 32px -8px rgba(0, 0, 0, 0.06);
+          border-color: rgba(37, 99, 235, 0.2);
+        }
+        .dark .admission-glass {
+          background: rgba(15, 23, 42, 0.85);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .dark .admission-glass:hover {
+          box-shadow: 0 32px 64px -16px rgba(37, 99, 235, 0.15), 0 16px 32px -8px rgba(0, 0, 0, 0.4);
+          border-color: rgba(59, 130, 246, 0.25);
+        }
+        /* Apply Now button gradient */
+        .btn-apply-gradient {
+          background: linear-gradient(135deg, #0F4C81 0%, #2563EB 100%);
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-apply-gradient:hover {
+          background: linear-gradient(135deg, #2563EB 0%, #3B82F6 100%);
+          transform: translateY(-2px);
+          box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.4);
+        }
+        /* Hero decorative dot connector */
+        .dotted-connector {
+          stroke-dasharray: 4 6;
         }
       `}</style>
 
-      {/* Header */}
-      <header className="w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between border-b border-[#E2E8F0] dark:border-slate-800/80 z-10 bg-transparent">
-        <div className="flex items-center gap-3.5">
-          <div className="w-20 h-20 flex items-center justify-center overflow-hidden">
-            <img src="/logo.png" alt="JCER Logo" className="w-full h-full object-contain" />
+      {/* Header (Sticky Glassmorphism Header with Soft Shadow) */}
+      <header className="sticky top-0 z-30 w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-[#E2E8F0] dark:border-slate-800/70 shadow-sm transition-all duration-200">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3.5">
+            <div className="w-14 h-14 sm:w-18 sm:h-18 flex items-center justify-center overflow-hidden shrink-0">
+              <img src="/logo.png" alt="JCER Logo" className="w-full h-full object-contain" />
+            </div>
+            <div className="flex flex-col justify-center flex-1 space-y-0.5">
+              <h1 className="text-[#0B4F8A] dark:text-white text-sm sm:text-base md:text-lg font-extrabold leading-tight tracking-tight uppercase" style={{ color: isDark ? '#ffffff' : '#0B4F8A' }}>
+                {config.collegeName}
+              </h1>
+              <p className="text-[8.5px] sm:text-[10px] md:text-xs text-slate-700 dark:text-slate-350 font-medium leading-snug">
+                (Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)
+              </p>
+              <p className="text-[9.5px] sm:text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                NBA Accredited Programs – ECE & ME
+              </p>
+            </div>
           </div>
-          <div className="flex flex-col justify-center flex-1 space-y-0.5">
-            <h1 className="text-[#0B4F8A] dark:text-white text-base sm:text-lg font-extrabold leading-tight tracking-tight uppercase" style={{ color: isDark ? '#ffffff' : '#0B4F8A' }}>
-              {config.collegeName}
-            </h1>
-            <p className="text-[9px] sm:text-[10px] md:text-xs text-gray-800 dark:text-slate-350 font-medium leading-snug">
-              (Approved by AICTE, New Delhi, Affiliated to VTU Belagavi & Recognized by Govt. of Karnataka)
-            </p>
-            <p className="text-[10px] sm:text-xs font-bold text-indigo-600 dark:text-indigo-400">
-              NBA Accredited Programs – ECE & ME
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleErpNavigation}
-            className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold border border-[#0F4C81]/80 dark:border-slate-700 text-[#0F4C81] dark:text-slate-200 bg-white/40 dark:bg-slate-900/40 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all duration-200 shadow-sm cursor-pointer"
-          >
-            ERP Portal <ArrowRight className="w-3.5 h-3.5 text-current" />
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleErpNavigation}
+              className="hidden sm:flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold border border-[#0F4C81]/80 dark:border-slate-700 text-[#0F4C81] dark:text-slate-200 bg-white/90 dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200 shadow-sm cursor-pointer"
+            >
+              ERP Portal <ArrowRight className="w-3.5 h-3.5 text-current" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="flex-grow flex flex-col items-center justify-center px-4 py-12 sm:py-16 z-10">
-        <div className="w-full max-w-5xl text-center space-y-5 mb-10 md:mb-12">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-[#0F4C81] dark:text-white leading-[1.15]">
-            Welcome to JCER Digital Portal
-          </h2>
-          <p className="text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto font-medium leading-relaxed">
-            A single platform for managing admissions and securely accessing the College ERP System.
-          </p>
+      <HeroSection isDark={isDark} admissionCycle={config.admissionCycle} />
 
-          {/* Minimal visual stats bar */}
-          <div className="flex flex-wrap justify-center gap-3 pt-3">
-            {badges.map((b, i) => (
-              <span
-                key={i}
-                className="flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold tracking-tight bg-slate-100 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 shadow-sm"
-              >
-                <b.icon className="w-3.5 h-3.5 text-[#2563EB] dark:text-blue-400" />
-                {b.text}
-              </span>
-            ))}
-          </div>
-
-          {/* Abstract education illustration */}
-          <div className="flex justify-center pt-4">
-            <svg width="180" height="60" viewBox="0 0 180 60" fill="none" className="opacity-80 dark:opacity-90">
-              <path d="M90 5L30 25L90 45L140 28.3V46.7H145V26.7L90 5Z" fill="url(#grad1)" />
-              <path d="M60 38.3V53.3C60 58.3 73.4 63.3 90 63.3C106.6 63.3 120 58.3 120 53.3V38.3L90 48.3L60 38.3Z" fill="url(#grad2)" />
-              <circle cx="90" cy="5" r="3" fill="#F4B400" />
-              <defs>
-                <linearGradient id="grad1" x1="30" y1="25" x2="145" y2="25" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#0F4C81" />
-                  <stop offset="1" stopColor="#2563EB" />
-                </linearGradient>
-                <linearGradient id="grad2" x1="60" y1="50.8" x2="120" y2="50.8" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#2563EB" />
-                  <stop offset="1" stopColor="#0F4C81" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-        </div>
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* ADMISSION PORTAL SECTION                                      */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <main className="flex-grow flex flex-col items-center justify-center px-4 z-20 -mt-10 sm:-mt-14 md:-mt-16 pb-12 sm:pb-16">
 
         {/* Main Admission Glass Card */}
-        <div className="w-full max-w-4xl bg-white/95 dark:bg-slate-900/95 border border-[#E2E8F0] dark:border-slate-800/80 rounded-[24px] p-6 sm:p-10 shadow-xl dark:shadow-2xl/40 relative overflow-hidden group hover:shadow-2xl hover:border-slate-300 dark:hover:border-slate-700/80 transition-all duration-300">
+        <div className="admission-glass w-full max-w-4xl rounded-[28px] p-6 sm:p-10 shadow-2xl relative overflow-hidden group animate-fadeInUp" style={{ animationDelay: '0.9s' }}>
 
-          {/* Card Top Branding Badge */}
-          <div className="absolute top-0 right-0 h-2 w-full bg-gradient-to-r from-[#0F4C81] via-[#2563EB] to-[#F4B400]" />
+          {/* Card Top Gradient Accent Bar */}
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#0F4C81] via-[#2563EB] to-[#F4B400] rounded-t-[28px]" />
 
-          <div className="flex flex-col items-center text-center space-y-6">
+          {/* Subtle corner glow */}
+          <div className="absolute -top-20 -right-20 w-48 h-48 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-amber-500/5 dark:bg-amber-500/8 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex flex-col items-center text-center space-y-6 relative z-10">
+
+            {/* Title with emoji */}
             <div className="flex items-center gap-3">
-              <span className="text-3xl font-display" role="img" aria-label="graduation-cap">🎓</span>
-              <h3 className="text-xl sm:text-2xl font-extrabold text-[#0F4C81] dark:text-white tracking-tight">
+              <span className="text-3xl sm:text-4xl" role="img" aria-label="graduation-cap">🎓</span>
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight" style={{ color: isDark ? '#F1F5F9' : '#0F4C81' }}>
                 Admission Portal
               </h3>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed font-semibold">
+            <p className="text-xs sm:text-sm max-w-xl leading-relaxed font-semibold" style={{ color: isDark ? '#94A3B8' : '#64748B' }}>
               Apply for admission online, upload required documents, track your application status, and complete the admission process digitally.
             </p>
 
@@ -335,20 +347,22 @@ export const LandingPage: React.FC = () => {
             <div className="w-full py-6 overflow-x-auto scrollbar-thin">
               <div className="flex items-center justify-between min-w-[700px] px-4 relative">
                 {/* Horizontal connection line with flowing gradient animation */}
-                <div className="absolute top-5 left-10 right-10 h-[3px] rounded-full animate-flow-line z-0" />
+                <div className="absolute top-5 left-10 right-10 h-[3px] rounded-full animate-flow-line-hero z-0" />
 
                 {steps.map((step, index) => {
                   const StepIcon = step.icon;
                   return (
                     <div
                       key={index}
-                      className="flex flex-col items-center space-y-3 z-10 flex-1 relative group/step animate-slide-up-step"
-                      style={{ animationDelay: `${index * 120}ms`, opacity: 0 }}
+                      className="flex flex-col items-center space-y-3 z-10 flex-1 relative group/step animate-fadeInUp"
+                      style={{ animationDelay: `${1.0 + index * 0.1}s` }}
                     >
-                      <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover-glow transition-all duration-300 shadow-sm cursor-pointer">
+                      <div className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 flex items-center justify-center hover-glow animate-pulse-ring transition-all duration-300 shadow-md cursor-pointer"
+                        style={{ color: isDark ? '#94A3B8' : '#64748B' }}
+                      >
                         <StepIcon className="w-4 h-4" />
                       </div>
-                      <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 max-w-[85px] text-center leading-tight">
+                      <span className="text-[10px] sm:text-[11px] font-bold max-w-[85px] text-center leading-tight" style={{ color: isDark ? '#94A3B8' : '#64748B' }}>
                         {step.label}
                       </span>
                     </div>
@@ -357,22 +371,23 @@ export const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Application actions (Apply Now & Login -> inline arrangement) */}
+            {/* Application actions */}
             <div className="flex flex-col items-center space-y-4 pt-4 w-full">
               {config.admissionOpen ? (
                 <>
                   <button
                     onClick={() => navigate('/admission/register')}
-                    className="px-10 py-4 bg-[#0F4C81] hover:bg-[#2563EB] text-white font-extrabold text-sm rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 tracking-wide cursor-pointer w-full sm:w-auto min-w-[200px]"
+                    className="btn-apply-gradient px-10 py-4 text-white font-extrabold text-sm rounded-xl shadow-lg tracking-wide cursor-pointer w-full sm:w-auto min-w-[220px] active:translate-y-0"
                   >
                     Apply Now
                   </button>
 
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: isDark ? '#94A3B8' : '#64748B' }}>
                     Already Applied?
                     <button
                       onClick={() => navigate('/admission/login')}
-                      className="flex items-center text-[#2563EB] dark:text-blue-400 font-bold hover:underline cursor-pointer bg-transparent border-none p-0"
+                      className="flex items-center font-bold hover:underline cursor-pointer bg-transparent border-none p-0"
+                      style={{ color: isDark ? '#60A5FA' : '#2563EB' }}
                     >
                       Login <ChevronRight className="w-3.5 h-3.5" />
                     </button>
@@ -394,12 +409,13 @@ export const LandingPage: React.FC = () => {
 
         {/* Secondary ERP Link */}
         <div className="mt-8 flex flex-col items-center space-y-2.5 z-10">
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">
+          <p className="text-xs sm:text-sm font-medium" style={{ color: isDark ? '#94A3B8' : '#64748B' }}>
             Need access to the College ERP?
           </p>
           <button
             onClick={handleErpNavigation}
-            className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-[#0F4C81] dark:text-blue-400 hover:text-[#2563EB] dark:hover:text-blue-300 transition-colors focus:outline-none uppercase tracking-wider cursor-pointer bg-transparent border-none"
+            className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold hover:text-[#2563EB] dark:hover:text-blue-300 transition-colors focus:outline-none uppercase tracking-wider cursor-pointer bg-transparent border-none"
+            style={{ color: isDark ? '#60A5FA' : '#0F4C81' }}
           >
             ERP Portal <ArrowRight className="w-3.5 h-3.5" />
           </button>
@@ -409,7 +425,7 @@ export const LandingPage: React.FC = () => {
       {/* Footer */}
       <footer className="w-full max-w-7xl mx-auto px-6 py-6 border-t border-[#E2E8F0] dark:border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-slate-500 dark:text-slate-400 z-10 bg-transparent">
         <p className="font-semibold text-center md:text-left">
-          © 2026 Jain College of Engineering & Research, Belagavi. All rights reserved.
+          © {new Date().getFullYear()} Jain College of Engineering & Research, Belagavi. All rights reserved.
         </p>
         <div className="flex items-center gap-6 font-bold uppercase tracking-wider">
           <a href="#" className="hover:text-[#2563EB] transition-colors">Privacy Policy</a>

@@ -636,7 +636,7 @@ export const AdmissionQueuePage: React.FC<AdmissionQueuePageProps> = ({ defaultS
                         <span className="text-[10px] font-black uppercase tracking-widest text-amber-500 font-extrabold block">University Seat Number (USN)</span>
                         <div className="flex items-center justify-between gap-2 mt-0.5">
                           <span className="text-sm font-black text-neutral-900 dark:text-white">
-                            {credentialsModalApp.user?.student?.enrollmentNumber || 'APP-2026-USN'}
+                            {credentialsModalApp.user?.student?.enrollmentNumber || `APP-${new Date().getFullYear()}-USN`}
                           </span>
                           <button 
                             onClick={() => {

@@ -7,6 +7,15 @@ export const forceLogout = (expired: boolean = false): void => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   
-  // Use location.replace to prevent browser history back-button loops
-  window.location.replace(expired ? '/login?expired=true' : '/login');
+  const currentPath = window.location.pathname;
+  const isAdmissionPath = currentPath.startsWith('/admission');
+  const targetLogin = isAdmissionPath ? '/admission/login' : '/login';
+
+  if (currentPath === targetLogin) {
+    loggingOut = false;
+    return;
+  }
+
+  const targetUrl = expired ? `${targetLogin}?expired=true` : targetLogin;
+  window.location.replace(targetUrl);
 };

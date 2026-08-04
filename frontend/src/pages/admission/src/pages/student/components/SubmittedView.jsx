@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     CheckCircle,
     Clock,
@@ -22,6 +23,7 @@ import ActivityTimeline from '../../../components/ActivityTimeline';
 import StatusBadge from '../../../components/StatusBadge';
 
 const SubmittedView = ({ statusData, fullDetails, onDownloadPDF }) => {
+    const navigate = useNavigate();
     const [viewMode, setViewMode] = useState('DASHBOARD');
 
     const getStatusConfig = (status) => {
@@ -360,7 +362,11 @@ const SubmittedView = ({ statusData, fullDetails, onDownloadPDF }) => {
                         <p className="text-xs text-slate-500 font-medium">Contact the nodal office for any discrepancies.</p>
                     </div>
                 </div>
-                <button type="button" className="h-10 sm:h-12 px-5 border border-slate-200 rounded-xl hover:bg-slate-50 flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap transition-all w-full sm:w-auto justify-center">
+                <button 
+                    type="button" 
+                    onClick={() => navigate('/admission/support')}
+                    className="h-10 sm:h-12 px-5 border border-slate-200 rounded-xl hover:bg-slate-50 flex items-center gap-2 text-xs sm:text-sm font-bold text-slate-700 whitespace-nowrap transition-all w-full sm:w-auto justify-center"
+                >
                     Contact Admissions
                     <ExternalLink size={14} />
                 </button>
@@ -368,7 +374,7 @@ const SubmittedView = ({ statusData, fullDetails, onDownloadPDF }) => {
 
             {/* ═══ FOOTER ═══ */}
             <div className="text-center pt-6 pb-4 border-t border-slate-200 text-xs text-slate-400">
-                © 2026 University Admission Cell. All rights reserved.
+                © {new Date().getFullYear()} University Admission Cell. All rights reserved.
             </div>
         </div>
     );

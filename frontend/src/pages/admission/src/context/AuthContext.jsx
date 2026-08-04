@@ -44,15 +44,22 @@ export const AuthProvider = ({ children }) => {
     const login = (newToken, userData) => {
         localStorage.setItem('token', newToken);
         if (userData) {
-            localStorage.setItem('user', JSON.stringify(userData));
-            dispatch(loginSuccess({ user: userData, token: newToken }));
+            const sessionUser = {
+                id: userData.id,
+                role: userData.role || 'STUDENT',
+                name: userData.name || `${userData.firstName || ''} ${userData.lastName || ''}`.trim(),
+                email: userData.email,
+                profileImage: userData.profileImage
+            };
+            localStorage.setItem('user', JSON.stringify(sessionUser));
+            dispatch(loginSuccess({ user: sessionUser, token: newToken }));
         } else {
             api.get('/auth/status').then(res => {
                 if (res.data.success) {
                     const { user: backendUser } = res.data.data;
                     const sessionUser = {
                         id: backendUser.id,
-                        role: backendUser.role,
+                        role: backendUser.role || 'STUDENT',
                         name: backendUser.name,
                         profileImage: backendUser.profileImage
                     };

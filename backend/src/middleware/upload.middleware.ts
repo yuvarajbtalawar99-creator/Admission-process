@@ -51,6 +51,8 @@ const multerInstance = multer({
   { name: 'signature', maxCount: 1 },
   { name: 'tenthMarksheet', maxCount: 1 },
   { name: 'twelfthMarksheet', maxCount: 1 },
+  { name: 'diplomaSemester5Marksheet', maxCount: 1 },
+  { name: 'diplomaSemester6Marksheet', maxCount: 1 },
   { name: 'cetScoreCard', maxCount: 1 },
   { name: 'aadhaar', maxCount: 1 },
   { name: 'casteCertificate', maxCount: 1 },
@@ -206,3 +208,16 @@ export const singleDocumentValidationMiddleware = (req: Request, res: Response, 
     next();
   });
 };
+
+export const handbookUpload = multer({
+  storage,
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype !== 'application/pdf') {
+      return cb(new BadRequestError('Only PDF files are allowed for the Admission Handbook.'));
+    }
+    cb(null, true);
+  },
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10 MB limit
+  },
+});

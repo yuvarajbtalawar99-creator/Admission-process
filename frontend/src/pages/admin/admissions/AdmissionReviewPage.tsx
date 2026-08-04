@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import admissionService, { AdmissionApplication } from '../../../services/admission.service';
 import API from '../../../services/api';
-import { ArrowLeft, User, Users, GraduationCap, CheckCircle2, XCircle, FileText, MapPin, ExternalLink, ShieldCheck, Maximize2, Image } from 'lucide-react';
+import { ArrowLeft, User, Users, GraduationCap, CheckCircle2, XCircle, FileText, MapPin, ExternalLink, ShieldCheck, Maximize2, Image, Layers } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { getAcademicYear } from '../../../utils/date.util';
+import { DocumentVerificationWorkspace } from './DocumentVerificationWorkspace';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -78,7 +80,12 @@ const getMissingFields = (app: AdmissionApplication | null) => {
   if (!docs?.photoUrl) missing.push("Documents: Passport Photo");
   if (!docs?.signatureUrl) missing.push("Documents: Candidate Signature");
   if (!docs?.tenthMarksheetUrl) missing.push("Documents: 10th/SSLC Marksheet");
-  if (!docs?.twelfthMarksheetUrl) missing.push(showDiploma ? "Documents: Diploma Marks Card" : "Documents: 12th/PUC Marksheet");
+  if (showDiploma) {
+    if (!docs?.diplomaSemester5MarksheetUrl) missing.push("Documents: Diploma 5th Semester Marks Card");
+    if (!docs?.diplomaSemester6MarksheetUrl) missing.push("Documents: Diploma 6th Semester Marks Card");
+  } else {
+    if (!docs?.twelfthMarksheetUrl) missing.push("Documents: 12th/PUC Marksheet");
+  }
   if (!docs?.feesPaidReceiptUrl) missing.push("Documents: Fees Paid Receipt");
   if (!docs?.aadhaarUrl) missing.push("Documents: Aadhaar Card");
   if (!docs?.domicileCertificateUrl) missing.push("Documents: Domicile/Study Certificate");
@@ -199,6 +206,7 @@ export const AdmissionReviewPage: React.FC = () => {
   const [remarks, setRemarks] = useState('');
   const [rejectionReasonCode, setRejectionReasonCode] = useState('');
   const [docStatus, setDocStatus] = useState<Record<string, 'ACCEPTED' | 'REJECTED'>>({});
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
 
   const [documentsVerified, setDocumentsVerified] = useState(false);
   const [feesVerified, setFeesVerified] = useState(false);
@@ -479,7 +487,7 @@ export const AdmissionReviewPage: React.FC = () => {
   const missingFields = getMissingFields(app);
 
   return (
-    <div className="w-full max-w-[1440px] mx-auto px-8 md:px-10 space-y-6 pb-12 animate-fade-in">
+    <div className="space-y-6 animate-fade-in w-full pb-12">
       
       {/* Top action bar */}
       <div className="flex items-center justify-between">
@@ -536,10 +544,10 @@ export const AdmissionReviewPage: React.FC = () => {
             <p className="text-sm font-bold text-neutral-400">Jain College of Engineering & Research</p>
             <div className="flex flex-wrap items-center gap-2 mt-2">
               <span className="px-2.5 py-1 bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 rounded text-xs font-extrabold">
-                APP NO: {app.applicationNumber}
+                ADM NO: {app.applicationNumber}
               </span>
               <span className="px-2.5 py-1 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 rounded text-xs font-extrabold">
-                SESSION: 2026-2027
+                SESSION: {app.academicYear || getAcademicYear()}
               </span>
               {app.admissionType && (
                 <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs font-extrabold">
@@ -725,89 +733,99 @@ export const AdmissionReviewPage: React.FC = () => {
         </div>
 
         {/* ─── SECTION 5: Uploaded Documents ─── */}
-        <div className="space-y-4">
-          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-400 flex items-center gap-2 border-l-4 border-primary-500 pl-2">
-            <FileText size={14} className="text-primary-500" /> Attached Digital Documents
-          </h3>
+        <div className="space-y-4 bg-slate-50 dark:bg-neutral-800/30 p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
+                <FileText size={18} className="text-primary-600" /> Attached Digital Documents Verification
+              </h3>
+              <p className="text-xs text-neutral-500 font-medium mt-0.5">
+                Review and verify all uploaded certificates in a dedicated high-resolution workspace.
+              </p>
+            </div>
+
+            {/* SINGLE PROMINENT ACTION BUTTON */}
+            <button
+              type="button"
+              onClick={() => {
+                console.log("Button clicked: Review Documents");
+                if (app?.id) {
+                  console.log("Navigating to Review Workspace for appId:", app.id);
+                  navigate(`/admin/admissions/workspace/${app.id}`);
+                }
+                setIsWorkspaceOpen(true);
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-primary-600 to-indigo-600 hover:from-primary-700 hover:to-indigo-700 text-white font-extrabold text-sm rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              <Layers size={18} /> 📄 Review Documents
+            </button>
+          </div>
+
           {docs ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
               {[
                 { label: 'Passport Size Photo', field: 'photo', url: docs.photoUrl },
                 { label: 'Candidate E-Signature', field: 'signature', url: docs.signatureUrl },
                 { label: 'SSLC / 10th Marks Card', field: 'tenthMarksheet', url: docs.tenthMarksheetUrl },
-                { label: showDiploma ? 'Diploma Marks Card' : 'PUC / 12th Marks Card', field: 'twelfthMarksheet', url: docs.twelfthMarksheetUrl },
+                ...(showDiploma ? [
+                  { label: 'Diploma 5th Semester Marks Card', field: 'diplomaSemester5Marksheet', url: docs.diplomaSemester5MarksheetUrl },
+                  { label: 'Diploma 6th Semester Marks Card', field: 'diplomaSemester6Marksheet', url: docs.diplomaSemester6MarksheetUrl },
+                ] : [
+                  { label: 'PUC / 12th Marks Card', field: 'twelfthMarksheet', url: docs.twelfthMarksheetUrl },
+                ]),
                 { label: 'Entrance Score Card (CET/DCET)', field: 'cetScoreCard', url: docs.cetScoreCardUrl },
                 { label: 'Aadhaar Card copy', field: 'aadhaar', url: docs.aadhaarUrl },
                 { label: 'Fees Paid Receipt', field: 'feesPaidReceipt', url: docs.feesPaidReceiptUrl },
                 { label: 'Caste Certificate (Optional)', field: 'casteCertificate', url: docs.casteCertificateUrl },
                 { label: 'Domicile / Study Certificate', field: 'domicileCertificate', url: docs.domicileCertificateUrl },
                 { label: 'Income / Gap Year Certificate', field: 'gapCertificate', url: docs.gapCertificateUrl },
-              ].map(({ label, field, url }) => {
-                return (
-                  <div key={label} className={`flex gap-3 p-3 rounded-xl border text-xs font-semibold items-center ${url ? (docStatus[label] === 'REJECTED' ? 'bg-rose-50/50 border-rose-100 text-rose-800 dark:bg-rose-950/10 dark:border-rose-900/40 dark:text-rose-450' : 'bg-emerald-50/50 border-emerald-100 text-emerald-800 dark:bg-emerald-950/10 dark:border-emerald-900/40 dark:text-emerald-450') : 'bg-neutral-50/50 border-neutral-100 text-neutral-400 dark:bg-neutral-900/40 dark:border-neutral-800/60 dark:text-neutral-500'}`}>
-                    {url ? (
-                      <DocumentThumbnail 
-                        field={field} 
-                        appId={app.id} 
-                        label={label} 
-                        onClick={() => handleViewDocument(field, label)} 
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-neutral-100 dark:bg-neutral-805 rounded-lg flex items-center justify-center border border-neutral-200 dark:border-neutral-700 text-neutral-400 shrink-0">
-                        <XCircle size={16} className="opacity-30" />
+              ]
+                .filter(({ url }) => url !== null && url !== undefined && url !== '') // Only show uploaded docs
+                .map(({ label, field, url }) => {
+                  const status = docStatus[label] || 'PENDING';
+
+                  return (
+                    <div
+                      key={label}
+                      onClick={() => {
+                        console.log("Document card clicked: Review Documents");
+                        if (app?.id) {
+                          console.log("Navigating to Review Workspace for appId:", app.id);
+                          navigate(`/admin/admissions/workspace/${app.id}`);
+                        }
+                        setIsWorkspaceOpen(true);
+                      }}
+                      className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all hover:scale-[1.01] ${
+                        status === 'ACCEPTED'
+                          ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900 dark:bg-emerald-950/20 dark:border-emerald-800'
+                          : status === 'REJECTED'
+                          ? 'bg-rose-50/80 border-rose-200 text-rose-900 dark:bg-rose-950/20 dark:border-rose-800'
+                          : 'bg-white border-neutral-200 text-neutral-800 dark:bg-neutral-850 dark:border-neutral-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-600' :
+                          status === 'REJECTED' ? 'bg-rose-100 text-rose-600' :
+                          'bg-amber-100 text-amber-600'
+                        }`}>
+                          {status === 'ACCEPTED' && <CheckCircle2 size={16} />}
+                          {status === 'REJECTED' && <XCircle size={16} />}
+                          {status === 'PENDING' && <FileText size={16} />}
+                        </div>
+                        <span className="font-bold truncate">{label}</span>
                       </div>
-                    )}
-                    <div className="flex-1 flex flex-col justify-between py-0.5 h-16">
-                      <div className="flex justify-between items-start">
-                        <span className="font-bold text-neutral-800 dark:text-neutral-250 leading-tight truncate pr-2">{label}</span>
-                        {url && (
-                          <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider ${docStatus[label] === 'REJECTED' ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'}`}>
-                            {docStatus[label] === 'REJECTED' ? 'Rejected' : 'Accepted'}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-2">
-                        {url ? (
-                          <>
-                            {app.applicationStatus !== 'APPROVED' && app.applicationStatus !== 'ENROLLED' && (
-                              <>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleDocStatus(label, 'ACCEPTED')}
-                                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                                    docStatus[label] !== 'REJECTED'
-                                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-sm hover:bg-emerald-700'
-                                      : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50 dark:bg-neutral-850 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800'
-                                  }`}
-                                >
-                                  Accept
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleDocStatus(label, 'REJECTED')}
-                                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                                    docStatus[label] === 'REJECTED'
-                                      ? 'bg-rose-600 border-rose-600 text-white shadow-sm hover:bg-rose-700'
-                                      : 'bg-white border-neutral-200 text-neutral-600 hover:bg-neutral-50 dark:bg-neutral-850 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-800'
-                                  }`}
-                                >
-                                  Reject
-                                </button>
-                              </>
-                            )}
-                            <button type="button" onClick={() => handleViewDocument(field, label)}
-                              className="flex items-center gap-1 px-2 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 border border-neutral-200 rounded-lg text-[10px] font-bold transition-colors dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-750 cursor-pointer ml-auto">
-                              View <ExternalLink size={10} />
-                            </button>
-                          </>
-                        ) : (
-                          <span className="text-[10px] text-neutral-450 italic font-bold">Not Attached</span>
-                        )}
-                      </div>
+
+                      <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0 ${
+                        status === 'ACCEPTED' ? 'bg-emerald-200 text-emerald-800' :
+                        status === 'REJECTED' ? 'bg-rose-200 text-rose-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>
+                        {status === 'ACCEPTED' ? 'Approved' : status === 'REJECTED' ? 'Rejected' : 'Pending'}
+                      </span>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           ) : (
             <div className="text-center p-6 bg-neutral-50 rounded-xl border border-dashed border-neutral-200 text-neutral-400">
@@ -1026,6 +1044,22 @@ export const AdmissionReviewPage: React.FC = () => {
         </div>
 
       </div>
+
+      {/* ─── DOCUMENT VERIFICATION WORKSPACE OVERLAY ─── */}
+      <DocumentVerificationWorkspace
+        isOpen={isWorkspaceOpen}
+        onClose={() => setIsWorkspaceOpen(false)}
+        appId={app.id}
+        studentName={`${pd?.firstName || ''} ${pd?.lastName || ''}`.trim() || app.user?.firstName || app.user?.email || 'Student'}
+        appNumber={app.applicationNumber}
+        appStatus={app.applicationStatus}
+        documents={docs || {}}
+        initialDocStatus={docStatus}
+        onCompleteVerification={(updatedDocStatuses, allVerified) => {
+          setDocStatus(updatedDocStatuses);
+          setDocumentsVerified(allVerified);
+        }}
+      />
     </div>
   );
 };

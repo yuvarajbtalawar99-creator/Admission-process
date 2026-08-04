@@ -184,11 +184,41 @@ async function startServer() {
             ) THEN
               ALTER TABLE "admission_documents" ADD COLUMN "feesPaidReceiptUrl" VARCHAR(255);
             END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admission_documents' AND column_name = 'diplomaSemester5MarksheetUrl'
+            ) THEN
+              ALTER TABLE "admission_documents" ADD COLUMN "diplomaSemester5MarksheetUrl" VARCHAR(255);
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admission_documents' AND column_name = 'diplomaSemester6MarksheetUrl'
+            ) THEN
+              ALTER TABLE "admission_documents" ADD COLUMN "diplomaSemester6MarksheetUrl" VARCHAR(255);
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'system_configurations' AND column_name = 'admissionClosingDate'
+            ) THEN
+              ALTER TABLE "system_configurations" ADD COLUMN "admissionClosingDate" TIMESTAMPTZ DEFAULT '2026-08-31 23:59:59+00';
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'system_configurations' AND column_name = 'handbookUrl'
+            ) THEN
+              ALTER TABLE "system_configurations" ADD COLUMN "handbookUrl" VARCHAR(255);
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admissions' AND column_name = 'applicationFeeStatus'
+            ) THEN
+              ALTER TABLE "admissions" ADD COLUMN "applicationFeeStatus" VARCHAR(50) DEFAULT 'Pending Payment';
+            END IF;
           END
           $$;
         `);
       } catch (e: any) {
-        console.warn('Pre-cast migration for admission_documents.feesPaidReceiptUrl skipped:', e.message);
+        console.warn('Pre-cast migration for system and admission columns skipped:', e.message);
       }
 
       // Pre-cast: ensure admissions applicationStatus enum has CANCELLATION_REQUESTED and CANCELLED

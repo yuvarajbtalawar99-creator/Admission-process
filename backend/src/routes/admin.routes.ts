@@ -6,6 +6,8 @@ import * as userManagementController from '../controllers/user-management.contro
 import * as onboardingController from '../controllers/onboarding.controller';
 import multer from 'multer';
 
+import { handbookUpload } from '../middleware/upload.middleware';
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
@@ -31,6 +33,7 @@ router.get('/users/principals', userManagementController.getPrincipals);
 router.get('/logs', adminController.getAuditLogs);
 router.get('/settings', adminController.getSettings);
 router.put('/settings', adminController.updateSettings);
+router.post('/settings/handbook', handbookUpload.single('handbookPdf'), adminController.uploadHandbook);
 
 // Bulk Onboarding (USN Registry & Students)
 router.post('/onboarding/usn-registry', upload.single('file'), onboardingController.uploadUSNRegistry);

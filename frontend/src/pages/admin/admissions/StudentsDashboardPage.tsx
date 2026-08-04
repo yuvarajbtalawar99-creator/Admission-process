@@ -4,11 +4,11 @@ import {
   RefreshCw, Download, User, Phone, MapPin, Calendar, BookOpen, Loader2, ArrowRight, ShieldCheck, Mail, ClipboardList, ShieldAlert, Award, Edit, GraduationCap, X, Briefcase, FileSignature, CheckSquare, Trash2, Ban, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { getAcademicYear } from '../../../utils/date.util';
 import API from '../../../services/api';
 import admissionService, { AdmissionApplication } from '../../../services/admission.service';
 import { downloadAdmissionPDF } from '../../admission/src/utils/pdfGenerator';
-import * as XLSX from 'xlsx';
-import { jsPDF } from 'jspdf';
+import { generateStudentReport, ExportFilterMetadata } from '../../../utils/studentExportGenerator';
 
 const STATUS_COLOR_MAP: Record<string, string> = {
   DRAFT: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700',
@@ -133,12 +133,13 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
 
   // Export form state
   const [exportForm, setExportForm] = useState({
-    academicYear: '2026 – 2027',
+    academicYear: getAcademicYear(),
     branchId: 'ALL',
     status: 'ALL',
     admissionType: 'ALL',
     qualification: 'ALL',
-    format: 'excel' // excel, csv, pdf
+    exportType: 'summary' as 'summary' | 'complete',
+    format: 'excel' as 'excel' | 'csv' | 'pdf'
   });
 
   const fetchStatsAndBranches = async () => {
@@ -265,15 +266,25 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
 
     setExportLoading(true);
     try {
-      // Fetch matching students with a high limit (export all matching)
+      const isComplete = exportForm.exportType === 'complete';
+
       const res = await admissionService.listApplications({
         page: 1,
         limit: 100000,
-        status: exportForm.status === 'ALL' ? undefined : exportForm.status,
-        branchId: exportForm.branchId === 'ALL' ? undefined : exportForm.branchId,
-        admissionType: exportForm.admissionType === 'ALL' ? undefined : exportForm.admissionType,
-        qualification: exportForm.qualification === 'ALL' ? undefined : exportForm.qualification,
-        academicYear: exportForm.academicYear,
+        status: exportForm.status === 'ALL' ? (status === 'ALL' ? undefined : status) : exportForm.status,
+        branchId: exportForm.branchId === 'ALL' ? (branchId === 'ALL' ? undefined : branchId) : exportForm.branchId,
+        admissionType: exportForm.admissionType === 'ALL' ? (admissionType === 'ALL' ? undefined : admissionType) : exportForm.admissionType,
+        qualification: exportForm.qualification === 'ALL' ? (qualification === 'ALL' ? undefined : qualification) : exportForm.qualification,
+        gender: gender === 'ALL' ? undefined : gender,
+        category: category === 'ALL' ? undefined : category,
+        district: district.trim() || undefined,
+        academicYear: exportForm.academicYear === 'ALL' ? (academicYear === 'ALL' ? undefined : academicYear) : exportForm.academicYear,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        search: search.trim() || undefined,
+        sortBy,
+        sortOrder,
+        includeFullDetails: isComplete,
       });
 
       const matchedRows = res.applications;
@@ -284,118 +295,33 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
         return;
       }
 
-      // Map rows to Excel/CSV structure
-      const dataToExport = matchedRows.map((app, index) => {
-        const pd = app.studentpersonaldetails;
-        const user = app.user;
-        const branchObj = app.branch;
-        const studentObj = user?.student;
+      const branchObj = branches.find(b => b.id === exportForm.branchId);
+      const branchCode = exportForm.branchId === 'ALL' ? 'ALL' : (branchObj?.code || 'BRANCH');
+      const branchName = exportForm.branchId === 'ALL' ? 'All Branches' : (branchObj?.name || 'Branch');
+      const statusLabel = exportForm.status === 'ALL' ? 'All Statuses' : exportForm.status;
 
-        return {
-          'Sl No': index + 1,
-          'Application Number': app.applicationNumber || 'N/A',
-          'Student Name': user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'N/A',
-          'Gender': pd?.gender || 'N/A',
-          'Mobile Number': pd?.phone || user?.phone || 'N/A',
-          'Email': pd?.email || user?.email || 'N/A',
-          'Branch': branchObj?.code || 'N/A',
-          'Admission Type': app.admissionType || 'N/A',
-          'Qualification': app.qualification || 'N/A',
-          'Category': pd?.category || 'N/A',
-          'Status': STATUS_LABEL_MAP[app.applicationStatus] || app.applicationStatus,
-          'Application Date': app.submittedAt ? new Date(app.submittedAt).toISOString().split('T')[0] : (app.createdAt ? new Date(app.createdAt).toISOString().split('T')[0] : 'N/A'),
-          'Approval Date': app.reviewedAt ? new Date(app.reviewedAt).toISOString().split('T')[0] : 'N/A',
-          'University USN (if assigned)': studentObj?.enrollmentNumber || 'N/A'
-        };
-      });
+      const filterMeta: ExportFilterMetadata = {
+        academicYear: exportForm.academicYear,
+        branchName,
+        branchCode,
+        statusLabel,
+        admissionType: exportForm.admissionType,
+        qualification: exportForm.qualification,
+        gender,
+        category,
+        district,
+        startDate,
+        endDate,
+        search,
+      };
 
-      const branchCode = exportForm.branchId === 'ALL' ? 'ALL' : (branches.find(b => b.id === exportForm.branchId)?.code || 'CSE');
-      const yearFormatted = exportForm.academicYear.replace(/\s+/g, '');
-      const filename = `Students_${branchCode}_${yearFormatted}_${exportForm.status}.xlsx`;
+      generateStudentReport(matchedRows, exportForm.exportType, exportForm.format, filterMeta);
 
-      if (exportForm.format === 'excel') {
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Students');
-        XLSX.writeFile(workbook, filename);
-      } else if (exportForm.format === 'csv') {
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const csv = XLSX.utils.sheet_to_csv(worksheet);
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename.replace('.xlsx', '.csv'));
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else if (exportForm.format === 'pdf') {
-        const doc = new jsPDF('landscape');
-        doc.setFontSize(14);
-        doc.text('Students Database Report', 14, 15);
-        doc.setFontSize(7.5);
-
-        const headers = ['Sl', 'App Number', 'Student Name', 'Gen', 'Mobile', 'Email', 'Branch', 'Type', 'Qual', 'Category', 'Status', 'USN'];
-        const startX = 14;
-        let startY = 25;
-        const colWidths = [8, 25, 45, 10, 22, 45, 15, 15, 12, 20, 25, 30];
-
-        let currX = startX;
-        headers.forEach((h, idx) => {
-          doc.text(h, currX, startY);
-          currX += colWidths[idx];
-        });
-
-        doc.line(startX, startY + 2, 280, startY + 2);
-        startY += 8;
-
-        dataToExport.forEach((row) => {
-          if (startY > 185) {
-            doc.addPage('landscape');
-            startY = 20;
-            currX = startX;
-            headers.forEach((h, idx) => {
-              doc.text(h, currX, startY);
-              currX += colWidths[idx];
-            });
-            doc.line(startX, startY + 2, 280, startY + 2);
-            startY += 8;
-          }
-
-          currX = startX;
-          const values = [
-            String(row['Sl No']),
-            String(row['Application Number']),
-            String(row['Student Name']),
-            String(row['Gender']),
-            String(row['Mobile Number']),
-            String(row['Email']),
-            String(row['Branch']),
-            String(row['Admission Type']),
-            String(row['Qualification']),
-            String(row['Category']),
-            String(row['Status']),
-            String(row['University USN (if assigned)'])
-          ];
-
-          values.forEach((val, idx) => {
-            const truncated = val.length > 25 ? val.substring(0, 23) + '..' : val;
-            doc.text(truncated, currX, startY);
-            currX += colWidths[idx];
-          });
-
-          startY += 6.5;
-        });
-
-        doc.save(filename.replace('.xlsx', '.pdf'));
-      }
-
-      toast.success('Export completed successfully.');
+      toast.success(`Successfully exported ${matchedRows.length} student record(s) as ${exportForm.format.toUpperCase()}`);
       setExportModalOpen(false);
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to export student data');
+    } catch (err: any) {
+      console.error('Export failed:', err);
+      toast.error(err.response?.data?.error || 'Failed to generate student export report.');
     } finally {
       setExportLoading(false);
     }
@@ -505,8 +431,11 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
               className="bg-neutral-50 dark:bg-neutral-805 border border-neutral-200 dark:border-neutral-700/60 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:ring-2 focus:ring-violet-500"
             >
               <option value="ALL">All Years</option>
-              <option value="2026 – 2027">2026 – 2027</option>
-              <option value="2025 – 2026">2025 – 2026</option>
+              {Array.from({ length: 5 }).map((_, i) => {
+                const y = new Date().getFullYear() + i;
+                const opt = `${y}-${y + 1}`;
+                return <option key={opt} value={opt}>{opt}</option>;
+              })}
             </select>
           </div>
 
@@ -829,8 +758,11 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
                   required
                   className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl px-3 py-2 text-xs font-bold outline-none"
                 >
-                  <option value="2026 – 2027">2026 – 2027</option>
-                  <option value="2025 – 2026">2025 – 2026</option>
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const y = new Date().getFullYear() + i;
+                    const opt = `${y}-${y + 1}`;
+                    return <option key={opt} value={opt}>{opt}</option>;
+                  })}
                 </select>
               </div>
 
@@ -881,12 +813,34 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
               </div>
 
               <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Export Type</label>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setExportForm(prev => ({ ...prev, exportType: 'summary' }))}
+                    className={`py-2 px-3 text-xs font-bold border rounded-xl transition-all flex flex-col items-center justify-center gap-0.5 ${exportForm.exportType === 'summary' ? 'bg-violet-600 border-violet-600 text-white shadow-md' : 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-750 text-neutral-700 dark:text-neutral-350 hover:bg-neutral-100'}`}
+                  >
+                    <span>Summary Report</span>
+                    <span className="text-[9px] opacity-75 font-semibold">Compact 15 columns</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExportForm(prev => ({ ...prev, exportType: 'complete' }))}
+                    className={`py-2 px-3 text-xs font-bold border rounded-xl transition-all flex flex-col items-center justify-center gap-0.5 ${exportForm.exportType === 'complete' ? 'bg-violet-600 border-violet-600 text-white shadow-md' : 'bg-neutral-50 dark:bg-neutral-800 border-neutral-200 dark:border-neutral-750 text-neutral-700 dark:text-neutral-350 hover:bg-neutral-100'}`}
+                  >
+                    <span>Complete Report</span>
+                    <span className="text-[9px] opacity-75 font-semibold">Full 360° All Fields</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">Export Format</label>
                 <div className="grid grid-cols-3 gap-2 pt-1">
                   {[
-                    { label: 'Excel (.xlsx)', value: 'excel' },
-                    { label: 'CSV', value: 'csv' },
-                    { label: 'PDF', value: 'pdf' },
+                    { label: 'Excel (.xlsx)', value: 'excel' as const },
+                    { label: 'CSV', value: 'csv' as const },
+                    { label: 'PDF', value: 'pdf' as const },
                   ].map((f) => (
                     <button
                       key={f.value}
@@ -1033,7 +987,7 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold text-neutral-500 mt-1">
-                        <span>App No: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.applicationNumber}</strong></span>
+                        <span>Admission No: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.applicationNumber}</strong></span>
                         <span className="hidden sm:inline">•</span>
                         <span>Branch: <strong className="text-neutral-700 dark:text-neutral-300">{selectedStudent.branch?.name || 'N/A'}</strong></span>
                         <span className="hidden sm:inline">•</span>
@@ -1412,7 +1366,7 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Academic Year</p>
-                        <p className="font-bold text-neutral-800 dark:text-neutral-200 mt-0.5">{selectedStudent.academicYear || '2026 – 2027'}</p>
+                        <p className="font-bold text-neutral-800 dark:text-neutral-200 mt-0.5">{selectedStudent.academicYear || getAcademicYear()}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Admission Type</p>
@@ -1445,6 +1399,8 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
                         { label: 'Aadhaar copy', key: 'aadhaarUrl', field: 'aadhaar' },
                         { label: '10th / SSLC Marks Card', key: 'tenthMarksheetUrl', field: 'tenthMarksheet' },
                         { label: '12th / PUC Marks Card', key: 'twelfthMarksheetUrl', field: 'twelfthMarksheet' },
+                        { label: 'Diploma 5th Sem Marks Card', key: 'diplomaSemester5MarksheetUrl', field: 'diplomaSemester5Marksheet' },
+                        { label: 'Diploma 6th Sem Marks Card', key: 'diplomaSemester6MarksheetUrl', field: 'diplomaSemester6Marksheet' },
                         { label: 'Caste Certificate / Income Cert', key: 'casteCertificateUrl', field: 'casteCertificate' },
                         { label: 'Domicile / Study Certificate', key: 'domicileCertificateUrl', field: 'domicileCertificate' },
                         { label: 'Academic Gap Certificate', key: 'gapCertificateUrl', field: 'gapCertificate' },
@@ -1688,7 +1644,7 @@ export const StudentsDashboardPage: React.FC<StudentsDashboardPageProps> = ({ re
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Application Number</p>
+                    <p className="text-[10px] font-black text-neutral-400 uppercase tracking-wider">Admission Number</p>
                     <p className="font-extrabold text-neutral-900 dark:text-white mt-0.5">{selectedStudent.applicationNumber}</p>
                   </div>
                   <div>

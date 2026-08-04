@@ -1,3 +1,5 @@
+import { getAcademicYear } from '../../../../utils/date.util';
+
 /**
  * Shared PDF/Print generator for student admission application acknowledgment forms.
  * Opens the browser print window with the formatted A4 HTML template.
@@ -124,14 +126,14 @@ export const downloadAdmissionPDF = async (api, toast, applicationId = null) => 
                                 <h1>JAIN COLLEGE OF ENGINEERING AND RESEARCH</h1>
                                 <p style="font-size:8px;color:#475569;">(Approved by AICTE, New Delhi, Affiliated to VTU Belagavi &amp; Recognized by Govt. of Karnataka)</p>
                                 <h2>ADMISSION APPLICATION FORM</h2>
-                                <p>Academic Session 2026-2027</p>
+                                <p>Academic Session ${details?.academicYear || getAcademicYear()}</p>
                             </div>
                             <div class="photo-box">
                                 ${photoUrl ? `<img src="${photoUrl}" alt="Passport Photo" />` : `<span class="photo-placeholder">PASSPORT<br>PHOTO</span>`}
                             </div>
                         </div>
                         <div class="header-bottom">
-                            <span><strong>Application No:</strong> ${details?.applicationNumber || 'N/A'}</span>
+                            <span><strong>Admission No:</strong> ${details?.applicationNumber || 'N/A'}</span>
                             <span><strong>Status:</strong> ${pdfStatus}</span>
                             <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                         </div>
@@ -241,14 +243,10 @@ export const downloadAdmissionPDF = async (api, toast, applicationId = null) => 
                             <div class="signature-line"></div>
                             <div class="signature-label">Date &amp; Place</div>
                         </div>
-                        <div class="signature-item">
-                            ${signatureUrl ? `<img src="${signatureUrl}" alt="Signature" class="signature-img" />` : `<div class="signature-line"></div>`}
-                            <div class="signature-label">Applicant Signature</div>
-                        </div>
                     </div>
 
                     <div class="footer">
-                        <p>Application No: ${details?.applicationNumber || 'N/A'} &nbsp;|&nbsp; Status: ${pdfStatus} &nbsp;|&nbsp; Printed on: ${new Date().toLocaleString('en-IN')}</p>
+                        <p>Admission No: ${details?.applicationNumber || 'N/A'} &nbsp;|&nbsp; Status: ${pdfStatus} &nbsp;|&nbsp; Printed on: ${new Date().toLocaleString('en-IN')}</p>
                         <div style="border-top:1px solid #dde1e8;margin:5px 0;"></div>
                         <p>Contact: 099448693987 | principal@jcer.in</p>
                     </div>

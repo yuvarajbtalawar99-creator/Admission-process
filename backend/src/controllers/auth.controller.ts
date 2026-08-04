@@ -9,6 +9,7 @@ import securityEvents from '../services/securityEvents.service';
 import otpService from '../services/otp.service';
 import emailService from '../services/email.service';
 import Otp from '../models/Otp';
+import SystemConfiguration from '../models/SystemConfiguration';
 import logger from '../utils/logger.util';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
@@ -210,6 +211,12 @@ export const sendRegistrationOtp = async (req: Request, res: Response, next: Nex
       return res.status(400).json({ error: 'First name, last name, and email are required.' });
     }
 
+    // Check if admissions are open
+    const config = await SystemConfiguration.findOne();
+    if (config && config.admissionOpen === false) {
+      return res.status(403).json({ error: 'Admissions are currently closed. Please contact the college office for further information.' });
+    }
+
     // Check email uniqueness
     const existingEmail = await User.findOne({ where: { email: email.trim().toLowerCase() } });
     if (existingEmail) {
@@ -275,6 +282,12 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ error: 'First name, last name, email, and password are required.' });
+    }
+
+    // Check if admissions are open
+    const config = await SystemConfiguration.findOne();
+    if (config && config.admissionOpen === false) {
+      return res.status(403).json({ error: 'Admissions are currently closed. Please contact the college office for further information.' });
     }
 
     const normalizedEmail = email.trim().toLowerCase();

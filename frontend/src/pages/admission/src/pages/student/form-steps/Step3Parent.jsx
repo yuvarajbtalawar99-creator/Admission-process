@@ -53,69 +53,91 @@ const Step3Parent = ({ onNext, onPrev, data, updateData, applicationStatus }) =>
                 </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Father's Name <span className="text-red-500">*</span></label>
-                    <input required type="text" name="fatherName" className="input-premium h-11 uppercase" value={data.fatherName || ''} onChange={handleChange} placeholder="Enter father's name" />
-                    {!data.fatherName && applicationStatus === 'REJECTED' && (
-                        <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                    )}
-                </div>
-
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Mother's Name <span className="text-red-500">*</span></label>
-                    <input required type="text" name="motherName" className="input-premium h-11 uppercase" value={data.motherName || ''} onChange={handleChange} placeholder="Enter mother's name" />
-                    {!data.motherName && applicationStatus === 'REJECTED' && (
-                        <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                    )}
-                </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Father's Mobile No. <span className="text-red-500">*</span></label>
-                    <input required type="tel" name="parentMobile" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} className="input-premium h-11 uppercase" value={data.parentMobile || data.fatherPhone || ''} onChange={handleChange} placeholder="Enter father's mobile number" />
-                    {!(data.parentMobile || data.fatherPhone) && applicationStatus === 'REJECTED' && (
-                        <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                    )}
-                </div>
-
-                 <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Mother's Mobile No. <span className="text-red-500">*</span></label>
-                    <input required type="tel" name="motherPhone" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} className="input-premium h-11 uppercase" value={data.motherPhone || ''} onChange={handleChange} placeholder="Enter mother's mobile number" />
-                    {!data.motherPhone && applicationStatus === 'REJECTED' && (
-                        <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                    )}
-                </div>
-
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Parent Email ID</label>
-                    <input type="email" name="parentEmail" className="input-premium h-11" value={data.parentEmail || data.fatherEmail || ''} onChange={handleChange} placeholder="Enter parent email" />
-                </div>
-
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Father's Occupation <span className="text-red-500">*</span></label>
-                    <input required type="text" name="occupation" className="input-premium h-11 uppercase" value={data.occupation || data.fatherOccupation || ''} onChange={handleChange} placeholder="Enter father's occupation" />
-                    {!(data.occupation || data.fatherOccupation) && applicationStatus === 'REJECTED' && (
-                        <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                    )}
-                </div>
-
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Mother's Occupation <span className="text-red-500">*</span></label>
-                    <input required type="text" name="motherOccupation" className="input-premium h-11 uppercase" value={data.motherOccupation || ''} onChange={handleChange} placeholder="Enter mother's occupation" />
-                    {!data.motherOccupation && applicationStatus === 'REJECTED' && (
-                        <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                    )}
-                </div>
-
-                <div className="space-y-1.5">
-                    <label className="text-sm font-medium text-slate-700">Annual Income (₹) <span className="text-red-500">*</span></label>
-                    <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
-                        <input required type="number" min="0" name="annualIncome" inputMode="numeric" className="input-premium h-11" style={{ paddingLeft: '2.2rem' }} value={data.annualIncome || data.fatherAnnualIncome || ''} onChange={handleChange} placeholder="Enter annual income" />
+            {/* Father's Details */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                    Father's Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Father's Name <span className="text-red-500">*</span></label>
+                        <input required type="text" name="fatherName" className="input-premium h-11 uppercase" value={data.fatherName || ''} onChange={handleChange} placeholder="Enter father's name" />
+                        {!data.fatherName && applicationStatus === 'REJECTED' && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                        )}
                     </div>
-                    {!(data.annualIncome || data.fatherAnnualIncome) && applicationStatus === 'REJECTED' && (
-                        <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
-                    )}
+
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Father's Mobile No. <span className="text-red-500">*</span></label>
+                        <input required type="tel" name="parentMobile" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} className="input-premium h-11 uppercase" value={data.parentMobile || data.fatherPhone || ''} onChange={handleChange} placeholder="Enter father's mobile number" />
+                        {!(data.parentMobile || data.fatherPhone) && applicationStatus === 'REJECTED' && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                        )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Father's Occupation <span className="text-red-500">*</span></label>
+                        <input required type="text" name="occupation" className="input-premium h-11 uppercase" value={data.occupation || data.fatherOccupation || ''} onChange={handleChange} placeholder="Enter father's occupation" />
+                        {!(data.occupation || data.fatherOccupation) && applicationStatus === 'REJECTED' && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Mother's Details */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                    Mother's Details
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Mother's Name <span className="text-red-500">*</span></label>
+                        <input required type="text" name="motherName" className="input-premium h-11 uppercase" value={data.motherName || ''} onChange={handleChange} placeholder="Enter mother's name" />
+                        {!data.motherName && applicationStatus === 'REJECTED' && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                        )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Mother's Mobile No. <span className="text-red-500">*</span></label>
+                        <input required type="tel" name="motherPhone" inputMode="numeric" pattern="[0-9]{10}" maxLength={10} className="input-premium h-11 uppercase" value={data.motherPhone || ''} onChange={handleChange} placeholder="Enter mother's mobile number" />
+                        {!data.motherPhone && applicationStatus === 'REJECTED' && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                        )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-slate-700">Mother's Occupation <span className="text-red-500">*</span></label>
+                        <input required type="text" name="motherOccupation" className="input-premium h-11 uppercase" value={data.motherOccupation || ''} onChange={handleChange} placeholder="Enter mother's occupation" />
+                        {!data.motherOccupation && applicationStatus === 'REJECTED' && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Family Information */}
+            <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-100 pb-2">
+                    Family Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <div className="space-y-1.5 lg:col-span-2">
+                        <label className="text-sm font-medium text-slate-700">Parent Email ID</label>
+                        <input type="email" name="parentEmail" className="input-premium h-11" value={data.parentEmail || data.fatherEmail || ''} onChange={handleChange} placeholder="Enter parent email" />
+                    </div>
+
+                    <div className="space-y-1.5 lg:col-span-1">
+                        <label className="text-sm font-medium text-slate-700">Annual Income (₹) <span className="text-red-500">*</span></label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₹</span>
+                            <input required type="number" min="0" name="annualIncome" inputMode="numeric" className="input-premium h-11" style={{ paddingLeft: '2.2rem' }} value={data.annualIncome || data.fatherAnnualIncome || ''} onChange={handleChange} placeholder="Enter annual income" />
+                        </div>
+                        {!(data.annualIncome || data.fatherAnnualIncome) && applicationStatus === 'REJECTED' && (
+                            <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
+                        )}
+                    </div>
                 </div>
             </div>
 

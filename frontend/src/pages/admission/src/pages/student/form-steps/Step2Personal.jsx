@@ -1,65 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import api from '../../../api/axios';
-import { Loader2, ChevronLeft, ChevronRight, Camera, User } from 'lucide-react';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SelectDropdown from '../../../components/SelectDropdown';
 
 const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) => {
     const [loading, setLoading] = useState(false);
-    const [uploading, setUploading] = useState(false);
-    const fileInputRef = useRef(null);
-
-    const handleFileChange = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Size check: 2MB limit
-        if (file.size > 2 * 1024 * 1024) {
-            toast.error("File size exceeds 2MB limit.");
-            return;
-        }
-
-        // Type check
-        if (!['image/jpeg', 'image/png', 'image/jpg'].includes(file.type)) {
-            toast.error("Only JPG, JPEG, and PNG images are accepted.");
-            return;
-        }
-
-        setUploading(true);
-        const formData = new FormData();
-        formData.append('photo', file);
-
-        try {
-            const res = await api.post('/student/documents', formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
-            });
-            if (res.data.success && res.data.data.photoUrl) {
-                updateData({ photoUrl: res.data.data.photoUrl });
-                toast.success("Profile photo uploaded successfully!");
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to upload photo");
-        } finally {
-            setUploading(false);
-        }
-    };
-
-    const triggerFileInput = () => {
-        if (fileInputRef.current) {
-            fileInputRef.current.click();
-        }
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
-        // Enforce passport photo upload
-        if (!data.photoUrl) {
-            toast.error("Please upload a passport-size profile picture.");
-            return;
-        }
 
         setLoading(true);
 
@@ -101,14 +50,6 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
         }
     };
 
-    const getPhotoUrl = (path) => {
-        if (!path) return '';
-        if (path.startsWith('http')) return path;
-        const base = api.defaults.baseURL || 'http://localhost:5000/api';
-        const origin = base.replace('/api', '');
-        return `${origin}${path}`;
-    };
-
     const formatDOB = (value) => {
         const d = value.replace(/\D/g, '').slice(0, 8);
         if (d.length <= 2) return d;
@@ -134,56 +75,6 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                 <span className="px-3 py-1 bg-primary-50 text-primary-700 rounded text-xs font-semibold">
                     Basic Information
                 </span>
-            </div>
-
-            {/* Passport Photo Upload Block */}
-            <div className="flex flex-col items-center justify-center gap-3 mb-6 bg-slate-50 border border-slate-100 rounded-xl p-5 w-fit mx-auto">
-                <div className="relative w-32 h-32 rounded-full border-4 border-slate-200/80 shadow-md group overflow-visible">
-                    {uploading && (
-                        <div className="absolute inset-0 bg-slate-900/40 rounded-full flex items-center justify-center z-10">
-                            <Loader2 className="w-8 h-8 text-white animate-spin" />
-                        </div>
-                    )}
-                    
-                    <div className="w-full h-full rounded-full overflow-hidden bg-slate-100 flex items-center justify-center">
-                        {data.photoUrl ? (
-                            <img 
-                                src={getPhotoUrl(data.photoUrl)} 
-                                alt="Profile Preview" 
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <div className="flex flex-col items-center justify-center text-slate-400">
-                                <User size={48} className="stroke-[1.5]" />
-                                <span className="text-[10px] font-semibold mt-1 uppercase tracking-wider text-slate-500">Profile</span>
-                            </div>
-                        )}
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={triggerFileInput}
-                        className="absolute bottom-0 right-0 w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white transition-all transform hover:scale-105"
-                        title="Upload Photo"
-                    >
-                        <Camera size={18} />
-                    </button>
-                    
-                    <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        onChange={handleFileChange} 
-                        accept="image/*" 
-                        className="hidden" 
-                    />
-                </div>
-                <div className="text-center">
-                    <p className="text-xs font-semibold text-slate-500">PASSPORT SIZE PHOTO <span className="text-red-500">*</span></p>
-                    <p className="text-[10px] text-slate-400 mt-0.5 font-medium">JPEG or PNG, Max 2MB</p>
-                    {!data.photoUrl && applicationStatus === 'REJECTED' && (
-                        <p className="text-red-500 text-[11px] font-bold mt-1.5 animate-pulse">Please upload your photo mandatorily</p>
-                    )}
-                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

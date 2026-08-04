@@ -296,6 +296,8 @@ const StudentDetail = () => {
                             { key: 'signatureUrl', label: 'Signature' },
                             { key: 'tenthMarksheetUrl', label: '10th Marksheet' },
                             { key: 'twelfthMarksheetUrl', label: '12th Marksheet' },
+                            { key: 'diplomaSemester5MarksheetUrl', label: 'Diploma 5th Sem Marksheet' },
+                            { key: 'diplomaSemester6MarksheetUrl', label: 'Diploma 6th Sem Marksheet' },
                             { key: 'cetScoreCardUrl', label: 'CET Score Card' },
                             { key: 'aadhaarUrl', label: 'Aadhaar Card' },
                             { key: 'casteCertificateUrl', label: 'Caste Certificate' },

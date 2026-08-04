@@ -5,12 +5,14 @@ import {
     ExternalLink, 
     ChevronLeft, 
     Loader2, 
-    GraduationCap, 
+    GraduationCap,
+    Lock, 
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
 import StepIndicator from '../../components/StepIndicator';
 import useApplicationStatus from '../../hooks/useApplicationStatus';
+import { getAcademicYear } from '../../../../../utils/date.util';
 import Step1Admission from './form-steps/Step1Admission';
 import Step2Personal from './form-steps/Step2Personal';
 import Step3Parent from './form-steps/Step3Parent';
@@ -38,7 +40,7 @@ const STEP_FIELDS_MAP = {
     3: ['fatherName', 'motherName', 'parentMobile', 'fatherPhone', 'parentEmail', 'fatherEmail', 'occupation', 'fatherOccupation', 'motherOccupation', 'motherPhone', 'annualIncome', 'fatherAnnualIncome'],
     4: ['currentAddressLine1', 'currentCity', 'currentState', 'currentPincode', 'permanentAddressLine1', 'permanentCity', 'permanentState', 'permanentPincode', 'Address', 'City', 'Taluk', 'DistrictId', 'Pincode', 'sameAsCurrent', 'permanentAddress', 'permanentCity', 'permanentTaluk', 'permanentDistrictId', 'permanentPincode'],
     5: ['tenthSchool', 'tenthBoard', 'tenthPassingYear', 'tenthRegisterNumber', 'tenthMarksObtained', 'tenthMaxMarks', 'tenthPercentage', 'tenthAttempts', 'tenthSubjectMarks', 'sslcSchool', 'sslcBoard', 'sslcYear', 'sslcRegisterNumber', 'sslcMarksObtained', 'sslcMaxMarks', 'sslcPercentage', 'sslcAttempts', 'sslcSubjectMarks', 'twelfthSchool', 'twelfthBoard', 'twelfthPassingYear', 'twelfthRegisterNumber', 'twelfthStream', 'physicsMarks', 'mathsMarks', 'chemistryMarks', 'optionalSubject', 'optionalMarks', 'twelfthMaxMarks', 'twelfthAggregate', 'twelfthPercentage', 'twelfthAttempts', 'pucSchool', 'pucBoard', 'pucYear', 'pucRegisterNumber', 'pucStream', 'pucMaxMarks', 'pucAggregate', 'pucPercentage', 'pucAttempts', 'diplomaUniversity', 'diplomaYear', 'diplomaRegisterNumber', 'diplomaFinalYearMaxMarks', 'diplomaFinalYearObtained', 'diplomaPercentage', 'diplomaAttempts', 'cetScore', 'cetRank', 'cetYear', 'hasGap', 'gapReason'],
-    6: ['photoUrl', 'signatureUrl', 'tenthMarksheetUrl', 'twelfthMarksheetUrl', 'cetScoreCardUrl', 'aadhaarUrl', 'casteCertificateUrl', 'domicileCertificateUrl', 'gapCertificateUrl']
+    6: ['photoUrl', 'signatureUrl', 'tenthMarksheetUrl', 'twelfthMarksheetUrl', 'diplomaSemester5MarksheetUrl', 'diplomaSemester6MarksheetUrl', 'cetScoreCardUrl', 'aadhaarUrl', 'casteCertificateUrl', 'domicileCertificateUrl', 'gapCertificateUrl']
 };
 
 const getInitialDraftData = () => {
@@ -48,7 +50,12 @@ const getInitialDraftData = () => {
         const draft = localStorage.getItem(`admission_draft_${key}`);
         if (draft) {
             try {
-                Object.assign(merged, JSON.parse(draft));
+                const parsed = JSON.parse(draft);
+                if (key !== 'documents') {
+                    delete parsed.photoUrl;
+                    delete parsed.photo;
+                }
+                Object.assign(merged, parsed);
             } catch (e) {}
         }
     }
@@ -56,7 +63,10 @@ const getInitialDraftData = () => {
     const oldDraft = localStorage.getItem('admission_form_draft');
     if (oldDraft) {
         try {
-            Object.assign(merged, JSON.parse(oldDraft));
+            const parsed = JSON.parse(oldDraft);
+            delete parsed.photoUrl;
+            delete parsed.photo;
+            Object.assign(merged, parsed);
         } catch (e) {}
     }
     return merged;
@@ -68,8 +78,23 @@ const AdmissionForm = () => {
     const [formLoading, setFormLoading] = useState(true);
     const [stepTransition, setStepTransition] = useState(false);
     const [fullDetails, setFullDetails] = useState(null);
+    const [admissionsClosed, setAdmissionsClosed] = useState(false);
     const isNavigating = useRef(false); // Prevents step-reset effect from overriding handleNext
     const navigate = useNavigate();
+
+    useEffect(() => {
+        const checkAdmissionStatus = async () => {
+            try {
+                const res = await api.get('/system/config');
+                if (res.data?.success && res.data?.data?.admissionOpen === false) {
+                    setAdmissionsClosed(true);
+                }
+            } catch (err) {
+                console.warn('Could not check system admission status in AdmissionForm:', err);
+            }
+        };
+        checkAdmissionStatus();
+    }, []);
 
     const {
         stepStatus,
@@ -467,14 +492,14 @@ const AdmissionForm = () => {
                                     <h1>JAIN COLLEGE OF ENGINEERING AND RESEARCH</h1>
                                     <p style="font-size:8px;color:#475569;">(Approved by AICTE, New Delhi, Affiliated to VTU Belagavi &amp; Recognized by Govt. of Karnataka)</p>
                                     <h2>ADMISSION APPLICATION FORM</h2>
-                                    <p>Academic Session 2026-2027</p>
+                                    <p>Academic Session ${details?.academicYear || formData?.academicYear || getAcademicYear()}</p>
                                 </div>
                                 <div class="photo-box">
                                     ${photoUrl ? `<img src="${photoUrl}" alt="Passport Photo" />` : `<span class="photo-placeholder">PASSPORT<br>PHOTO</span>`}
                                 </div>
                             </div>
                             <div class="header-bottom">
-                                <span><strong>Application No:</strong> ${details?.applicationNumber || 'N/A'}</span>
+                                <span><strong>Admission No:</strong> ${details?.applicationNumber || 'N/A'}</span>
                                 <span><strong>Status:</strong> ${pdfStatus}</span>
                                 <span><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span>
                             </div>
@@ -554,13 +579,9 @@ const AdmissionForm = () => {
                                 <div class="signature-line"></div>
                                 <div class="signature-label">Date &amp; Place</div>
                             </div>
-                            <div class="signature-item">
-                                ${signatureUrl ? `<img src="${signatureUrl}" alt="Signature" class="signature-img" />` : `<div class="signature-line"></div>`}
-                                <div class="signature-label">Applicant Signature</div>
-                            </div>
                         </div>
                         <div class="footer">
-                            <p>Application No: ${details?.applicationNumber || 'N/A'} &nbsp;|&nbsp; Status: ${pdfStatus} &nbsp;|&nbsp; Printed on: ${new Date().toLocaleString('en-IN')}</p>
+                            <p>Admission No: ${details?.applicationNumber || 'N/A'} &nbsp;|&nbsp; Status: ${pdfStatus} &nbsp;|&nbsp; Printed on: ${new Date().toLocaleString('en-IN')}</p>
                             <div style="border-top:1px solid #dde1e8;margin:5px 0;"></div>
                             <p>Contact: 099448693987 | principal@jcer.in</p>
                         </div>
@@ -638,6 +659,29 @@ const AdmissionForm = () => {
         );
     }
 
+    if (admissionsClosed && !fullDetails?.id && !stepStatus?.studentId && !stepStatus?.applicationNumber) {
+        return (
+            <div className="min-h-[60vh] flex items-center justify-center p-4">
+                <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-8 max-w-md w-full text-center space-y-4 shadow-sm">
+                    <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                        <Lock size={26} />
+                    </div>
+                    <div className="space-y-2">
+                        <h3 className="text-lg font-bold text-amber-900">Admissions Closed</h3>
+                        <p className="text-xs sm:text-sm text-amber-800 leading-relaxed font-medium">
+                            Admissions are currently closed. Please contact the college office for further information.
+                        </p>
+                    </div>
+                    <div className="pt-3 border-t border-amber-200/80">
+                        <button onClick={() => navigate('/admission/dashboard')} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-all">
+                            Return to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const loading = formLoading || statusLoading;
     const completedCount = stepStatus?.completedCount || 0;
     const totalSteps = stepStatus?.totalSteps || 7;
@@ -686,7 +730,7 @@ const AdmissionForm = () => {
                         Admission Form
                     </h1>
                     <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500">
-                        <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-semibold">Admission Session 2026-2027</span>
+                        <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-semibold">Admission Session {formData?.academicYear || getAcademicYear()}</span>
                     </div>
                 </div>
                 <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
@@ -772,7 +816,11 @@ const AdmissionForm = () => {
                             </p>
                         </div>
                     </div>
-                    <button className="btn-secondary text-xs sm:text-sm flex items-center gap-2 py-2 px-4 whitespace-nowrap min-h-[38px]">
+                    <button 
+                        type="button"
+                        onClick={() => navigate('/admission/support')}
+                        className="btn-secondary text-xs sm:text-sm flex items-center gap-2 py-2 px-4 whitespace-nowrap min-h-[38px]"
+                    >
                         Contact Support
                         <ExternalLink size={14} />
                     </button>

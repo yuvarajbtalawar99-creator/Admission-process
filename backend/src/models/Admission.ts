@@ -20,7 +20,8 @@ export type AdmissionType = 'KCET' | 'DCET' | 'MANAGEMENT';
 class Admission extends Model {
   public id!: string;
   public userId!: string;
-  public applicationNumber!: string;
+  public applicationNumber!: string | null;
+  public academicYear!: string | null;
   public admissionType!: AdmissionType | null;
   public branchId!: string | null;
   public qualification!: 'PUC' | 'DIPLOMA' | null;
@@ -28,6 +29,7 @@ class Admission extends Model {
   public cetNumber!: string | null;
   public dcetNumber!: string | null;
   public applicationStatus!: AdmissionStatus;
+  public applicationFeeStatus!: string | null;
   public adminRemarks!: string | null;
   public rejectionReason!: string | null;
   public rejectionReasonCode!: string | null;
@@ -107,9 +109,13 @@ Admission.init(
       onDelete: 'CASCADE',
     },
     applicationNumber: {
-      type: DataTypes.STRING(20),
-      allowNull: false,
+      type: DataTypes.STRING(30),
+      allowNull: true,
       unique: true,
+    },
+    academicYear: {
+      type: DataTypes.STRING(30),
+      allowNull: true,
     },
     admissionType: {
       type: DataTypes.ENUM('KCET', 'DCET', 'MANAGEMENT'),
@@ -140,6 +146,11 @@ Admission.init(
       type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'FEE_RECEIPT_UPLOADED', 'FEE_VERIFIED', 'REJECTED', 'ENROLLED', 'CANCELLATION_REQUESTED', 'CANCELLED'),
       allowNull: false,
       defaultValue: 'DRAFT',
+    },
+    applicationFeeStatus: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+      defaultValue: 'Pending Payment',
     },
     adminRemarks: {
       type: DataTypes.TEXT,

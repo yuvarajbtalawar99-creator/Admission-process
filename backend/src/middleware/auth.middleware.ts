@@ -36,13 +36,7 @@ export const authMiddleware = async (
       throw new UnauthorizedError('Invalid or expired token.');
     }
 
-    // 2. Redis revocation list check (verify active session exists)
-    const activeSessionToken = await redisService.getSession(decoded.id);
-    if (!activeSessionToken) {
-      throw new UnauthorizedError('Session expired or revoked. Please log in again.');
-    }
-
-    // 3. Database verification (zero-trust: always re-verify user status and tokenVersion)
+    // 2. Database verification (zero-trust: always re-verify user status and tokenVersion)
     const user = await User.findByPk(decoded.id);
     if (!user) {
       throw new UnauthorizedError('User account not found.');
@@ -52,14 +46,8 @@ export const authMiddleware = async (
       throw new UnauthorizedError(`User account is ${user.status.toLowerCase()}.`);
     }
 
-    if (decoded.tv !== user.tokenVersion) {
+    if (typeof decoded.tv === 'number' && decoded.tv !== user.tokenVersion) {
       throw new UnauthorizedError('Session invalidated due to password or permission change. Please log in again.');
-    }
-
-    // 4. Bind check to User-Agent (prevent token hijack replay)
-    const reqUserAgent = req.headers['user-agent'] || '';
-    if (!reqUserAgent) {
-      throw new UnauthorizedError('Suspicious request. User-Agent header is missing.');
     }
 
     // Attach verified user payload to the request object

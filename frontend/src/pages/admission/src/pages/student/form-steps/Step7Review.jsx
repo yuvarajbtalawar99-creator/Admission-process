@@ -113,7 +113,7 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 space-y-6 mt-10">
                     <div className="flex flex-col sm:flex-row items-center justify-around gap-8 text-left">
                         <div>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Application Number</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Admission Number</p>
                             <p className="text-lg font-bold text-slate-900">{details.applicationNumber || details.id}</p>
                         </div>
                         <div className="w-px h-10 bg-slate-200 hidden sm:block"></div>
@@ -361,7 +361,14 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                         <DataItem label="Photo" value={docs.photoUrl ? '✅ Uploaded' : '❌ Missing'} />
                         <DataItem label="Signature" value={docs.signatureUrl ? '✅ Uploaded' : '❌ Missing'} />
                         <DataItem label="10th Marksheet" value={docs.tenthMarksheetUrl ? '✅ Uploaded' : '❌ Missing'} />
-                        <DataItem label={details.qualification === 'DIPLOMA' ? 'Diploma Marks Card' : 'PUC / 12th Marksheet'} value={docs.twelfthMarksheetUrl ? '✅ Uploaded' : '❌ Missing'} />
+                        {details.qualification === 'DIPLOMA' ? (
+                            <>
+                                <DataItem label="Diploma 5th Sem Marksheet" value={docs.diplomaSemester5MarksheetUrl ? '✅ Uploaded' : '❌ Missing'} />
+                                <DataItem label="Diploma 6th Sem Marksheet" value={docs.diplomaSemester6MarksheetUrl ? '✅ Uploaded' : '❌ Missing'} />
+                            </>
+                        ) : (
+                            <DataItem label="PUC / 12th Marksheet" value={docs.twelfthMarksheetUrl ? '✅ Uploaded' : '❌ Missing'} />
+                        )}
                         <DataItem label="Fees Paid Receipt" value={docs.feesPaidReceiptUrl ? '✅ Uploaded' : '❌ Missing'} />
                         <DataItem label="Domicile/Study Certificate" value={docs.domicileCertificateUrl ? '✅ Uploaded' : '❌ Missing'} />
                     </ReviewSection>

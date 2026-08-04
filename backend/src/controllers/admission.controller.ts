@@ -6,6 +6,8 @@ import securityEvents from '../services/securityEvents.service';
 import AuditLog from '../models/AuditLog';
 import AdmissionDocument from '../models/AdmissionDocument';
 import Admission from '../models/Admission';
+import SystemConfiguration from '../models/SystemConfiguration';
+import { generateHandbookPDFBuffer } from '../utils/handbookGenerator.util';
 import { validateDocument } from '../utils/documentValidation.util';
 
 interface AuthRequest extends Request {
@@ -17,6 +19,8 @@ const DOCUMENT_FIELD_MAP: Record<string, keyof AdmissionDocument> = {
   signature: 'signatureUrl',
   tenthMarksheet: 'tenthMarksheetUrl',
   twelfthMarksheet: 'twelfthMarksheetUrl',
+  diplomaSemester5Marksheet: 'diplomaSemester5MarksheetUrl',
+  diplomaSemester6Marksheet: 'diplomaSemester6MarksheetUrl',
   cetScoreCard: 'cetScoreCardUrl',
   aadhaar: 'aadhaarUrl',
   casteCertificate: 'casteCertificateUrl',
@@ -118,6 +122,13 @@ export const saveStep1 = async (
   req: AuthRequest, res: Response, next: NextFunction
 ): Promise<any> => {
   try {
+    const existing = await Admission.findOne({ where: { userId: req.user!.id } });
+    if (!existing) {
+      const config = await SystemConfiguration.findOne();
+      if (config && config.admissionOpen === false) {
+        return res.status(403).json({ success: false, error: 'Admissions are currently closed. Please contact the college office for further information.' });
+      }
+    }
     const admissionId = await admissionService.saveStep1(req.user!.id, req.body);
     securityEvents.stepEdit(req, req.user!.id, admissionId, 1);
     return res.json({ success: true, message: 'Admission details saved.' });
@@ -315,6 +326,53 @@ export const downloadPDF = async (
   }
 };
 
+/** GET /api/public/handbook - Download official Admission Handbook PDF (Public, No Auth Required) */
+export const downloadHandbook = async (
+  _req: Request, res: Response, next: NextFunction
+): Promise<any> => {
+  try {
+    const config = await SystemConfiguration.findOne();
+    if (config?.handbookUrl) {
+      const relativePath = config.handbookUrl.startsWith('/') ? config.handbookUrl.slice(1) : config.handbookUrl;
+      const fullPath = path.join(process.cwd(), relativePath);
+      if (fs.existsSync(fullPath)) {
+        return res.download(fullPath, 'Jain_College_Admission_Handbook.pdf');
+      }
+    }
+
+    // Check if generated static file already exists on disk
+    const staticHandbookPath = path.join(process.cwd(), 'uploads', 'Jain_College_Admission_Handbook.pdf');
+    if (fs.existsSync(staticHandbookPath)) {
+      return res.download(staticHandbookPath, 'Jain_College_Admission_Handbook.pdf');
+    }
+
+    // Generate handbook PDF buffer
+    const pdfBuffer = generateHandbookPDFBuffer();
+
+    // Persist file to uploads and public/static directories
+    try {
+      const uploadsDir = path.join(process.cwd(), 'uploads');
+      const publicStaticDir = path.join(process.cwd(), 'public', 'static');
+      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+      if (!fs.existsSync(publicStaticDir)) fs.mkdirSync(publicStaticDir, { recursive: true });
+
+      fs.writeFileSync(staticHandbookPath, pdfBuffer);
+      fs.writeFileSync(path.join(publicStaticDir, 'Jain_College_Admission_Handbook.pdf'), pdfBuffer);
+    } catch (saveErr: any) {
+      logger.warn(`Could not save static handbook PDF file: ${saveErr.message}`);
+    }
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename="Jain_College_Admission_Handbook.pdf"',
+      'Content-Length': pdfBuffer.length,
+    });
+    return res.send(pdfBuffer);
+  } catch (err) {
+    return next(err);
+  }
+};
+
 // ─── Admin Endpoints ─────────────────────────────────────────────────────────
 
 /** GET /api/admin/admissions */
@@ -354,7 +412,8 @@ export const listAdmissions = async (
       district,
       academicYear,
       startDate,
-      endDate
+      endDate,
+      includeFullDetails: req.query.includeFullDetails === 'true'
     });
     
     if (!result || result.total === 0) {
@@ -385,11 +444,20 @@ export const getAdmissionById = async (
     const data = await admissionService.getApplicationById(id);
     if (!data) return res.status(404).json({ error: 'Application not found' });
 
-    // Log admin view event
-    const applicantName = data.user
-      ? `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim()
-      : 'Unknown';
-    securityEvents.admissionView(req, req.user!.id, id, applicantName);
+    // Requirement 8 Logging before sending response
+    const studentId = data.userId || data.user?.id || data.user?.student?.id || 'N/A';
+    const docsObj = data.studentdocuments || data.documents || {};
+    const docEntries = Object.entries(docsObj).filter(
+      ([key, val]) => val !== null && val !== undefined && val !== '' && key !== 'id' && key !== 'admissionId' && key !== 'createdAt' && key !== 'updatedAt'
+    );
+    const docUrls = docEntries.map(([key, val]) => `${key}: ${val}`);
+
+    console.log("==================== [BACKEND ADMISSION REVIEW] ====================");
+    console.log("Application ID:", id);
+    console.log("Student ID:", studentId);
+    console.log("Number of documents found:", docEntries.length);
+    console.log("Document URLs:", docUrls);
+    console.log("====================================================================");
 
     return res.json({ success: true, data });
   } catch (err) {

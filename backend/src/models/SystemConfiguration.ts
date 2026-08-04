@@ -9,6 +9,8 @@ class SystemConfiguration extends Model {
   public maintenanceMode!: boolean;
   public supportEmail!: string;
   public supportPhone!: string;
+  public admissionClosingDate!: Date | null;
+  public handbookUrl!: string | null;
   public version!: string;
   public features!: any; // JSON object for feature flags
   public readonly createdAt!: Date;
@@ -35,7 +37,17 @@ SystemConfiguration.init(
     admissionCycle: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      defaultValue: '2026–27',
+      defaultValue: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+    },
+    admissionClosingDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: new Date('2026-08-31T23:59:59.000Z'),
+    },
+    handbookUrl: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      defaultValue: null,
     },
     maintenanceMode: {
       type: DataTypes.BOOLEAN,

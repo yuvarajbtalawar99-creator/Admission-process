@@ -20,6 +20,7 @@ import {
   LogOut,
   ChevronDown,
   Sliders,
+  Settings,
   User,
   Shield,
   AlertCircle,
@@ -167,6 +168,12 @@ export const AdminLayout: React.FC = () => {
         { name: 'Students', path: '/admin/students', icon: Users },
       ],
     },
+    {
+      title: 'Settings',
+      items: [
+        { name: 'Settings', path: '/admin/settings/system', icon: Settings },
+      ],
+    },
   ];
 
   const subNavTabs = [
@@ -204,21 +211,21 @@ export const AdminLayout: React.FC = () => {
     <div className="min-h-screen max-w-full overflow-x-hidden flex text-neutral-900 dark:text-neutral-100 transition-colors duration-300 font-sans pb-6 pr-6">
 
       {/* ── FLOATING SIDEBAR ── */}
-      <aside className="fixed left-6 top-6 bottom-6 w-[312px] flex flex-col justify-between py-6 px-5 rounded-[32px] glass-bar z-40">
+      <aside className="fixed left-6 top-6 bottom-6 w-[280px] min-w-[280px] max-w-[280px] flex-shrink-0 flex flex-col justify-between py-6 px-4 rounded-[32px] glass-bar z-40">
 
         {/* Top: Logo + Nav */}
         <div className="flex flex-col w-full">
-          <Link to="/admin/dashboard" className="flex items-center space-x-3.5 px-2 mb-6 hover:opacity-95 transition-all">
-          <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0">
-  <img
-    src="/logo.png"
-    alt="JCER Logo"
-    className="w-full h-full object-cover"
-  />
-</div>
-            <div className="flex flex-col">
-              <span className="font-bold text-xl tracking-wider uppercase text-neutral-900 dark:text-white">JCER ERP</span>
-              <span className="text-[13px] font-extrabold -mt-0.5" style={{ color: '#7C3AED' }}>Admin Portal</span>
+          <Link to="/admin/dashboard" className="flex items-center space-x-3 px-1 mb-6 hover:opacity-95 transition-all">
+            <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
+              <img
+                src="/logo.png"
+                alt="JCER Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold text-lg tracking-wider uppercase text-neutral-900 dark:text-white truncate">JCER ERP</span>
+              <span className="text-xs font-extrabold -mt-0.5" style={{ color: '#7C3AED' }}>Admin Portal</span>
             </div>
           </Link>
 
@@ -286,7 +293,7 @@ export const AdminLayout: React.FC = () => {
       </aside>
 
       {/* ── MAIN CONTENT AREA ── */}
-      <div className="flex-1 pt-6 flex flex-col min-h-screen min-w-0" style={{ paddingLeft: '360px' }}>
+      <div className="flex-1 pt-6 flex flex-col min-h-screen min-w-0" style={{ paddingLeft: '328px' }}>
 
         {/* ── TOP HEADER ── */}
         <header className="flex flex-row items-center justify-between py-4 mb-6 z-30 gap-4">

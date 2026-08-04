@@ -47,8 +47,8 @@ API.interceptors.response.use(
 
     // If it's a 401 and we haven't already retried this exact request
     if (error.response && error.response.status === 401 && !originalRequest._retry) {
-      // If the login request itself failed (e.g. invalid password), don't trigger forceLogout
-      if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/register')) {
+      // If the login/register/status request itself failed, don't trigger forceLogout or refresh-token loop
+      if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/register') || originalRequest.url?.includes('/auth/status')) {
         return Promise.reject(error);
       }
 

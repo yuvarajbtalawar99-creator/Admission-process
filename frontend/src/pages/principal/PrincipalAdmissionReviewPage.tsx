@@ -8,6 +8,7 @@ import {
   AlertCircle, CheckSquare, Award, FileSignature, ChevronRight, X, AlertTriangle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { getAcademicYear } from '../../utils/date.util';
 
 // ─── Document Thumbnail / Preview Component ──────────────────────────────────
 const DocumentItem: React.FC<{ field: string; appId: string; label: string; onPreview: (url: string, label: string, isPdf: boolean) => void }> = ({ field, appId, label, onPreview }) => {
@@ -240,7 +241,7 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
         minute: '2-digit',
         hour12: true
       })
-    : '29 Jul 2026, 10:42 AM';
+    : new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
 
   const remarkTemplates = [
     "Approved – All documents verified.",
@@ -290,7 +291,7 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4 text-xs text-slate-300 font-medium">
-              <span>Academic Year: <strong className="text-white">{app.academicYear || '2026-2027'}</strong></span>
+              <span>Academic Year: <strong className="text-white">{app.academicYear || getAcademicYear()}</strong></span>
               <span>Quota: <strong className="text-indigo-300">{app.admissionType || 'N/A'}</strong></span>
             </div>
           </div>
@@ -502,7 +503,14 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
               <DocumentItem field="photo" appId={app.id} label="Applicant Photo" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
               <DocumentItem field="signature" appId={app.id} label="Signature" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
               <DocumentItem field="tenthMarksheet" appId={app.id} label="10th Marksheet" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
-              <DocumentItem field="twelfthMarksheet" appId={app.id} label="12th / Diploma Card" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
+              {app?.qualification === 'DIPLOMA' || app?.admissionType === 'DCET' ? (
+                <>
+                  <DocumentItem field="diplomaSemester5Marksheet" appId={app.id} label="Diploma 5th Sem Card" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
+                  <DocumentItem field="diplomaSemester6Marksheet" appId={app.id} label="Diploma 6th Sem Card" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
+                </>
+              ) : (
+                <DocumentItem field="twelfthMarksheet" appId={app.id} label="12th / PUC Card" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
+              )}
               <DocumentItem field="feesPaidReceipt" appId={app.id} label="Tuition / College Fee Receipt" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
               <DocumentItem field="admissionFeeReceipt" appId={app.id} label="₹500 Admission Processing Fee Receipt" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
               <DocumentItem field="domicileCertificate" appId={app.id} label="Study / Domicile Cert" onPreview={(url, label, isPdf) => setPreviewDoc({ url, label, isPdf })} />
@@ -572,7 +580,7 @@ export const PrincipalAdmissionReviewPage: React.FC = () => {
               <p className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">FINAL DECISION SUMMARY</p>
               <div className="space-y-1">
                 <p><span className="text-slate-400">Student:</span> <strong className="text-slate-800 dark:text-slate-200">{studentName}</strong></p>
-                <p><span className="text-slate-400">App No:</span> <strong className="text-slate-800 dark:text-slate-200">#{app.applicationNumber}</strong></p>
+                <p><span className="text-slate-400">Admission No:</span> <strong className="text-slate-800 dark:text-slate-200">#{app.applicationNumber}</strong></p>
                 <p><span className="text-slate-400">Branch:</span> <strong className="text-slate-800 dark:text-slate-200">{app.branch?.name} ({app.branch?.code})</strong></p>
                 <p><span className="text-slate-400">Quota:</span> <strong className="text-slate-800 dark:text-slate-200">{app.admissionType}</strong></p>
                 <p><span className="text-slate-400">Verified By:</span> <strong className="text-slate-800 dark:text-slate-200">{app.reviewedBy || 'Nodal Officer'}</strong></p>
