@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import SelectDropdown from '../../../components/SelectDropdown';
 
 
-const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) => {
+const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus, readOnly = false }) => {
     const [loading, setLoading] = useState(false);
     const [validationErrors, setValidationErrors] = useState({});
 
@@ -374,6 +374,11 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        if (readOnly) {
+            onNext();
+            return;
+        }
+
         if (!isSslcFormValid()) {
             toast.error("Please fill all subject marks correctly before continuing.");
             return;
@@ -580,6 +585,7 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in flex flex-col">
+            <fieldset disabled={readOnly} className="space-y-6 flex flex-col p-0 m-0 border-0 w-full">
             {/* SSLC Section */}
             <div>
                 <SectionHeader icon={School} title="SSLC (10th Standard) Details" subtitle="Secondary education academic records" />
@@ -846,12 +852,13 @@ const Step5Academic = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                     </div>
                 </div>
             )}
+            </fieldset>
 
             <div className="pt-4 sm:pt-6 border-t border-slate-100 flex items-center justify-between gap-3 sticky bottom-0 bg-white/95 backdrop-blur-md p-3 sm:p-0 -mx-4 -mb-4 sm:mx-0 sm:mb-0 sm:static sm:bg-transparent z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:shadow-none">
                 <button type="button" onClick={onPrev} className="btn-secondary min-h-[44px] h-11 px-5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
                     <ChevronLeft size={16} /> Back
                 </button>
-                <button type="submit" disabled={loading || !isSslcFormValid() || !isPucFormValid()} className={`btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold ${(loading || !isSslcFormValid() || !isPucFormValid()) ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}>
+                <button type="submit" id="bottom-submit-btn" disabled={loading || !isSslcFormValid() || !isPucFormValid()} className={`btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold ${(loading || !isSslcFormValid() || !isPucFormValid()) ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}>
                     {loading ? <Loader2 size={18} className="animate-spin" /> : (
                         <>Save & Continue <ChevronRight size={16} /></>
                     )}

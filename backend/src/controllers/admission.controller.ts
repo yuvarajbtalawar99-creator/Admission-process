@@ -9,6 +9,7 @@ import Admission from '../models/Admission';
 import SystemConfiguration from '../models/SystemConfiguration';
 import { generateHandbookPDFBuffer } from '../utils/handbookGenerator.util';
 import { validateDocument } from '../utils/documentValidation.util';
+import logger from '../utils/logger.util';
 
 interface AuthRequest extends Request {
   user?: { id: string; role: string };
@@ -511,16 +512,15 @@ export const viewAdmissionDocument = async (
   }
 };
 
-/** PUT /api/admin/admissions/:id/status */
 export const updateAdmissionStatus = async (
   req: AuthRequest, res: Response, _next: NextFunction
 ): Promise<any> => {
   try {
     const { id } = req.params;
-    const { status, remarks, rejectionReason, rejectionReasonCode } = req.body;
-    const validStatuses = ['UNDER_REVIEW', 'APPROVED', 'REJECTED', 'ENROLLED'];
+    const { status, remarks, rejectionReason, rejectionReasonCode, sections, deadline } = req.body;
+    const validStatuses = ['UNDER_REVIEW', 'APPROVED', 'REJECTED', 'ENROLLED', 'CORRECTION_REQUIRED'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status. Must be UNDER_REVIEW, APPROVED, REJECTED, or ENROLLED.' });
+      return res.status(400).json({ error: 'Invalid status. Must be UNDER_REVIEW, APPROVED, REJECTED, ENROLLED, or CORRECTION_REQUIRED.' });
     }
 
     if (status === 'REJECTED') {
@@ -532,10 +532,28 @@ export const updateAdmissionStatus = async (
       }
     }
 
+    if (status === 'CORRECTION_REQUIRED') {
+      if (!sections || !Array.isArray(sections) || sections.length === 0) {
+        return res.status(400).json({ error: 'At least one section must be specified for correction.' });
+      }
+      if (!remarks || !remarks.trim()) {
+        return res.status(400).json({ error: 'Correction remarks/instructions are required.' });
+      }
+    }
+
     const data = await admissionService.getApplicationById(id);
     const oldStatus = data ? data.applicationStatus : 'UNKNOWN';
 
-    const enrollmentNumber = await admissionService.updateStatus(id, status, req.user!.id, remarks, rejectionReason, rejectionReasonCode);
+    const enrollmentNumber = await admissionService.updateStatus(
+      id,
+      status,
+      req.user!.id,
+      remarks,
+      rejectionReason,
+      rejectionReasonCode,
+      sections,
+      deadline
+    );
 
     // Log audit status change
     if (status === 'ENROLLED' && enrollmentNumber) {
@@ -564,6 +582,20 @@ export const updateAdmissionStatus = async (
           action: 'ADMISSION_REJECTED',
           reason: rejectionReasonCode,
           remarks: remarks || '',
+          performedBy: req.user!.id,
+        },
+      });
+    } else if (status === 'CORRECTION_REQUIRED') {
+      await AuditLog.create({
+        userId: req.user!.id,
+        action: 'ADMISSION_STATUS_CHANGE',
+        ipAddress: req.ip,
+        userAgent: req.headers['user-agent'],
+        details: {
+          action: 'ADMISSION_CORRECTION_REQUIRED',
+          sections,
+          remarks: remarks || '',
+          deadline,
           performedBy: req.user!.id,
         },
       });

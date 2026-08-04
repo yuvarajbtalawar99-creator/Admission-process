@@ -37,9 +37,11 @@ const StepIndicator = ({ steps, currentStep, getStepState }) => {
                         ? getStepState(stepIndex)
                         : (stepIndex < currentStep ? 'COMPLETED' : stepIndex === currentStep ? 'IN_PROGRESS' : 'NOT_STARTED');
 
-                    const isCompleted = state === 'COMPLETED';
-                    const isActive = state === 'IN_PROGRESS';
-                    const isLocked = state === 'NOT_STARTED';
+                    const isCurrent = stepIndex === currentStep;
+                    const isCompleted = !isCurrent && state === 'COMPLETED';
+                    const isCorrectionRequired = !isCurrent && state === 'CORRECTION_REQUIRED';
+                    const isActive = isCurrent;
+                    const isLocked = !isCurrent && (state === 'LOCKED' || state === 'NOT_STARTED');
 
                     return (
                         <div key={index} className="relative z-10 flex flex-col items-center flex-shrink-0">
@@ -48,13 +50,17 @@ const StepIndicator = ({ steps, currentStep, getStepState }) => {
                                     w-9 h-9 rounded-full flex items-center justify-center transition-all duration-500 text-sm font-semibold border-2
                                     ${isCompleted
                                         ? 'bg-green-500 border-green-500 text-white shadow-lg shadow-green-500/25'
-                                        : isActive
-                                            ? 'bg-primary-600 border-primary-600 text-white ring-4 ring-primary-100 shadow-lg shadow-primary-600/25 step-pulse'
-                                            : 'bg-white border-slate-200 text-slate-300'}
+                                        : isCorrectionRequired
+                                            ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/25 animate-pulse'
+                                            : isActive
+                                                ? 'bg-primary-600 border-primary-600 text-white ring-4 ring-primary-100 shadow-lg shadow-primary-600/25 step-pulse'
+                                                : 'bg-white border-slate-200 text-slate-300'}
                                 `}
                             >
                                 {isCompleted ? (
                                     <Check size={16} strokeWidth={3} />
+                                ) : isCorrectionRequired ? (
+                                    <span className="font-extrabold">{stepIndex}</span>
                                 ) : isLocked ? (
                                     <Lock size={12} />
                                 ) : (
@@ -65,6 +71,7 @@ const StepIndicator = ({ steps, currentStep, getStepState }) => {
                             <div className="absolute top-12 flex flex-col items-center whitespace-nowrap">
                                 <span className={`text-[10px] font-semibold transition-colors duration-300 ${
                                     isCompleted ? 'text-green-600' :
+                                    isCorrectionRequired ? 'text-rose-600 font-extrabold' :
                                     isActive ? 'text-primary-700' :
                                     'text-slate-400'
                                 }`}>

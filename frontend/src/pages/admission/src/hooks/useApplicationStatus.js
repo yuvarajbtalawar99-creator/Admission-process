@@ -67,7 +67,7 @@ const useApplicationStatus = () => {
      */
     const isStepAccessible = useCallback((stepIndex) => {
         const state = getStepState(stepIndex);
-        return state === 'COMPLETED' || state === 'ACTIVE';
+        return state === 'COMPLETED' || state === 'ACTIVE' || state === 'CORRECTION_REQUIRED';
     }, [getStepState]);
 
     return {

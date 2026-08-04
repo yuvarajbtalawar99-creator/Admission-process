@@ -225,8 +225,52 @@ async function startServer() {
       try {
         await sequelize.query(`ALTER TYPE "enum_admissions_applicationStatus" ADD VALUE IF NOT EXISTS 'CANCELLATION_REQUESTED'`);
         await sequelize.query(`ALTER TYPE "enum_admissions_applicationStatus" ADD VALUE IF NOT EXISTS 'CANCELLED'`);
+        await sequelize.query(`ALTER TYPE "enum_admissions_applicationStatus" ADD VALUE IF NOT EXISTS 'CORRECTION_REQUIRED'`);
+        await sequelize.query(`ALTER TYPE "enum_admissions_applicationStatus" ADD VALUE IF NOT EXISTS 'RESUBMITTED'`);
       } catch (e: any) {
         console.warn('Pre-cast migration for admissions applicationStatus enum skipped:', e.message);
+      }
+
+      // Pre-cast: ensure admissions correction workflow columns exist
+      try {
+        await sequelize.query(`
+          DO $$
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admissions' AND column_name = 'correctionRequestedSections'
+            ) THEN
+              ALTER TABLE "admissions" ADD COLUMN "correctionRequestedSections" JSON;
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admissions' AND column_name = 'correctionRemarks'
+            ) THEN
+              ALTER TABLE "admissions" ADD COLUMN "correctionRemarks" TEXT;
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admissions' AND column_name = 'correctionDeadline'
+            ) THEN
+              ALTER TABLE "admissions" ADD COLUMN "correctionDeadline" TIMESTAMPTZ;
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admissions' AND column_name = 'correctionRequestedAt'
+            ) THEN
+              ALTER TABLE "admissions" ADD COLUMN "correctionRequestedAt" TIMESTAMPTZ;
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_name = 'admissions' AND column_name = 'correctionRequestedById'
+            ) THEN
+              ALTER TABLE "admissions" ADD COLUMN "correctionRequestedById" UUID;
+            END IF;
+          END
+          $$;
+        `);
+      } catch (e: any) {
+        console.warn('Pre-cast migration for admissions correction workflow columns skipped:', e.message);
       }
 
       console.log('Syncing database schema (development alter)...');

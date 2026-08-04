@@ -7,6 +7,8 @@ export type AdmissionStatus =
   | 'DRAFT'
   | 'SUBMITTED'
   | 'UNDER_REVIEW'
+  | 'CORRECTION_REQUIRED'
+  | 'RESUBMITTED'
   | 'APPROVED'
   | 'FEE_RECEIPT_UPLOADED'
   | 'FEE_VERIFIED'
@@ -48,6 +50,10 @@ export interface AdmissionApplication {
   createdAt: string;
   updatedAt: string;
   verifiedAt?: string | null;
+  correctionRequestedSections?: string[] | null;
+  correctionDeadline?: string | null;
+  correctionRequestedAt?: string | null;
+  correctionRequestedById?: string | null;
   academicYear?: string | null;
   cancellationReason?: string | null;
   cancellationRemarks?: string | null;
@@ -268,12 +274,14 @@ const admissionService = {
 
   updateStatus: async (
     id: string,
-    status: 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'ENROLLED',
+    status: 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'ENROLLED' | 'CORRECTION_REQUIRED',
     remarks?: string,
     rejectionReason?: string,
-    rejectionReasonCode?: string
+    rejectionReasonCode?: string,
+    sections?: string[],
+    deadline?: string
   ): Promise<void> => {
-    await API.put(`/admin/admissions/${id}/status`, { status, remarks, rejectionReason, rejectionReasonCode });
+    await API.put(`/admin/admissions/${id}/status`, { status, remarks, rejectionReason, rejectionReasonCode, sections, deadline });
     window.dispatchEvent(new CustomEvent('admissions-updated'));
   },
 

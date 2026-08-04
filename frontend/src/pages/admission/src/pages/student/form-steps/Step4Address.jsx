@@ -46,7 +46,7 @@ const KARNATAKA_CITIES_REGISTRY = [
     { city: 'MADIKERI', taluk: 'MADIKERI', districtName: 'kodagu (coorg)', pincode: '571201' }
 ];
 
-const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) => {
+const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus, readOnly = false }) => {
     const [loading, setLoading] = useState(false);
     const [sameAsCurrent, setSameAsCurrent] = useState(() => {
         if (data.sameAsCurrent !== undefined) {
@@ -271,6 +271,12 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (readOnly) {
+            onNext();
+            return;
+        }
+
         setLoading(true);
         try {
             const payload = {
@@ -368,6 +374,7 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
 
     return (
         <form onSubmit={handleSubmit} className="space-y-8 animate-fade-in flex flex-col">
+            <fieldset disabled={readOnly} className="space-y-8 flex flex-col p-0 m-0 border-0 w-full">
             {/* Current Address */}
             <div className="space-y-5">
                 <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
@@ -511,12 +518,13 @@ const Step4Address = ({ onNext, onPrev, data, updateData, applicationStatus }) =
                     </div>
                 )}
             </div>
+            </fieldset>
 
             <div className="pt-4 sm:pt-6 border-t border-slate-100 flex items-center justify-between gap-3 sticky bottom-0 bg-white/95 backdrop-blur-md p-3 sm:p-0 -mx-4 -mb-4 sm:mx-0 sm:mb-0 sm:static sm:bg-transparent z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:shadow-none">
                 <button type="button" onClick={onPrev} className="btn-secondary min-h-[44px] h-11 px-5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
                     <ChevronLeft size={16} /> Back
                 </button>
-                <button type="submit" disabled={loading} className="btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
+                <button type="submit" id="bottom-submit-btn" disabled={loading} className="btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
                     {loading ? <Loader2 size={18} className="animate-spin" /> : (
                         <>Save & Continue <ChevronRight size={16} /></>
                     )}

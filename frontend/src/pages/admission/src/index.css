@@ -128,6 +128,14 @@ html, body, #root {
   text-transform: none !important;
 }
 
+.admission-portal-theme .input-premium:disabled,
+.admission-portal-theme .glass-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+}
+
 /* Buttons */
 .admission-portal-theme .btn-primary {
   background: var(--primary);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import admissionService, { AdmissionApplication } from '../../../services/admission.service';
 import API from '../../../services/api';
-import { ArrowLeft, User, Users, GraduationCap, CheckCircle2, XCircle, FileText, MapPin, ExternalLink, ShieldCheck, Maximize2, Image, Layers } from 'lucide-react';
+import { ArrowLeft, User, Users, GraduationCap, CheckCircle2, XCircle, FileText, MapPin, ExternalLink, ShieldCheck, Maximize2, Image, Layers, Clock, Send, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getAcademicYear } from '../../../utils/date.util';
 import { DocumentVerificationWorkspace } from './DocumentVerificationWorkspace';
@@ -213,6 +213,27 @@ export const AdmissionReviewPage: React.FC = () => {
   const [eligibilityVerified, setEligibilityVerified] = useState(false);
   const [verificationRemarks, setVerificationRemarks] = useState('');
   const [verifying, setVerifying] = useState(false);
+
+  // Correction workflow states
+  const [showCorrectionModal, setShowCorrectionModal] = useState(false);
+  const [selectedCorrectionSections, setSelectedCorrectionSections] = useState<string[]>([]);
+  const [correctionRemarks, setCorrectionRemarks] = useState('');
+  const [correctionDeadline, setCorrectionDeadline] = useState('');
+
+  const isSectionCorrected = (sectionKey: string) => {
+    if (app?.applicationStatus !== 'RESUBMITTED') return false;
+    return app.correctionRequestedSections?.includes(sectionKey) || false;
+  };
+
+  const getSectionClass = (sectionKey: string, customClasses = "space-y-4") => {
+    if (app?.applicationStatus !== 'RESUBMITTED') return customClasses;
+    const corrected = isSectionCorrected(sectionKey);
+    if (corrected) {
+      return `${customClasses} border-2 border-amber-500 bg-amber-50/5 dark:bg-amber-950/5 rounded-2xl p-6 shadow-[0_0_15px_rgba(245,158,11,0.15)] transition-all`;
+    } else {
+      return `${customClasses} border-2 border-emerald-500 bg-emerald-50/5 dark:bg-emerald-950/5 rounded-2xl p-6 opacity-75 transition-all`;
+    }
+  };
 
   useEffect(() => {
     if (id) fetchApplication(id);
@@ -496,14 +517,16 @@ export const AdmissionReviewPage: React.FC = () => {
           <ArrowLeft size={16} /> Back to Admissions Queue
         </button>
         <span className={`px-3 py-1.5 text-xs font-black uppercase tracking-wider rounded-lg ${
-          (app.applicationStatus === 'SUBMITTED' && (app.rejectionReason || app.resubmittedAt)) ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/20' :
+          app.applicationStatus === 'RESUBMITTED' ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/20 border border-amber-300' :
+          app.applicationStatus === 'CORRECTION_REQUIRED' ? 'bg-rose-100 text-rose-700' :
           app.applicationStatus === 'APPROVED' ? 'bg-indigo-100 text-indigo-700' :
           app.applicationStatus === 'ENROLLED' ? 'bg-emerald-100 text-emerald-700' :
           app.applicationStatus === 'REJECTED' ? 'bg-rose-100 text-rose-700' :
           app.applicationStatus === 'UNDER_REVIEW' ? 'bg-blue-100 text-blue-700' :
           'bg-amber-100 text-amber-700'}`}>
           Status: {
-            (app.applicationStatus === 'SUBMITTED' && (app.rejectionReason || app.resubmittedAt)) ? 'RESUBMITTED' :
+            app.applicationStatus === 'RESUBMITTED' ? 'RESUBMITTED' :
+            app.applicationStatus === 'CORRECTION_REQUIRED' ? 'CORRECTION REQUIRED' :
             app.applicationStatus === 'APPROVED' ? 'VERIFIED' :
             app.applicationStatus === 'ENROLLED' ? 'APPROVED' :
             app.applicationStatus === 'UNDER_REVIEW' ? 'IN PROGRESS' :
@@ -512,6 +535,38 @@ export const AdmissionReviewPage: React.FC = () => {
           }
         </span>
       </div>
+
+      {/* Resubmitted Banner */}
+      {app.applicationStatus === 'RESUBMITTED' && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-500 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in no-print">
+          <div className="space-y-1">
+            <h4 className="text-xs sm:text-sm font-extrabold text-amber-850 dark:text-amber-400 flex items-center gap-2">
+              <span className="inline-block size-3 rounded-full bg-amber-500 animate-pulse" />
+              🟠 Resubmitted After Corrections
+            </h4>
+            <p className="text-[11px] sm:text-xs text-amber-700 dark:text-amber-300 font-medium">
+              The student has corrected and resubmitted the requested sections. Please review the highlighted sections with orange borders.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {app.correctionRequestedSections?.map(s => {
+              const labelMap: Record<string, string> = {
+                admission: 'Admission Details',
+                personal: 'Personal Details',
+                parent: 'Parent Details',
+                address: 'Address Details',
+                academic: 'Academic Details',
+                documents: 'Documents Upload'
+              };
+              return (
+                <span key={s} className="px-2.5 py-1 bg-amber-100 text-amber-805 rounded-lg text-xs font-black border border-amber-300">
+                  ✔ {labelMap[s] || s}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Missing Fields Warning */}
       {missingFields.length > 0 && (
@@ -579,9 +634,16 @@ export const AdmissionReviewPage: React.FC = () => {
         </div>
 
         {/* ─── SECTION 1: Personal Profile ─── */}
-        <div className="space-y-4">
-          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-400 flex items-center gap-2 border-l-4 border-primary-500 pl-2">
-            <User size={14} className="text-primary-500" /> Personal Details
+        <div className={getSectionClass('personal')}>
+          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-450 flex items-center justify-between border-l-4 border-primary-500 pl-2">
+            <span className="flex items-center gap-2">
+              <User size={14} className="text-primary-500" /> Personal Details
+            </span>
+            {app?.applicationStatus === 'RESUBMITTED' && (
+              isSectionCorrected('personal') 
+                ? <span className="text-[10px] bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold">🟠 Corrected Section</span>
+                : <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold">✅ Already Verified</span>
+            )}
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-4">
             <FormField label="First Name" value={pd?.firstName} />
@@ -600,9 +662,16 @@ export const AdmissionReviewPage: React.FC = () => {
         </div>
 
         {/* ─── SECTION 2: Parents Info ─── */}
-        <div className="space-y-4">
-          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-400 flex items-center gap-2 border-l-4 border-primary-500 pl-2">
-            <Users size={14} className="text-primary-500" /> Parent / Guardian Details
+        <div className={getSectionClass('parent')}>
+          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-450 flex items-center justify-between border-l-4 border-primary-500 pl-2">
+            <span className="flex items-center gap-2">
+              <Users size={14} className="text-primary-500" /> Parent / Guardian Details
+            </span>
+            {app?.applicationStatus === 'RESUBMITTED' && (
+              isSectionCorrected('parent') 
+                ? <span className="text-[10px] bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold">🟠 Corrected Section</span>
+                : <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold">✅ Already Verified</span>
+            )}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Father card */}
@@ -629,9 +698,16 @@ export const AdmissionReviewPage: React.FC = () => {
         </div>
 
         {/* ─── SECTION 3: Address Details ─── */}
-        <div className="space-y-4">
-          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-400 flex items-center gap-2 border-l-4 border-primary-500 pl-2">
-            <MapPin size={14} className="text-primary-500" /> Residential Address
+        <div className={getSectionClass('address')}>
+          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-450 flex items-center justify-between border-l-4 border-primary-500 pl-2">
+            <span className="flex items-center gap-2">
+              <MapPin size={14} className="text-primary-500" /> Residential Address
+            </span>
+            {app?.applicationStatus === 'RESUBMITTED' && (
+              isSectionCorrected('address') 
+                ? <span className="text-[10px] bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold">🟠 Corrected Section</span>
+                : <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold">✅ Already Verified</span>
+            )}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
@@ -654,9 +730,16 @@ export const AdmissionReviewPage: React.FC = () => {
         </div>
 
         {/* ─── SECTION 4: Academics ─── */}
-        <div className="space-y-4">
-          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-400 flex items-center gap-2 border-l-4 border-primary-500 pl-2">
-            <GraduationCap size={14} className="text-primary-500" /> Academic Qualifications
+        <div className={getSectionClass('academic')}>
+          <h3 className="text-xs uppercase font-black tracking-widest text-neutral-450 flex items-center justify-between border-l-4 border-primary-500 pl-2">
+            <span className="flex items-center gap-2">
+              <GraduationCap size={14} className="text-primary-500" /> Academic Qualifications
+            </span>
+            {app?.applicationStatus === 'RESUBMITTED' && (
+              isSectionCorrected('academic') 
+                ? <span className="text-[10px] bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold">🟠 Corrected Section</span>
+                : <span className="text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold">✅ Already Verified</span>
+            )}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 10th Record */}
@@ -733,11 +816,18 @@ export const AdmissionReviewPage: React.FC = () => {
         </div>
 
         {/* ─── SECTION 5: Uploaded Documents ─── */}
-        <div className="space-y-4 bg-slate-50 dark:bg-neutral-800/30 p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800">
+        <div className={getSectionClass('documents', "space-y-4 bg-slate-50 dark:bg-neutral-800/30 p-6 rounded-2xl border border-neutral-200 dark:border-neutral-800")}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
-                <FileText size={18} className="text-primary-600" /> Attached Digital Documents Verification
+              <h3 className="text-sm font-black uppercase tracking-wider text-neutral-850 dark:text-neutral-200 flex items-center justify-between pr-4 w-full">
+                <span className="flex items-center gap-2">
+                  <FileText size={18} className="text-primary-600" /> Attached Digital Documents Verification
+                </span>
+                {app?.applicationStatus === 'RESUBMITTED' && (
+                  isSectionCorrected('documents') 
+                    ? <span className="text-[10px] bg-amber-100 text-amber-805 px-2.5 py-0.5 rounded-full font-black">🟠 Corrected Section</span>
+                    : <span className="text-[10px] bg-emerald-200 text-emerald-805 px-2.5 py-0.5 rounded-full font-black">✅ Already Verified</span>
+                )}
               </h3>
               <p className="text-xs text-neutral-500 font-medium mt-0.5">
                 Review and verify all uploaded certificates in a dedicated high-resolution workspace.
@@ -975,17 +1065,23 @@ export const AdmissionReviewPage: React.FC = () => {
           {/* Form Action Controls (Bottom of the form) */}
           <div className="border-t border-neutral-100 dark:border-neutral-800 pt-6 flex flex-col md:flex-row gap-3 justify-end w-full">
             {app.applicationStatus !== 'REJECTED' && app.applicationStatus !== 'ENROLLED' && app.applicationStatus !== 'APPROVED' && (
-              <button disabled={updating} onClick={() => handleUpdateStatus('REJECTED')}
-                className="px-6 py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 hover:border-rose-300 text-rose-600 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50">
-                <XCircle size={16} /> Reject Application
-              </button>
-            )}
-            
-            {(app.applicationStatus === 'SUBMITTED' || app.applicationStatus === 'UNDER_REVIEW') && (
-              <button disabled={updating} onClick={() => handleUpdateStatus('APPROVED')}
-                className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md shadow-emerald-600/10">
-                <CheckCircle2 size={16} /> Approve Application
-              </button>
+              <div className="flex flex-col sm:flex-row gap-3 w-full justify-end">
+                {/* Reject Application */}
+                <button disabled={updating} onClick={() => handleUpdateStatus('REJECTED')}
+                  className="px-6 py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md shadow-rose-600/10">
+                  <XCircle size={16} /> Reject Application
+                </button>
+                {/* Request Correction */}
+                <button disabled={updating} onClick={() => setShowCorrectionModal(true)}
+                  className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md shadow-amber-500/10">
+                  <Clock size={16} /> Request Correction
+                </button>
+                {/* Approve Application */}
+                <button disabled={updating} onClick={() => handleUpdateStatus('APPROVED')}
+                  className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md shadow-emerald-600/10">
+                  <CheckCircle2 size={16} /> Approve Application
+                </button>
+              </div>
             )}
 
             {app.applicationStatus === 'APPROVED' && (
@@ -1060,6 +1156,152 @@ export const AdmissionReviewPage: React.FC = () => {
           setDocumentsVerified(allVerified);
         }}
       />
+
+      {/* ─── REQUEST CORRECTION MODAL ─── */}
+      {showCorrectionModal && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 max-w-xl w-full p-8 space-y-6 shadow-2xl animate-fade-in text-neutral-900 dark:text-neutral-100">
+            <div className="flex items-center justify-between border-b border-neutral-105 dark:border-neutral-800 pb-4">
+              <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wider text-neutral-900 dark:text-white">
+                Request Application Correction
+              </h3>
+              <button 
+                onClick={() => {
+                  setShowCorrectionModal(false);
+                  setSelectedCorrectionSections([]);
+                  setCorrectionRemarks('');
+                  setCorrectionDeadline('');
+                }}
+                className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">
+                  Select Sections requiring correction <span className="text-rose-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { key: 'admission', label: 'Admission Details' },
+                    { key: 'personal', label: 'Personal Details' },
+                    { key: 'parent', label: 'Parent Details' },
+                    { key: 'address', label: 'Address Details' },
+                    { key: 'academic', label: 'Academic Details' },
+                    { key: 'documents', label: 'Document Upload' },
+                  ].map(({ key, label }) => {
+                    const checked = selectedCorrectionSections.includes(key);
+                    return (
+                      <label 
+                        key={key} 
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer select-none transition-all ${
+                          checked 
+                            ? 'bg-amber-50/50 border-amber-300 dark:bg-amber-950/20 dark:border-amber-800' 
+                            : 'bg-neutral-50/50 border-neutral-250 dark:bg-neutral-800/40 dark:border-neutral-800'
+                        }`}
+                      >
+                        <input 
+                          type="checkbox" 
+                          checked={checked}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedCorrectionSections(prev => [...prev, key]);
+                            } else {
+                              setSelectedCorrectionSections(prev => prev.filter(k => k !== key));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-neutral-350 text-amber-600 focus:ring-amber-500" 
+                        />
+                        <span className="text-xs font-bold text-neutral-700 dark:text-neutral-300">{label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-neutral-450">
+                  Correction Remarks / Instructions <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  value={correctionRemarks}
+                  onChange={(e) => setCorrectionRemarks(e.target.value)}
+                  rows={4}
+                  placeholder="Please list the corrections needed (e.g., Please upload clearer Aadhaar copy)."
+                  className="w-full text-xs font-semibold text-neutral-850 dark:text-neutral-150 bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors resize-none"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-neutral-450">
+                  Correction Deadline (Optional)
+                </label>
+                <input
+                  type="date"
+                  value={correctionDeadline}
+                  onChange={(e) => setCorrectionDeadline(e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full text-xs font-semibold text-neutral-850 dark:text-neutral-150 bg-neutral-50 dark:bg-neutral-850 border border-neutral-200 dark:border-neutral-800 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-amber-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-neutral-100 dark:border-neutral-800 pt-4">
+              <button
+                onClick={() => {
+                  setShowCorrectionModal(false);
+                  setSelectedCorrectionSections([]);
+                  setCorrectionRemarks('');
+                  setCorrectionDeadline('');
+                }}
+                disabled={updating}
+                className="px-4 py-2 border border-neutral-200 hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-800 rounded-xl text-xs font-bold text-neutral-700 dark:text-neutral-350 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (selectedCorrectionSections.length === 0) {
+                    toast.error('Please select at least one section for correction.');
+                    return;
+                  }
+                  if (!correctionRemarks.trim()) {
+                    toast.error('Remarks are required to request correction.');
+                    return;
+                  }
+                  setUpdating(true);
+                  try {
+                    await admissionService.updateStatus(
+                      app.id,
+                      'CORRECTION_REQUIRED',
+                      correctionRemarks,
+                      undefined,
+                      undefined,
+                      selectedCorrectionSections,
+                      correctionDeadline || undefined
+                    );
+                    toast.success('Correction request sent to applicant.');
+                    setShowCorrectionModal(false);
+                    navigate('/admin/admissions/queue');
+                  } catch (err: any) {
+                    toast.error(err.response?.data?.error || 'Failed to request correction');
+                  } finally {
+                    setUpdating(false);
+                  }
+                }}
+                disabled={updating || selectedCorrectionSections.length === 0 || !correctionRemarks.trim()}
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-amber-500/10 flex items-center gap-1.5"
+              >
+                {updating ? <Loader2 size={16} className="animate-spin" /> : <Send size={14} />}
+                Send For Correction
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -202,6 +202,10 @@ export const AdmissionQueuePage: React.FC<AdmissionQueuePageProps> = ({ defaultS
     switch (app.applicationStatus) {
       case 'SUBMITTED':
         return <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-md text-[10px] font-extrabold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 w-28"><Clock size={10}/> Pending Review</span>;
+      case 'RESUBMITTED':
+        return <span className="px-2 py-1 bg-amber-150 dark:bg-amber-900/30 text-amber-800 dark:text-amber-450 border border-amber-300 rounded-md text-[10px] font-extrabold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 w-28"><Clock size={10}/> Resubmitted</span>;
+      case 'CORRECTION_REQUIRED':
+        return <span className="px-2 py-1 bg-rose-105 dark:bg-rose-900/20 text-rose-700 dark:text-rose-455 rounded-md text-[10px] font-extrabold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 w-28"><XCircle size={10}/> Correction Req</span>;
       case 'UNDER_REVIEW':
         return <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-md text-[10px] font-extrabold uppercase tracking-wider inline-flex items-center justify-center gap-1.5 w-28"><FileText size={10}/> In Progress</span>;
       case 'APPROVED':

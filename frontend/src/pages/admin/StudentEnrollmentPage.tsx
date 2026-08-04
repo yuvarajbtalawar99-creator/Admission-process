@@ -158,6 +158,8 @@ export const StudentEnrollmentPage: React.FC<StudentEnrollmentPageProps> = ({ de
     FEE_RECEIPT_UPLOADED: applications.filter(a => a.applicationStatus === 'FEE_RECEIPT_UPLOADED').length,
     FEE_VERIFIED: applications.filter(a => a.applicationStatus === 'FEE_VERIFIED').length,
     REJECTED:     applications.filter(a => a.applicationStatus === 'REJECTED').length,
+    CORRECTION_REQUIRED: applications.filter(a => a.applicationStatus === 'CORRECTION_REQUIRED').length,
+    RESUBMITTED:  applications.filter(a => a.applicationStatus === 'RESUBMITTED').length,
     ENROLLED:     applications.filter(a => a.applicationStatus === 'ENROLLED').length,
     CANCELLATION_REQUESTED: applications.filter(a => a.applicationStatus === 'CANCELLATION_REQUESTED').length,
     CANCELLED:    applications.filter(a => a.applicationStatus === 'CANCELLED').length,

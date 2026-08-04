@@ -7,7 +7,8 @@ import {
     Clock,
     Award,
     Upload,
-    FileCheck
+    FileCheck,
+    AlertTriangle
 } from 'lucide-react';
 
 const TIMELINE_STEPS = [
@@ -29,6 +30,15 @@ const TIMELINE_STEPS = [
         activeBorder: 'border-red-300',
         lineColor: 'bg-red-300',
         isNegative: true
+    },
+    {
+        key: 'correctionRequestedAt',
+        label: 'Correction Required',
+        icon: AlertTriangle,
+        activeColor: 'text-amber-600',
+        activeBg: 'bg-amber-100',
+        activeBorder: 'border-amber-300',
+        lineColor: 'bg-amber-300'
     },
     {
         key: 'resubmittedAt',
@@ -133,6 +143,7 @@ const ActivityTimeline = ({ timeline = {}, compact = false }) => {
 
     const stepsToShow = TIMELINE_STEPS.filter(step => {
         if (step.key === 'rejectedAt' && !isRejected) return false;
+        if (step.key === 'correctionRequestedAt' && !timeline.correctionRequestedAt) return false;
         if (step.key === 'approvedAt' && isRejected) return false;
         if (step.key === 'cancellationRequestedAt' && !isCancellationRequested) return false;
         if (step.key === 'cancellationApprovedAt' && !isCancelled) return false;

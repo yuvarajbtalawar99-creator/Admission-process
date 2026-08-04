@@ -6,7 +6,7 @@ import { compressDocumentImage, validateImageType } from '../../../utils/imageCo
 
 const ACCEPTED_MIME = 'image/jpeg,image/jpg,image/png';
 
-const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStatus }) => {
+const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStatus, readOnly = false }) => {
     const [loading, setLoading] = useState(false);
     const [files, setFiles] = useState({});
     const [compressing, setCompressing] = useState({});
@@ -109,6 +109,11 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (readOnly) {
+            onNext();
+            return;
+        }
 
         const isPhotoPresent     = files.photo        || data?.photo        || data?.photoUrl;
         const isSignaturePresent = files.signature    || data?.signature    || data?.signatureUrl;
@@ -244,10 +249,10 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                             <h3 className="text-sm font-semibold text-slate-900 mb-0.5">{doc.label}</h3>
                             <p className="text-xs text-slate-500 mb-3">{doc.note}</p>
 
-                            <label className={`block w-full ${isBusy ? 'cursor-wait' : 'cursor-pointer'}`}>
+                            <label className={`block w-full ${isBusy || readOnly ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}>
                                 <div className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border transition-colors text-sm ${
-                                    isBusy
-                                        ? 'bg-amber-50 border-amber-200 text-amber-700 cursor-wait font-medium'
+                                    isBusy || readOnly
+                                        ? 'bg-slate-100 border-slate-200 text-slate-400 font-medium'
                                         : isComplete
                                         ? 'border-dashed bg-white border-green-200 text-green-600 font-medium'
                                         : 'border-solid bg-slate-800 border-slate-800 text-white hover:bg-slate-900 hover:border-slate-900 font-medium'
@@ -261,7 +266,7 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                                     type="file"
                                     className="hidden"
                                     accept={ACCEPTED_MIME}
-                                    disabled={isBusy}
+                                    disabled={isBusy || readOnly}
                                     onChange={(e) => handleFileChange(e, doc.name)}
                                 />
                             </label>
@@ -272,14 +277,21 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                                 </p>
                             )}
 
-                            {(isFileSelected || isFileInDb) && (
-                                <div className="mt-2 flex items-center gap-1.5 px-2 py-1.5 bg-white rounded border border-slate-100">
-                                    <FileText size={12} className="text-primary-600" />
-                                    <p className="text-[11px] font-medium text-slate-600 truncate">
-                                        {isFileSelected ? files[doc.name].name : 'Previously uploaded'}
-                                    </p>
-                                </div>
-                            )}
+                             {(isFileSelected || isFileInDb) && (
+                                 <div className="mt-2 flex items-center justify-between px-2 py-1.5 bg-white rounded border border-slate-100">
+                                     <div className="flex items-center gap-1.5 overflow-hidden">
+                                         <FileText size={12} className="text-primary-600" />
+                                         <p className="text-[11px] font-medium text-slate-600 truncate">
+                                             {isFileSelected ? files[doc.name].name : 'Previously uploaded'}
+                                         </p>
+                                     </div>
+                                     {!isFileSelected && isFileInDb && data?.[DB_MAP[doc.name]] && (
+                                         <a href={data[DB_MAP[doc.name]]} target="_blank" rel="noreferrer" className="text-[10px] text-primary-600 hover:underline font-bold shrink-0">
+                                             View
+                                         </a>
+                                     )}
+                                 </div>
+                             )}
                         </div>
                     );
                 })}
@@ -291,6 +303,7 @@ const Step6Documents = ({ onNext, onPrev, data, onUploadSuccess, applicationStat
                 </button>
                 <button
                     type="submit"
+                    id="bottom-submit-btn"
                     disabled={loading || Object.values(compressing).some(Boolean) || Object.values(validating).some(Boolean)}
                     className="btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
                 >

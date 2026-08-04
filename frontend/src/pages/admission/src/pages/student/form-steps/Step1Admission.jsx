@@ -4,7 +4,7 @@ import { Loader2, ChevronRight, CheckCircle2, XCircle, Fingerprint, Info } from 
 import toast from 'react-hot-toast';
 import SelectDropdown from '../../../components/SelectDropdown';
 
-const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
+const Step1Admission = ({ onNext, data, updateData, applicationStatus, readOnly = false }) => {
     const [branches, setBranches] = useState([]);
     const [loading, setLoading] = useState(false);
     
@@ -107,6 +107,11 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
+        if (readOnly) {
+            onNext();
+            return;
+        }
+        
         if (aadhaarError || cetError) {
             toast.error('Please resolve the errors before proceeding.');
             return;
@@ -145,10 +150,11 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
         }
     };
 
-    const isFormDisabled = loading || isCheckingAadhaar || isCheckingCet || !!aadhaarError || !!cetError;
+    const isFormDisabled = !readOnly && (loading || isCheckingAadhaar || isCheckingCet || !!aadhaarError || !!cetError);
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
+            <fieldset disabled={readOnly} className="space-y-6 flex flex-col p-0 m-0 border-0 w-full">
             <div className="flex items-center gap-3 mb-1">
                 <div className="w-1 h-6 bg-primary-600 rounded-full"></div>
                 <h2 className="text-lg font-semibold text-slate-900">Step 1: Admission Details</h2>
@@ -311,10 +317,12 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus }) => {
                     </div>
                 )}
             </div>
+            </fieldset>
 
             <div className="flex justify-end items-center pt-4 sm:pt-6 border-t border-slate-100 mt-6 sm:mt-8 sticky bottom-0 bg-white/95 backdrop-blur-md p-3 sm:p-0 -mx-4 -mb-4 sm:mx-0 sm:mb-0 sm:static sm:bg-transparent z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:shadow-none">
                 <button 
                     type="submit" 
+                    id="bottom-submit-btn"
                     disabled={isFormDisabled} 
                     className={`btn-primary min-h-[44px] h-11 px-8 w-full sm:w-auto flex items-center justify-center ${isFormDisabled ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
                 >

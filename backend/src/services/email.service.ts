@@ -194,6 +194,41 @@ class EmailService {
   }
 
   /**
+   * Send Notification to Admin when Student Resubmits Corrections
+   */
+  public async sendStudentResubmittedNotificationToAdmin(data: { studentName: string; applicationNumber: string; correctedSections: string[] }): Promise<boolean> {
+    try {
+      const from = this.getFromAddress();
+      const adminEmail = process.env.SMTP_ADMIN_EMAIL || 'admissions@jcer.edu.in';
+      const mailOptions = {
+        from,
+        to: adminEmail,
+        subject: `⚠️ Resubmitted: Application #${data.applicationNumber} Corrected`,
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <h2 style="color: #d97706;">Application Resubmitted After Corrections</h2>
+            <p>Dear Administrator,</p>
+            <p>Candidate <strong>${data.studentName}</strong> has corrected and resubmitted their application (<strong>#${data.applicationNumber}</strong>).</p>
+            <p>The following sections were corrected and require verification:</p>
+            <ul style="font-weight: bold; color: #b45309;">
+              ${data.correctedSections.map(s => `<li>${s}</li>`).join('')}
+            </ul>
+            <p>Please log in to the Admin Review Workspace to review the updated details.</p>
+            <br/>
+            <p>Regards,<br/>JCER ERP System</p>
+          </div>
+        `,
+      };
+      await this.sendMailWithRetry(mailOptions);
+      logger.info(`Student resubmitted notification email sent to Admin: ${adminEmail}`);
+      return true;
+    } catch (error: any) {
+      logger.error(`Failed to send student resubmitted email to admin:`, error);
+      return false;
+    }
+  }
+
+  /**
    * Send Notification to Admin when Student Uploads Fee Receipt
    */
   public async sendFeeReceiptUploadedNotification(data: { studentName: string; applicationNumber: string; studentEmail: string }): Promise<boolean> {

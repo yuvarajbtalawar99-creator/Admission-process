@@ -184,15 +184,29 @@ function computeStepStatus(admission: any) {
   const completedCount = steps.filter((s) => s.completed).length;
   const activeStepIndex = steps.findIndex((s) => !s.completed) + 1 || 7;
 
-  // Map each step to COMPLETED | ACTIVE | LOCKED
+  // Map each step to COMPLETED | ACTIVE | LOCKED | CORRECTION_REQUIRED
   const stepStatus: Record<number, string> = {};
-  for (let i = 1; i <= 7; i++) {
-    if (steps[i - 1].completed) {
-      stepStatus[i] = 'COMPLETED';
-    } else if (i === activeStepIndex) {
-      stepStatus[i] = 'ACTIVE';
-    } else {
-      stepStatus[i] = 'LOCKED';
+  if (admission?.applicationStatus === 'CORRECTION_REQUIRED') {
+    const keyMap = { 1: 'admission', 2: 'personal', 3: 'parent', 4: 'address', 5: 'academic', 6: 'documents' };
+    const requested = admission.correctionRequestedSections || [];
+    for (let i = 1; i <= 6; i++) {
+      const stepKey = keyMap[i as 1|2|3|4|5|6];
+      if (requested.includes(stepKey)) {
+        stepStatus[i] = 'CORRECTION_REQUIRED';
+      } else {
+        stepStatus[i] = 'COMPLETED';
+      }
+    }
+    stepStatus[7] = 'ACTIVE';
+  } else {
+    for (let i = 1; i <= 7; i++) {
+      if (steps[i - 1].completed) {
+        stepStatus[i] = 'COMPLETED';
+      } else if (i === activeStepIndex) {
+        stepStatus[i] = 'ACTIVE';
+      } else {
+        stepStatus[i] = 'LOCKED';
+      }
     }
   }
 
@@ -202,6 +216,9 @@ function computeStepStatus(admission: any) {
   }
   if (admission?.resubmittedAt) {
     timeline.resubmittedAt = admission.resubmittedAt;
+  }
+  if (admission?.correctionRequestedAt) {
+    timeline.correctionRequestedAt = admission.correctionRequestedAt;
   }
   
   if (['UNDER_REVIEW', 'APPROVED', 'FEE_RECEIPT_UPLOADED', 'FEE_VERIFIED', 'ENROLLED', 'REJECTED'].includes(admission?.applicationStatus)) {
@@ -255,6 +272,10 @@ function computeStepStatus(admission: any) {
     cancellationApprovedAt: admission?.cancellationApprovedAt || null,
     cancellationApprovedById: admission?.cancellationApprovedById || null,
     cancellationAdminRemarks: admission?.cancellationAdminRemarks || null,
+    correctionRequestedSections: admission?.correctionRequestedSections || [],
+    correctionRemarks: admission?.correctionRemarks || null,
+    correctionDeadline: admission?.correctionDeadline || null,
+    correctionRequestedAt: admission?.correctionRequestedAt || null,
     timeline,
   };
 }
@@ -277,9 +298,18 @@ class AdmissionService {
     }
   }
 
-  private checkEditable(admission: Admission): void {
-    if (admission.status !== 'DRAFT') {
-      throw new ForbiddenException('Admission already submitted');
+  private checkEditable(admission: Admission, stepName?: string): void {
+    if (admission.applicationStatus === 'CORRECTION_REQUIRED') {
+      if (!stepName) return;
+      const requestedSections = admission.correctionRequestedSections || [];
+      const normalizedStep = stepName === 'details' ? 'admission' : stepName;
+      if (!requestedSections.includes(normalizedStep)) {
+        throw new ForbiddenException('This section is locked and cannot be edited.');
+      }
+      return;
+    }
+    if (admission.applicationStatus !== 'DRAFT') {
+      throw new ForbiddenException('This section is locked and cannot be edited.');
     }
   }
 
@@ -445,7 +475,7 @@ class AdmissionService {
     qualification?: 'PUC' | 'DIPLOMA';
   }): Promise<string> {
     const admission = await this.getOrCreate(userId);
-    this.checkEditable(admission);
+    this.checkEditable(admission, 'admission');
     let applicationNumber = admission.applicationNumber;
     if (!applicationNumber) {
       const config = await SystemConfiguration.findOne();
@@ -470,7 +500,7 @@ class AdmissionService {
 
   async saveStep2(userId: string, payload: Record<string, any>): Promise<string> {
     const admission = await this.getOrCreate(userId);
-    this.checkEditable(admission);
+    this.checkEditable(admission, 'personal');
     const existing = await AdmissionPersonalDetail.findOne({ where: { admissionId: admission.id } });
     if (existing) {
       await existing.update(payload);
@@ -485,7 +515,7 @@ class AdmissionService {
 
   async saveStep3(userId: string, payload: Record<string, any>): Promise<string> {
     const admission = await this.getOrCreate(userId);
-    this.checkEditable(admission);
+    this.checkEditable(admission, 'parent');
     const existing = await AdmissionParentDetail.findOne({ where: { admissionId: admission.id } });
     if (existing) {
       await existing.update(payload);
@@ -500,7 +530,7 @@ class AdmissionService {
 
   async saveStep4(userId: string, payload: Record<string, any>): Promise<string> {
     const admission = await this.getOrCreate(userId);
-    this.checkEditable(admission);
+    this.checkEditable(admission, 'address');
     const existing = await AdmissionAddress.findOne({ where: { admissionId: admission.id } });
     if (existing) {
       await existing.update(payload);
@@ -515,7 +545,7 @@ class AdmissionService {
 
   async saveStep5(userId: string, payload: Record<string, any>): Promise<string> {
     const admission = await this.getOrCreate(userId);
-    this.checkEditable(admission);
+    this.checkEditable(admission, 'academic');
     const existing = await AdmissionAcademicDetail.findOne({ where: { admissionId: admission.id } });
     
     const q = (admission.qualification || '').toUpperCase();
@@ -576,7 +606,7 @@ class AdmissionService {
 
   async saveStep6(userId: string, fileUrls: Record<string, string>): Promise<string> {
     const admission = await this.getOrCreate(userId);
-    this.checkEditable(admission);
+    this.checkEditable(admission, 'documents');
     const existing = await AdmissionDocument.findOne({ where: { admissionId: admission.id } });
     if (existing) {
       await existing.update(fileUrls);
@@ -592,11 +622,11 @@ class AdmissionService {
   async submitApplication(userId: string): Promise<string> {
     const transaction = await db.transaction();
     try {
-      // Resolve active admission by userId + status=DRAFT (DRAFT/REJECTED)
+      // Resolve active admission by userId + status=DRAFT (DRAFT/CORRECTION_REQUIRED)
       const admission = await Admission.findOne({
         where: {
           userId,
-          applicationStatus: { [Op.in]: ['DRAFT', 'REJECTED'] }
+          applicationStatus: { [Op.in]: ['DRAFT', 'CORRECTION_REQUIRED'] }
         },
         lock: true,
         transaction,
@@ -604,17 +634,15 @@ class AdmissionService {
       if (!admission) {
         throw new Error('Application not found or already submitted.');
       }
-      if (admission.status !== 'DRAFT') {
+      if (admission.applicationStatus !== 'DRAFT' && admission.applicationStatus !== 'CORRECTION_REQUIRED') {
         throw new Error('Application cannot be submitted at this stage.');
       }
-      const isResubmission = admission.applicationStatus === 'REJECTED';
+      const isResubmission = admission.applicationStatus === 'CORRECTION_REQUIRED';
+      const newStatus = isResubmission ? 'RESUBMITTED' : 'SUBMITTED';
       await admission.update({
-        applicationStatus: 'SUBMITTED',
+        applicationStatus: newStatus,
         submittedAt: isResubmission ? (admission.submittedAt || new Date()) : new Date(),
         resubmittedAt: isResubmission ? new Date() : (admission.resubmittedAt || null),
-        adminRemarks: null,
-        rejectionReason: null,
-        rejectionReasonCode: null,
         documentsVerified: false,
         feesVerified: false,
         eligibilityVerified: false,
@@ -702,16 +730,8 @@ class AdmissionService {
     if (status && status !== 'ALL' && status !== 'HISTORY') {
       if (status === 'QUEUE') {
         where.applicationStatus = { [Op.in]: ['SUBMITTED', 'UNDER_REVIEW'] };
-        where.resubmittedAt = null;
-        where.rejectionReason = null;
-        where.rejectionReasonCode = null;
       } else if (status === 'RESUBMITTED') {
-        where.applicationStatus = 'SUBMITTED';
-        where[Op.or] = [
-          { resubmittedAt: { [Op.ne]: null } },
-          { rejectionReason: { [Op.ne]: null } },
-          { rejectionReasonCode: { [Op.ne]: null } }
-        ];
+        where.applicationStatus = 'RESUBMITTED';
       } else if (status === 'SUBMITTED') {
         where.applicationStatus = 'SUBMITTED';
         where.resubmittedAt = null;
@@ -870,11 +890,13 @@ class AdmissionService {
   /** Admin: update application status */
   async updateStatus(
     id: string,
-    status: 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'ENROLLED',
+    status: 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'ENROLLED' | 'CORRECTION_REQUIRED',
     adminUserId: string,
     remarks?: string,
     rejectionReason?: string,
-    rejectionReasonCode?: string
+    rejectionReasonCode?: string,
+    sections?: string[],
+    deadline?: string | Date
   ): Promise<string | void> {
     const transaction = await db.transaction();
     try {
@@ -891,7 +913,50 @@ class AdmissionService {
 
       let generatedUsn: string | undefined;
 
-      if (status === 'APPROVED') {
+      if (status === 'CORRECTION_REQUIRED') {
+        await admission.update({
+          applicationStatus: 'CORRECTION_REQUIRED',
+          correctionRequestedSections: sections || [],
+          correctionRemarks: remarks || null,
+          adminRemarks: remarks || null,
+          correctionDeadline: deadline ? new Date(deadline) : null,
+          correctionRequestedAt: new Date(),
+          correctionRequestedById: adminUserId,
+          reviewedBy: adminUserId,
+          reviewedAt: new Date(),
+        }, { transaction });
+
+        // Trigger Notification to Student
+        try {
+          const user = await User.findByPk(admission.userId, { transaction });
+          if (user) {
+            const sectionLabelMap: Record<string, string> = {
+              admission: 'Admission Details',
+              personal: 'Personal Details',
+              parent: 'Parent Details',
+              address: 'Address Details',
+              academic: 'Academic Details',
+              documents: 'Documents Upload'
+            };
+            const formattedSections = (sections || []).map(s => `• ${sectionLabelMap[s] || s}`).join('\n');
+            const deadlineText = deadline ? new Date(deadline).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'N/A';
+            
+            const reason = 'Correction requested for the following sections:\n' + formattedSections;
+            const notificationRemarks = `${remarks || ''}\n\nPlease resubmit before: ${deadlineText}`;
+            
+            await emailService.sendCorrectionRequiredNotification(
+              user.email,
+              `${user.firstName} ${user.lastName}`.trim(),
+              admission.applicationNumber || admission.id,
+              reason,
+              notificationRemarks
+            );
+          }
+        } catch (emailErr: any) {
+          console.error('Failed to send correction required email:', emailErr.message);
+        }
+
+      } else if (status === 'APPROVED') {
         if (adminUser.role !== 'ADMIN' && adminUser.role !== 'SUPER_ADMIN' && adminUser.role !== 'PRINCIPAL') {
           throw new Error('Only an ADMIN, SUPER_ADMIN, or PRINCIPAL can verify applications.');
         }
@@ -915,7 +980,7 @@ class AdmissionService {
             await emailService.sendApplicationApprovedNotification(
               user.email,
               `${user.firstName} ${user.lastName}`.trim(),
-              admission.applicationNumber
+              admission.applicationNumber || ''
             );
           }
         } catch (emailErr: any) {
@@ -1099,7 +1164,7 @@ class AdmissionService {
         if (user) {
           await emailService.sendFeeReceiptUploadedNotification({
             studentName: `${user.firstName} ${user.lastName}`.trim(),
-            applicationNumber: admission.applicationNumber,
+            applicationNumber: admission.applicationNumber || '',
             studentEmail: user.email,
           });
         }
@@ -1141,7 +1206,7 @@ class AdmissionService {
           if (user) {
             await emailService.sendFeeVerifiedNotificationToPrincipal({
               studentName: `${user.firstName} ${user.lastName}`.trim(),
-              applicationNumber: admission.applicationNumber,
+              applicationNumber: admission.applicationNumber || '',
             });
           }
         } catch (err: any) {
@@ -1189,28 +1254,17 @@ class AdmissionService {
       Admission.count({ where: { applicationStatus: 'DRAFT' } }),
       Admission.count({
         where: {
-          applicationStatus: 'SUBMITTED',
-          resubmittedAt: null,
-          rejectionReason: null,
-          rejectionReasonCode: null
+          applicationStatus: 'SUBMITTED'
         }
       }),
       Admission.count({
         where: {
-          applicationStatus: 'SUBMITTED',
-          [Op.or]: [
-            { resubmittedAt: { [Op.ne]: null } },
-            { rejectionReason: { [Op.ne]: null } },
-            { rejectionReasonCode: { [Op.ne]: null } }
-          ]
+          applicationStatus: 'RESUBMITTED'
         }
       }),
       Admission.count({
         where: {
-          applicationStatus: 'UNDER_REVIEW',
-          resubmittedAt: null,
-          rejectionReason: null,
-          rejectionReasonCode: null
+          applicationStatus: 'UNDER_REVIEW'
         }
       }),
       Admission.count({ where: { applicationStatus: 'APPROVED' } }),

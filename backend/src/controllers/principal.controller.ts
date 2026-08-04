@@ -345,7 +345,7 @@ export const decideAdmission = async (
             await emailService.sendAdmissionConfirmedNotification(
               user.email,
               `${user.firstName} ${user.lastName}`.trim(),
-              admission.applicationNumber,
+              admission.applicationNumber || '',
               enrollmentNumber
             );
           }
@@ -359,7 +359,7 @@ export const decideAdmission = async (
             await emailService.sendCorrectionRequiredNotification(
               user.email,
               `${user.firstName} ${user.lastName}`.trim(),
-              admission.applicationNumber,
+              admission.applicationNumber || '',
               rejectionReason || remarks || 'Correction Required',
               remarks
             );

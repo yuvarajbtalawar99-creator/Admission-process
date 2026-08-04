@@ -3,39 +3,45 @@ import api from '../../../api/axios';
 import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const Step3Parent = ({ onNext, onPrev, data, updateData, applicationStatus }) => {
+const Step3Parent = ({ onNext, onPrev, data, updateData, applicationStatus, readOnly = false }) => {
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
- e.preventDefault();
- setLoading(true);
- try {
-        const payload = {
-            fatherName: data.fatherName,
-            motherName: data.motherName,
-            fatherPhone: data.parentMobile || data.fatherPhone,
-            fatherEmail: data.parentEmail || data.fatherEmail,
-            fatherOccupation: data.occupation || data.fatherOccupation,
-            fatherAnnualIncome: (data.annualIncome !== undefined && data.annualIncome !== '' && data.annualIncome !== null)
-                ? parseFloat(data.annualIncome)
-                : (data.fatherAnnualIncome !== undefined && data.fatherAnnualIncome !== '' && data.fatherAnnualIncome !== null)
-                    ? parseFloat(data.fatherAnnualIncome)
-                    : null,
-            motherOccupation: data.motherOccupation || '',
-            motherPhone: data.motherPhone || '',
-        };
+        e.preventDefault();
+        
+        if (readOnly) {
+            onNext();
+            return;
+        }
 
- const res = await api.put('/student/parent', payload);
- if (res.data.success) {
- toast.success('Parent details saved!');
- onNext();
- }
- } catch (error) {
- toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to save parent details');
- } finally {
- setLoading(false);
- }
- };
+        setLoading(true);
+        try {
+            const payload = {
+                fatherName: data.fatherName,
+                motherName: data.motherName,
+                fatherPhone: data.parentMobile || data.fatherPhone,
+                fatherEmail: data.parentEmail || data.fatherEmail,
+                fatherOccupation: data.occupation || data.fatherOccupation,
+                fatherAnnualIncome: (data.annualIncome !== undefined && data.annualIncome !== '' && data.annualIncome !== null)
+                    ? parseFloat(data.annualIncome)
+                    : (data.fatherAnnualIncome !== undefined && data.fatherAnnualIncome !== '' && data.fatherAnnualIncome !== null)
+                        ? parseFloat(data.fatherAnnualIncome)
+                        : null,
+                motherOccupation: data.motherOccupation || '',
+                motherPhone: data.motherPhone || '',
+            };
+
+            const res = await api.put('/student/parent', payload);
+            if (res.data.success) {
+                toast.success('Parent details saved!');
+                onNext();
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.error || error.response?.data?.message || 'Failed to save parent details');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleChange = (e) => {
         updateData({ [e.target.name]: e.target.value });
@@ -52,6 +58,8 @@ const Step3Parent = ({ onNext, onPrev, data, updateData, applicationStatus }) =>
                     Parent Details
                 </span>
             </div>
+            
+            <fieldset disabled={readOnly} className="space-y-6 flex flex-col p-0 m-0 border-0 w-full">
 
             {/* Father's Details */}
             <div className="space-y-4">
@@ -140,12 +148,13 @@ const Step3Parent = ({ onNext, onPrev, data, updateData, applicationStatus }) =>
                     </div>
                 </div>
             </div>
+            </fieldset>
 
             <div className="pt-4 sm:pt-6 border-t border-slate-100 flex items-center justify-between gap-3 sticky bottom-0 bg-white/95 backdrop-blur-md p-3 sm:p-0 -mx-4 -mb-4 sm:mx-0 sm:mb-0 sm:static sm:bg-transparent z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.05)] sm:shadow-none">
                 <button type="button" onClick={onPrev} className="btn-secondary min-h-[44px] h-11 px-5 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
                     <ChevronLeft size={16} /> Back
                 </button>
-                <button type="submit" disabled={loading} className="btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
+                <button type="submit" id="bottom-submit-btn" disabled={loading} className="btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold">
                     {loading ? <Loader2 size={18} className="animate-spin" /> : (
                         <>Save & Continue <ChevronRight size={16} /></>
                     )}

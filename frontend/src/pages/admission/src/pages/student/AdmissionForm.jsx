@@ -4,9 +4,12 @@ import {
     HelpCircle, 
     ExternalLink, 
     ChevronLeft, 
+    ChevronRight,
     Loader2, 
     GraduationCap,
-    Lock, 
+    Lock,
+    AlertTriangle,
+    CheckCircle2
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
@@ -258,7 +261,7 @@ const AdmissionForm = () => {
     // Fetch step-specific data lazily on step transition
     useEffect(() => {
         const isEditable = !statusLoading && stepStatus && 
-            (stepStatus.applicationStatus === 'DRAFT' || stepStatus.applicationStatus === 'REJECTED');
+            (stepStatus.applicationStatus === 'DRAFT' || stepStatus.applicationStatus === 'REJECTED' || stepStatus.applicationStatus === 'CORRECTION_REQUIRED');
 
         if (isEditable && currentStep >= 1 && currentStep <= 6) {
             fetchStepData(currentStep);
@@ -268,10 +271,12 @@ const AdmissionForm = () => {
     // Set initial step based on status or saved step
     useEffect(() => {
         const isEditable = !statusLoading && stepStatus && 
-            (stepStatus.applicationStatus === 'DRAFT' || stepStatus.applicationStatus === 'REJECTED');
+            (stepStatus.applicationStatus === 'DRAFT' || stepStatus.applicationStatus === 'REJECTED' || stepStatus.applicationStatus === 'CORRECTION_REQUIRED');
 
         if (isEditable && !isNavigating.current) {
-            const savedStep = localStorage.getItem('admission_form_step');
+            const searchParams = new URLSearchParams(window.location.search);
+            const queryStep = searchParams.get('step');
+            const savedStep = queryStep || localStorage.getItem('admission_form_step');
             if (savedStep && parseInt(savedStep) >= 1) {
                 const target = parseInt(savedStep);
                 if (isStepAccessible(target)) {
@@ -279,6 +284,11 @@ const AdmissionForm = () => {
                 } else {
                     setCurrentStep(stepStatus.activeStepIndex || 1);
                 }
+            } else if (stepStatus.applicationStatus === 'CORRECTION_REQUIRED') {
+                const keyMap = { 1: 'admission', 2: 'personal', 3: 'parent', 4: 'address', 5: 'academic', 6: 'documents' };
+                const requested = stepStatus.correctionRequestedSections || [];
+                const firstCorrectionStep = [1, 2, 3, 4, 5, 6].find(i => requested.includes(keyMap[i])) || 1;
+                setCurrentStep(firstCorrectionStep);
             } else if (formData.id) {
                 setCurrentStep(stepStatus.activeStepIndex || 2);
             }
@@ -288,7 +298,7 @@ const AdmissionForm = () => {
     // Save current step draft to localStorage
     useEffect(() => {
         const isEditable = !formLoading && stepStatus && 
-            (stepStatus.applicationStatus === 'DRAFT' || stepStatus.applicationStatus === 'REJECTED');
+            (stepStatus.applicationStatus === 'DRAFT' || stepStatus.applicationStatus === 'REJECTED' || stepStatus.applicationStatus === 'CORRECTION_REQUIRED');
 
         if (isEditable) {
             const stepFields = STEP_FIELDS_MAP[currentStep];
@@ -311,7 +321,10 @@ const AdmissionForm = () => {
 
     // Clear drafts if the application is submitted/approved/enrolled
     useEffect(() => {
-        if (stepStatus?.applicationStatus && stepStatus.applicationStatus !== 'DRAFT' && stepStatus.applicationStatus !== 'REJECTED') {
+        if (stepStatus?.applicationStatus && 
+            stepStatus.applicationStatus !== 'DRAFT' && 
+            stepStatus.applicationStatus !== 'REJECTED' && 
+            stepStatus.applicationStatus !== 'CORRECTION_REQUIRED') {
             const stepKeys = ['details', 'personal', 'parent', 'address', 'academic', 'documents'];
             for (const key of stepKeys) {
                 localStorage.removeItem(`admission_draft_${key}`);
@@ -333,8 +346,17 @@ const AdmissionForm = () => {
             localStorage.removeItem(`admission_draft_${currentKey}`);
         }
 
+        // Calculate next step
+        let nextStep = currentStep + 1;
+        if (stepStatus?.applicationStatus === 'CORRECTION_REQUIRED') {
+            const requested = stepStatus.correctionRequestedSections || [];
+            const keyMapSteps = { 1: 'admission', 2: 'personal', 3: 'parent', 4: 'address', 5: 'academic', 6: 'documents' };
+            const correctionSteps = [1, 2, 3, 4, 5, 6].filter(i => requested.includes(keyMapSteps[i]));
+            const nextCorrection = correctionSteps.find(i => i > currentStep);
+            nextStep = nextCorrection !== undefined ? nextCorrection : 7;
+        }
+
         // Update localStorage immediately so the step-reset effect reads the correct step
-        const nextStep = currentStep + 1;
         localStorage.setItem('admission_form_step', nextStep.toString());
         await refetchStatus();
 
@@ -355,7 +377,14 @@ const AdmissionForm = () => {
         if (currentStep > 1) {
             setStepTransition(true);
             setTimeout(() => {
-                const prevStep = currentStep - 1;
+                let prevStep = currentStep - 1;
+                if (stepStatus?.applicationStatus === 'CORRECTION_REQUIRED') {
+                    const requested = stepStatus.correctionRequestedSections || [];
+                    const keyMapSteps = { 1: 'admission', 2: 'personal', 3: 'parent', 4: 'address', 5: 'academic', 6: 'documents' };
+                    const correctionSteps = [1, 2, 3, 4, 5, 6].filter(i => requested.includes(keyMapSteps[i]));
+                    const prevCorrection = [...correctionSteps].reverse().find(i => i < currentStep);
+                    prevStep = prevCorrection !== undefined ? prevCorrection : 1;
+                }
                 setCurrentStep(prevStep);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 setStepTransition(false);
@@ -609,6 +638,18 @@ const AdmissionForm = () => {
     };
 
 
+    const getIsStepReadOnly = (stepIndex) => {
+        if (!stepStatus) return true;
+        const status = stepStatus.applicationStatus;
+        if (status === 'CORRECTION_REQUIRED') {
+            const keyMap = { 1: 'admission', 2: 'personal', 3: 'parent', 4: 'address', 5: 'academic', 6: 'documents' };
+            const stepKey = keyMap[stepIndex];
+            const correctionRequested = stepStatus.correctionRequestedSections || [];
+            return !correctionRequested.includes(stepKey);
+        }
+        return status !== 'DRAFT' && status !== 'REJECTED';
+    };
+
     const renderStep = () => {
         const stepProps = {
             onNext: handleNext,
@@ -619,21 +660,28 @@ const AdmissionForm = () => {
         };
 
         switch (currentStep) {
-            case 1: return <Step1Admission {...stepProps} />;
-            case 2: return <Step2Personal {...stepProps} />;
-            case 3: return <Step3Parent {...stepProps} />;
-            case 4: return <Step4Address {...stepProps} />;
-            case 5: return <Step5Academic {...stepProps} />;
-            case 6: return <Step6Documents onNext={handleNext} onPrev={handlePrev} data={formData} onUploadSuccess={refreshFormData} applicationStatus={stepStatus?.applicationStatus} />;
-            case 7: return <Step7Review data={formData} onPrev={handlePrev} />;
+            case 1: return <Step1Admission {...stepProps} readOnly={getIsStepReadOnly(1)} />;
+            case 2: return <Step2Personal {...stepProps} readOnly={getIsStepReadOnly(2)} />;
+            case 3: return <Step3Parent {...stepProps} readOnly={getIsStepReadOnly(3)} />;
+            case 4: return <Step4Address {...stepProps} readOnly={getIsStepReadOnly(4)} />;
+            case 5: return <Step5Academic {...stepProps} readOnly={getIsStepReadOnly(5)} />;
+            case 6: return <Step6Documents onNext={handleNext} onPrev={handlePrev} data={formData} onUploadSuccess={refreshFormData} applicationStatus={stepStatus?.applicationStatus} readOnly={getIsStepReadOnly(6)} />;
+            case 7: return <Step7Review data={formData} onPrev={handlePrev} applicationStatus={stepStatus?.applicationStatus} />;
             default: return null;
+        }
+    };
+
+    const handleTopNextClick = () => {
+        const btn = document.getElementById('bottom-submit-btn');
+        if (btn) {
+            btn.click();
         }
     };
 
     const applicationStatus = stepStatus?.applicationStatus;
     const isSubmitted = applicationStatus && 
         applicationStatus !== 'DRAFT' && 
-        applicationStatus !== 'REJECTED';
+        applicationStatus !== 'CORRECTION_REQUIRED';
 
     if (statusLoading || (isSubmitted && !fullDetails)) {
         return (
@@ -733,7 +781,7 @@ const AdmissionForm = () => {
                         <span className="px-2 py-0.5 bg-primary-50 text-primary-700 rounded text-xs font-semibold">Admission Session {formData?.academicYear || getAcademicYear()}</span>
                     </div>
                 </div>
-                <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
+                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-6 w-full sm:w-auto">
                     <button
                         onClick={() => navigate('/admission/dashboard')}
                         className="btn-secondary text-xs sm:text-sm flex items-center gap-1.5 py-2 px-3 min-h-[38px]"
@@ -741,9 +789,9 @@ const AdmissionForm = () => {
                         <ChevronLeft size={16} />
                         Back to Portal
                     </button>
-                    <div className="text-right">
+                    <div className="text-center sm:text-right">
                         <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Admission Progress</p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 justify-center sm:justify-end">
                             <div className="w-16 sm:w-20 bg-slate-100 rounded-full h-1.5 overflow-hidden">
                                 <div
                                     className="h-full rounded-full transition-all duration-700"
@@ -758,6 +806,18 @@ const AdmissionForm = () => {
                             <p className="text-xs sm:text-sm font-bold text-primary-700">{completedCount}/{totalSteps}</p>
                         </div>
                     </div>
+                    <button
+                        type="button"
+                        onClick={handleTopNextClick}
+                        disabled={loading}
+                        className="btn-primary text-xs sm:text-sm flex items-center gap-1 py-2 px-4 min-h-[38px] font-bold shadow-md shadow-primary-600/10 whitespace-nowrap"
+                    >
+                        {currentStep === 7 ? (
+                            stepStatus?.applicationStatus === 'CORRECTION_REQUIRED' ? 'Submit Corrections' : 'Final Submit'
+                        ) : (
+                            <>Next <ChevronRight size={16} /></>
+                        )}
+                    </button>
                 </div>
             </div>
 
@@ -794,6 +854,34 @@ const AdmissionForm = () => {
                         skeleton={<FormSkeleton fields={6} />}
                         hintText="Preparing admission details..."
                     >
+                        {/* Section-level correction status alert */}
+                        {applicationStatus === 'CORRECTION_REQUIRED' && (
+                            getIsStepReadOnly(currentStep) ? (
+                                <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-xl shadow-sm mb-6 flex gap-3 items-start animate-fade-in no-print">
+                                    <div className="p-1 bg-emerald-100 text-emerald-600 rounded-lg shrink-0">
+                                        <CheckCircle2 size={18} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs sm:text-sm font-bold text-emerald-950 uppercase tracking-wide">✅ Section Verified</h4>
+                                        <p className="text-xs text-emerald-800 leading-normal mt-1 font-medium">
+                                            This section has been verified by the administrator and is locked for editing.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl shadow-sm mb-6 flex gap-3 items-start animate-fade-in no-print">
+                                    <div className="p-1 bg-rose-100 text-rose-600 rounded-lg shrink-0">
+                                        <AlertTriangle size={18} />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs sm:text-sm font-bold text-rose-950 uppercase tracking-wide">🔴 Correction Required</h4>
+                                        <p className="text-xs text-rose-800 leading-normal mt-1 font-medium whitespace-pre-line">
+                                            {stepStatus?.adminRemarks || 'Please review and update this section.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            )
+                        )}
                         {renderStep()}
                     </LoadingContainer>
                 </div>

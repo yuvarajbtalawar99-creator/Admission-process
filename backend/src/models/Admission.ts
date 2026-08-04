@@ -7,13 +7,15 @@ export type AdmissionStatus =
   | 'DRAFT'         // just registered, form in progress (replaces REGISTERED)
   | 'SUBMITTED'     // student submitted all 7 steps
   | 'UNDER_REVIEW'  // admin is reviewing
+  | 'CORRECTION_REQUIRED' // admin requested correction
+  | 'RESUBMITTED'   // student resubmitted corrections
   | 'APPROVED'      // admin approved application & docs (waiting for fee receipt)
   | 'FEE_RECEIPT_UPLOADED' // student uploaded fee receipt
   | 'FEE_VERIFIED'  // admin verified fee receipt (forwarded to principal)
   | 'REJECTED'      // admin rejected
   | 'ENROLLED'      // fully enrolled in ERP (locked)
   | 'CANCELLATION_REQUESTED' // student requested cancellation
-  | 'CANCELLED';    // admission cancelled
+  | 'CANCELLED';    // admission cancelled    // admission cancelled
 
 export type AdmissionType = 'KCET' | 'DCET' | 'MANAGEMENT';
 
@@ -33,6 +35,13 @@ class Admission extends Model {
   public adminRemarks!: string | null;
   public rejectionReason!: string | null;
   public rejectionReasonCode!: string | null;
+  
+  // Correction workflow attributes
+  public correctionRequestedSections!: string[] | null;
+  public correctionRemarks!: string | null;
+  public correctionDeadline!: Date | null;
+  public correctionRequestedAt!: Date | null;
+  public correctionRequestedById!: string | null;
   
   // Validation Checklist
   public documentsVerified!: boolean;
@@ -143,9 +152,29 @@ Admission.init(
       allowNull: true,
     },
     applicationStatus: {
-      type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'FEE_RECEIPT_UPLOADED', 'FEE_VERIFIED', 'REJECTED', 'ENROLLED', 'CANCELLATION_REQUESTED', 'CANCELLED'),
+      type: DataTypes.ENUM('DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'CORRECTION_REQUIRED', 'RESUBMITTED', 'APPROVED', 'FEE_RECEIPT_UPLOADED', 'FEE_VERIFIED', 'REJECTED', 'ENROLLED', 'CANCELLATION_REQUESTED', 'CANCELLED'),
       allowNull: false,
       defaultValue: 'DRAFT',
+    },
+    correctionRequestedSections: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    correctionRemarks: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    correctionDeadline: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    correctionRequestedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    correctionRequestedById: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     applicationFeeStatus: {
       type: DataTypes.STRING(50),

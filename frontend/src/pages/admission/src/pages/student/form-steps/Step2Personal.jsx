@@ -4,11 +4,16 @@ import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SelectDropdown from '../../../components/SelectDropdown';
 
-const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) => {
+const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus, readOnly = false }) => {
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (readOnly) {
+            onNext();
+            return;
+        }
 
         setLoading(true);
 
@@ -77,7 +82,7 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                 </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <fieldset disabled={readOnly} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-0 m-0 border-0 w-full">
                 <div className="space-y-1.5">
                     <label className="text-sm font-medium text-slate-700">First Name (As per SSLC) <span className="text-red-500">*</span></label>
                     <input required type="text" name="firstName" className="input-premium h-11 uppercase" value={data.firstName || ''} onChange={handleChange} placeholder="Enter first name" />
@@ -233,7 +238,7 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
                         <p className="text-red-500 text-[11px] font-bold mt-1">Please fill this field mandatorily</p>
                     )}
                 </div>
-            </div>
+            </fieldset>
 
             <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg mt-4">
                 <p className="text-sm text-red-800 font-medium">
@@ -253,6 +258,7 @@ const Step2Personal = ({ onNext, onPrev, data, updateData, applicationStatus }) 
 
                 <button
                     type="submit"
+                    id="bottom-submit-btn"
                     disabled={loading}
                     className="btn-primary min-h-[44px] h-11 px-6 flex items-center justify-center gap-2 text-xs sm:text-sm font-bold"
                 >

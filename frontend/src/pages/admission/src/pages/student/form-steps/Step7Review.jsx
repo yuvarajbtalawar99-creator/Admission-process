@@ -21,7 +21,7 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { downloadAdmissionPDF } from '../../../utils/pdfGenerator';
 
-const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null }) => {
+const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null, applicationStatus }) => {
     const [loading, setLoading] = useState(!externalDetails);
     const [submitting, setSubmitting] = useState(false);
     const [details, setDetails] = useState(externalDetails);
@@ -79,7 +79,14 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
     };
 
     const handleEdit = (stepNumber) => {
-        localStorage.setItem('admission_form_step', stepNumber.toString());
+        let target = stepNumber;
+        if (applicationStatus === 'CORRECTION_REQUIRED' && details?.correctionRequestedSections) {
+            const keyMap = { 1: 'admission', 2: 'personal', 3: 'parent', 4: 'address', 5: 'academic', 6: 'documents' };
+            const requested = details.correctionRequestedSections || [];
+            const firstCorrection = [1, 2, 3, 4, 5, 6].find(i => requested.includes(keyMap[i])) || 1;
+            target = firstCorrection;
+        }
+        localStorage.setItem('admission_form_step', target.toString());
         setTimeout(() => window.location.reload(), 50);
     };
 
@@ -169,32 +176,45 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
         ? `${pd.firstName} ${pd.lastName || ''}`.trim()
         : `${user.firstName || ''} ${user.lastName || ''}`.trim();
 
-    const ReviewSection = ({ icon: Icon, title, step, children }) => (
-        <div className="review-card group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-primary-200 transition-all duration-300">
-            <div className="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-white shadow-sm text-primary-600 flex items-center justify-center border border-slate-100 group-hover:scale-110 transition-transform duration-300">
-                        <Icon size={18} />
+    const ReviewSection = ({ icon: Icon, title, step, children }) => {
+        const isStepReadOnly = () => {
+            if (applicationStatus === 'CORRECTION_REQUIRED' && details?.correctionRequestedSections) {
+                const keyMap = { 1: 'admission', 2: 'personal', 3: 'parent', 4: 'address', 5: 'academic', 6: 'documents' };
+                const stepKey = keyMap[step];
+                const correctionRequested = details.correctionRequestedSections || [];
+                return !correctionRequested.includes(stepKey);
+            }
+            return false;
+        };
+        const readOnlySection = readOnly || isStepReadOnly();
+
+        return (
+            <div className="review-card group bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-primary-200 transition-all duration-300">
+                <div className="bg-slate-50/50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-white shadow-sm text-primary-600 flex items-center justify-center border border-slate-100 group-hover:scale-110 transition-transform duration-300">
+                            <Icon size={18} />
+                        </div>
+                        <h3 className="font-bold text-slate-800 tracking-tight">{title}</h3>
                     </div>
-                    <h3 className="font-bold text-slate-800 tracking-tight">{title}</h3>
+                    {!readOnlySection && (
+                        <button
+                            onClick={() => handleEdit(step)}
+                            className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold"
+                        >
+                            <Edit3 size={14} />
+                            Edit
+                        </button>
+                    )}
                 </div>
-                {!readOnly && (
-                    <button
-                        onClick={() => handleEdit(step)}
-                        className="p-2 text-slate-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold"
-                    >
-                        <Edit3 size={14} />
-                        Edit
-                    </button>
-                )}
-            </div>
             <div className="p-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-y-6 gap-x-8">
                     {children}
                 </div>
             </div>
         </div>
-    );
+        );
+    };
 
     const DataItem = ({ label, value, highlight = false }) => (
         <div className="space-y-1">
@@ -415,8 +435,9 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                                     Discard & Edit
                                 </button>
 
-                                <button
+                                 <button
                                     type="button"
+                                    id="bottom-submit-btn"
                                     onClick={handleSubmit}
                                     disabled={submitting || !isConfirmed}
                                     className={`
@@ -429,7 +450,7 @@ const Step7Review = ({ onPrev, readOnly = false, details: externalDetails = null
                                     ) : (
                                         <>
                                             <ShieldCheck size={18} />
-                                            Finalize & Submit
+                                            {applicationStatus === 'CORRECTION_REQUIRED' ? 'Submit Corrections' : 'Finalize & Submit'}
                                         </>
                                     )}
                                 </button>

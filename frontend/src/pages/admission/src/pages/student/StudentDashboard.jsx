@@ -27,7 +27,8 @@ import {
     ShieldCheck,
     XCircle,
     AlertTriangle,
-    Award
+    Award,
+    RefreshCw
 } from 'lucide-react';
 import api from '../../api/axios';
 import toast from 'react-hot-toast';
@@ -51,19 +52,13 @@ const StudentDashboard = () => {
     } = useApplicationStatus();
 
     useEffect(() => {
-        api.get('/admin/settings')
+        api.get('/system/config')
             .then(res => {
                 if (res.data?.success && res.data?.data) {
                     setSysConfig(res.data.data);
                 }
             })
-            .catch(() => {
-                api.get('/system/config').then(res => {
-                    if (res.data?.success && res.data?.data) {
-                        setSysConfig(res.data.data);
-                    }
-                }).catch(() => {});
-            });
+            .catch(() => {});
     }, []);
 
     if (loading) {
@@ -175,11 +170,33 @@ const StudentDashboard = () => {
         }
 
         localStorage.setItem('admission_form_step', step.targetStep.toString());
-        navigate('/admission/application');
+        navigate(`/admission/application?step=${step.targetStep}`);
     };
 
     return (
         <div className="animate-fade-in space-y-10 pb-16">
+            {applicationStatus === 'CORRECTION_REQUIRED' && (
+                <div className="bg-rose-50 border-2 border-rose-350 p-6 rounded-2xl flex flex-col md:flex-row md:items-start justify-between gap-4 animate-fade-in shadow-md shadow-rose-250/10 no-print">
+                    <div className="flex items-start gap-4">
+                        <div className="size-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 shadow-sm">
+                            <AlertTriangle size={24} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <h2 className="text-lg font-black text-rose-950 uppercase tracking-wide">🔴 Action Required: Correction Needed</h2>
+                            <p className="text-xs text-rose-800 leading-relaxed font-semibold">
+                                Your application has been returned by the administrator for correction. Please correct the highlighted sections in red and resubmit.
+                            </p>
+                            {stepStatus?.adminRemarks && (
+                                <div className="mt-2 bg-white rounded-lg p-3.5 border border-rose-100/80 shadow-sm">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Administrative Remarks:</span>
+                                    <p className="text-xs font-semibold text-slate-755 whitespace-pre-wrap leading-normal">{stepStatus.adminRemarks}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Welcome & Overall Progress */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
@@ -228,6 +245,7 @@ const StudentDashboard = () => {
                     const isCompleted = state === 'COMPLETED';
                     const isActive = state === 'ACTIVE';
                     const isLocked = state === 'LOCKED';
+                    const isCorrectionRequired = state === 'CORRECTION_REQUIRED';
 
                     return (
                         <div
@@ -235,7 +253,9 @@ const StudentDashboard = () => {
                             onClick={() => handleStepClick(step)}
                             className={`
                                 step-card group relative flex flex-col bg-white rounded-xl p-6 transition-all duration-500
-                                ${isActive
+                                ${isCorrectionRequired
+                                    ? 'border-2 border-red-500 shadow-lg shadow-red-500/10'
+                                    : isActive
                                     ? 'border-2 border-primary-600 shadow-lg shadow-primary-600/10 -translate-y-1 step-active-glow'
                                     : 'border-2 border-slate-100'}
                                 ${isCompleted
@@ -247,12 +267,7 @@ const StudentDashboard = () => {
                             `}
                             style={{ animationDelay: `${index * 60}ms` }}
                         >
-                            {isActive && (
-                                <div className="absolute -top-3 left-6 bg-primary-600 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest z-10 flex items-center gap-1.5 shadow-md shadow-primary-600/30">
-                                    <Sparkles size={10} />
-                                    Active Step
-                                </div>
-                            )}
+
 
                             {isCompleted && (
                                 <div className="absolute top-0 right-0 w-16 h-16 overflow-hidden rounded-tr-xl">
@@ -266,6 +281,7 @@ const StudentDashboard = () => {
                                 <div className={`
                                     size-12 rounded-xl flex items-center justify-center transition-all duration-500
                                     ${isCompleted ? 'bg-green-100 text-green-600 shadow-sm' : ''}
+                                    ${isCorrectionRequired ? 'bg-red-100 text-red-600 shadow-sm' : ''}
                                     ${isActive ? 'bg-primary-600/10 text-primary-600 shadow-sm' : ''}
                                     ${isLocked ? 'bg-slate-100 text-slate-300' : ''}
                                 `}>
@@ -275,11 +291,14 @@ const StudentDashboard = () => {
                                 <div className={`
                                     text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider flex items-center gap-1 transition-all duration-500
                                     ${isCompleted ? 'bg-green-100 text-green-700' : ''}
+                                    ${isCorrectionRequired ? 'bg-red-100 text-red-700 border border-red-200' : ''}
                                     ${isActive ? 'bg-primary-50 text-primary-700' : ''}
                                     ${isLocked ? 'bg-slate-100 text-slate-400' : ''}
                                 `}>
                                     {isCompleted ? (
                                         <><CheckCircle size={12} /> Completed</>
+                                    ) : isCorrectionRequired ? (
+                                        <><AlertTriangle size={12} /> Correction Required</>
                                     ) : isActive ? (
                                         <><PlayCircle size={12} /> In Progress</>
                                     ) : (
@@ -303,14 +322,27 @@ const StudentDashboard = () => {
                                     </div>
                                 ) : (
                                     <button className={`
-                                        w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all duration-300
+                                        w-full flex items-center justify-center gap-2 py-2.5 px-4 font-semibold text-sm transition-all duration-300
                                         ${isCompleted
-                                            ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200'
-                                            : 'bg-primary-600 text-white shadow-md shadow-primary-600/20 hover:bg-primary-700 hover:shadow-lg'
+                                            ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-lg'
+                                            : isCorrectionRequired
+                                            ? 'bg-[#EF4444] text-white hover:bg-[#DC2626] shadow-md shadow-red-600/20 hover:shadow-lg cursor-pointer rounded-[10px]'
+                                            : 'bg-primary-600 text-white shadow-md shadow-primary-600/20 hover:bg-primary-700 hover:shadow-lg rounded-lg'
                                         }
                                     `}>
-                                        {isCompleted ? 'View / Edit' : 'Continue Application'}
-                                        <ArrowRight size={16} className={isCompleted ? '' : 'group-hover:translate-x-0.5 transition-transform'} />
+                                        {isCompleted ? (
+                                            <>
+                                                View
+                                                <ArrowRight size={16} />
+                                            </>
+                                        ) : isCorrectionRequired ? (
+                                            '✏️ Edit & Correct'
+                                        ) : (
+                                            <>
+                                                Continue Application
+                                                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
+                                            </>
+                                        )}
                                     </button>
                                 )}
                             </div>
@@ -501,6 +533,8 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
         switch (status) {
             case 'SUBMITTED':
                 return { label: 'Application Submitted', icon: Clock, color: 'text-blue-600', bg: 'bg-blue-100', desc: 'Your application is being reviewed by the admissions team.' };
+            case 'RESUBMITTED':
+                return { label: 'Corrections Resubmitted', icon: RefreshCw, color: 'text-purple-600', bg: 'bg-purple-100', desc: 'Corrections Submitted - Waiting for Admin Verification.' };
             case 'UNDER_REVIEW':
                 return { label: 'Under Review', icon: Search, color: 'text-amber-600', bg: 'bg-amber-100', desc: 'An administrator is currently reviewing your application.' };
             case 'DOCUMENT_VERIFIED':
@@ -516,7 +550,7 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
             case 'USN_ASSIGNED':
                 return { label: '🎉 Admission Confirmed', icon: Award, color: 'text-purple-600', bg: 'bg-purple-100', desc: 'Congratulations! Your admission has been officially confirmed by the Principal of Jain College of Engineering & Research.' };
             case 'REJECTED':
-                return { label: 'Correction Required', icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100', desc: 'Your application has been returned by the Principal / Admissions Committee for correction. Please review the reason below and click Edit & Resubmit.' };
+                return { label: 'Application Rejected', icon: XCircle, color: 'text-red-600', bg: 'bg-red-100', desc: 'Your application has been permanently rejected by the Admissions Committee / Principal.' };
             case 'CANCELLATION_REQUESTED':
                 return { label: 'Cancellation Requested', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-100', desc: 'Your request for admission cancellation is under review.' };
             case 'CANCELLED':
@@ -795,21 +829,7 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
                                 </button>
                             )}
 
-                            {isRejected && (
-                                <button
-                                    onClick={() => navigate('/admission/application')}
-                                    className="w-full bg-red-650 text-white rounded-2xl p-5 flex items-center gap-4 hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all group"
-                                >
-                                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                                        <Activity size={22} />
-                                    </div>
-                                    <div className="text-left">
-                                        <p className="font-bold text-sm">Edit & Resubmit</p>
-                                        <p className="text-xs text-red-100">Correct your application now</p>
-                                    </div>
-                                    <ArrowRight size={16} className="ml-auto text-red-200 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                            )}
+
 
                             {applicationStatus === 'ENROLLED' && (
                                 <button
