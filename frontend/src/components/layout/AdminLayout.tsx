@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../store/authSlice';
 import authService from '../../services/auth.service';
+import API from '../../services/api';
 import { RootState } from '../../store';
 import { getAcademicYear } from '../../utils/date.util';
 import {
@@ -70,9 +71,9 @@ export const AdminLayout: React.FC = () => {
   });
 
   useEffect(() => {
-    fetch('/api/system/config')
-      .then(res => res.json())
-      .then(json => {
+    API.get('/system/config')
+      .then(res => {
+        const json = res.data;
         if (json.success && json.data?.features) {
           setFeatures(json.data.features);
         }
@@ -89,7 +90,6 @@ export const AdminLayout: React.FC = () => {
   const [resubmittedCount, setResubmittedCount] = useState(0);
   const [rejectedCount, setRejectedCount] = useState(0);
   const [verifiedCount, setVerifiedCount] = useState(0);
-  const [admissionFeesCount, setAdmissionFeesCount] = useState(0);
   const [cancellationRequestsCount, setCancellationRequestsCount] = useState(0);
 
   useEffect(() => {
@@ -104,7 +104,6 @@ export const AdminLayout: React.FC = () => {
         setResubmittedCount(stats.resubmitted || 0);
         setRejectedCount(stats.rejected || 0);
         setVerifiedCount(stats.approved || 0);
-        setAdmissionFeesCount(stats.feeReceiptUploaded || 0);
         setCancellationRequestsCount(stats.cancellationRequests || 0);
       }).catch(err => console.error('Error loading sidebar stats:', err));
     };
@@ -157,7 +156,6 @@ export const AdminLayout: React.FC = () => {
         { name: 'Resubmitted', path: '/admin/admissions/resubmitted', icon: RefreshCw, badge: resubmittedCount > 0 ? resubmittedCount : undefined },
         { name: 'Rejected / Corrections', path: '/admin/admissions/rejected', icon: XCircle, badge: rejectedCount > 0 ? rejectedCount : undefined },
         { name: 'Verified', path: '/admin/admissions/verified', icon: FileCheck2, badge: verifiedCount > 0 ? verifiedCount : undefined },
-        { name: '💰 Admission Fees', path: '/admin/admissions/fees', icon: CreditCard, badge: admissionFeesCount > 0 ? admissionFeesCount : undefined },
         { name: 'Cancellation Requests', path: '/admin/admissions/cancellations', icon: AlertCircle, badge: cancellationRequestsCount > 0 ? cancellationRequestsCount : undefined },
         { name: 'History', path: '/admin/admissions/history', icon: CalendarDays },
       ],
@@ -189,7 +187,6 @@ export const AdminLayout: React.FC = () => {
     '/admin/admissions/resubmitted': 'Resubmitted Applications',
     '/admin/admissions/rejected': 'Rejected Applications',
     '/admin/admissions/verified': 'Verified Admissions',
-    '/admin/admissions/fees': 'Admission Fees Dashboard',
     '/admin/admissions/approved': 'Approved Admissions',
     '/admin/admissions/cancellations': 'Cancellation Requests',
     '/admin/admissions/history': 'Admission History',

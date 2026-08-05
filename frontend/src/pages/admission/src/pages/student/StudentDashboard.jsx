@@ -30,7 +30,7 @@ import {
     Award,
     RefreshCw
 } from 'lucide-react';
-import api from '../../api/axios';
+import api from '../../../../../services/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import useApplicationStatus from '../../hooks/useApplicationStatus';
@@ -94,7 +94,7 @@ const StudentDashboard = () => {
     const timeline = stepStatus?.timeline || {};
 
     const closingDateIso = sysConfig?.admissionClosingDate;
-    const isClosed = closingDateIso ? (new Date() > new Date(closingDateIso)) : false;
+    const isClosed = false; // Force false to keep admissions open for tomorrow's testing
 
     const computeFeeStatusText = (status, data) => {
         if (data?.applicationFeeStatus) return data.applicationFeeStatus;
@@ -174,7 +174,7 @@ const StudentDashboard = () => {
     };
 
     return (
-        <div className="animate-fade-in space-y-10 pb-16">
+        <div className="animate-fade-in space-y-6 sm:space-y-10 pb-8 sm:pb-16">
             {applicationStatus === 'CORRECTION_REQUIRED' && (
                 <div className="bg-rose-50 border-2 border-rose-350 p-6 rounded-2xl flex flex-col md:flex-row md:items-start justify-between gap-4 animate-fade-in shadow-md shadow-rose-250/10 no-print">
                     <div className="flex items-start gap-4">
@@ -239,7 +239,7 @@ const StudentDashboard = () => {
             </div>
 
             {/* Application Steps Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                 {steps.map((step, index) => {
                     const state = getStepState(step.id);
                     const isCompleted = state === 'COMPLETED';
@@ -252,7 +252,7 @@ const StudentDashboard = () => {
                             key={step.id}
                             onClick={() => handleStepClick(step)}
                             className={`
-                                step-card group relative flex flex-col bg-white rounded-xl p-6 transition-all duration-500
+                                step-card group relative flex flex-col bg-white rounded-xl p-4 sm:p-6 transition-all duration-500
                                 ${isCorrectionRequired
                                     ? 'border-2 border-red-500 shadow-lg shadow-red-500/10'
                                     : isActive
@@ -322,7 +322,7 @@ const StudentDashboard = () => {
                                     </div>
                                 ) : (
                                     <button className={`
-                                        w-full flex items-center justify-center gap-2 py-2.5 px-4 font-semibold text-sm transition-all duration-300
+                                        w-full flex items-center justify-center gap-2 py-2.5 px-4 font-semibold text-sm transition-all duration-300 min-h-[48px]
                                         ${isCompleted
                                             ? 'bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 rounded-lg'
                                             : isCorrectionRequired
@@ -351,7 +351,7 @@ const StudentDashboard = () => {
                 })}
 
                 {/* Help Card */}
-                <div className="group relative flex flex-col bg-primary-600/5 rounded-xl border border-primary-600/20 p-6">
+                <div className="group relative flex flex-col bg-primary-600/5 rounded-xl border border-primary-600/20 p-4 sm:p-6">
                     <div className="size-12 rounded-xl bg-primary-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-primary-600/20">
                         <LifeBuoy size={24} />
                     </div>
@@ -359,7 +359,7 @@ const StudentDashboard = () => {
                     <p className="text-sm text-slate-600 mb-6 leading-relaxed">Our admission officers are here to assist you with the process.</p>
                     <button 
                         onClick={() => navigate('/admission/support')}
-                        className="mt-auto py-2.5 px-4 rounded-lg border border-primary-600 text-primary-600 font-semibold text-sm hover:bg-primary-600 hover:text-white transition-all duration-300"
+                        className="mt-auto py-2.5 px-4 w-full sm:w-auto min-h-[48px] sm:min-h-[38px] rounded-lg border border-primary-600 text-primary-600 font-semibold text-sm hover:bg-primary-600 hover:text-white transition-all duration-300 flex items-center justify-center"
                     >
                         Contact Support
                     </button>
@@ -377,7 +377,7 @@ const StudentDashboard = () => {
 // ═══════════════════════════════════════════════
 const DashboardFooterInfo = ({ closingDateIso, feeStatusText, isClosed }) => {
     const handleHandbookDownload = () => {
-        window.open('/api/public/handbook', '_blank');
+        window.open(`${import.meta.env.VITE_API_URL || ''}/public/handbook`, '_blank');
     };
 
     const formattedClosing = () => {
@@ -399,16 +399,19 @@ const DashboardFooterInfo = ({ closingDateIso, feeStatusText, isClosed }) => {
 
     return (
         <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
-            {/* 1. ADMISSION CLOSING DATE */}
+            {/* 1. ADMISSION STATUS (Forced Open) */}
             <div className="flex items-center gap-4 group">
-                <div className={`p-3 rounded-full group-hover:scale-110 transition-transform ${isClosed ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-600'}`}>
-                    <Calendar size={24} />
+                <div className="p-3 rounded-full group-hover:scale-110 transition-transform bg-emerald-100 text-emerald-600">
+                    <CheckCircle size={24} />
                 </div>
                 <div>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {isClosed ? 'Status' : 'Admission Closes'}
+                        Status
                     </p>
-                    <p className="text-base font-bold text-slate-900">{formattedClosing()}</p>
+                    <p className="text-base font-bold text-emerald-600 flex items-center gap-1.5">
+                        <span className="inline-block size-2 rounded-full bg-emerald-500 animate-pulse" />
+                        🟢 Admissions Open
+                    </p>
                 </div>
             </div>
 
@@ -426,25 +429,6 @@ const DashboardFooterInfo = ({ closingDateIso, feeStatusText, isClosed }) => {
                     >
                         Download Handbook <Download size={14} />
                     </button>
-                </div>
-            </div>
-
-            {/* 3. APPLICATION FEE STATUS */}
-            <div className="flex items-center gap-4 group">
-                <div className="bg-purple-100 p-3 rounded-full text-purple-600 group-hover:scale-110 transition-transform">
-                    <CreditCard size={24} />
-                </div>
-                <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Application Fee Status</p>
-                    <p className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-                        <span className={`inline-block size-2.5 rounded-full ${
-                            feeStatusText === 'Paid' ? 'bg-emerald-500' :
-                            feeStatusText === 'Payment Verification Pending' ? 'bg-amber-500' :
-                            feeStatusText === 'Refund Completed' ? 'bg-purple-500' :
-                            'bg-slate-400'
-                        }`} />
-                        {feeStatusText || 'Pending Payment'}
-                    </p>
                 </div>
             </div>
         </div>
@@ -538,13 +522,9 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
             case 'UNDER_REVIEW':
                 return { label: 'Under Review', icon: Search, color: 'text-amber-600', bg: 'bg-amber-100', desc: 'An administrator is currently reviewing your application.' };
             case 'DOCUMENT_VERIFIED':
-                return { label: 'Documents Verified', icon: ShieldCheck, color: 'text-teal-600', bg: 'bg-teal-100', desc: 'Your documents have been verified. Awaiting fee payment.' };
+                return { label: 'Documents Verified', icon: ShieldCheck, color: 'text-teal-600', bg: 'bg-teal-100', desc: 'Your documents have been verified.' };
             case 'APPROVED':
-                return { label: 'Admission Approved', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100', desc: 'Your application has been approved! Please pay ₹500 fee at college office and upload official receipt below.' };
-            case 'FEE_RECEIPT_UPLOADED':
-                return { label: 'Fee Receipt Uploaded', icon: Clock, color: 'text-cyan-600', bg: 'bg-cyan-100', desc: 'Fee Receipt Uploaded - Waiting for College Verification.' };
-            case 'FEE_VERIFIED':
-                return { label: 'Fee Verified & Forwarded', icon: ShieldCheck, color: 'text-sky-600', bg: 'bg-sky-100', desc: 'Your fee receipt has been verified and forwarded to Principal for final sign-off.' };
+                return { label: 'Admission Approved', icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-100', desc: 'Your application has been approved! Awaiting final confirmation and USN allocation.' };
             case 'ADMISSION_CONFIRMED':
             case 'ENROLLED':
             case 'USN_ASSIGNED':
@@ -612,117 +592,7 @@ const SubmittedDashboard = ({ stepStatus, applicationStatus, timeline, navigate,
                 )}
             </div>
 
-            {/* ═════════ ADMISSION APPROVED & FEE RECEIPT UPLOAD CARD ═════════ */}
-            {(applicationStatus === 'APPROVED' || applicationStatus === 'FEE_RECEIPT_UPLOADED' || applicationStatus === 'FEE_VERIFIED') && (
-                <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-50/40 rounded-2xl border-2 border-amber-300 p-6 md:p-8 shadow-lg space-y-6 animate-fade-in">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-200/80 pb-5">
-                        <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                                <Sparkles size={22} className="text-amber-600" />
-                                <h2 className="text-xl font-black text-slate-900 tracking-tight">Admission Approved</h2>
-                            </div>
-                            <p className="text-xs font-extrabold text-amber-700 uppercase tracking-widest">Congratulations!</p>
-                        </div>
-                        <div className="bg-amber-100 text-amber-900 text-xs font-bold px-3.5 py-1.5 rounded-xl border border-amber-300 flex items-center gap-2">
-                            <Clock size={16} className="text-amber-700" />
-                            <span>Visit College Office within 7 Days</span>
-                        </div>
-                    </div>
 
-                    <p className="text-sm text-slate-700 leading-relaxed font-medium">
-                        Your admission application has been approved. Please visit the <strong>Jain College of Engineering & Research Admission Office</strong> within 7 days and pay the <strong>₹500 Admission Processing Fee</strong>.
-                        After receiving the official college fee receipt, upload a clear photo or PDF of the receipt below to continue the admission process.
-                    </p>
-
-                    {/* Current Status Banner */}
-                    <div className="flex items-center justify-between bg-amber-100/60 border border-amber-200 rounded-xl px-4 py-3">
-                        <span className="text-xs font-bold text-amber-900 uppercase tracking-wider">Current Status</span>
-                        <span className={`text-xs font-black px-3 py-1 rounded-full ${
-                            applicationStatus === 'FEE_RECEIPT_UPLOADED'
-                                ? 'bg-cyan-600 text-white'
-                                : applicationStatus === 'FEE_VERIFIED'
-                                ? 'bg-sky-600 text-white'
-                                : 'bg-amber-600 text-white'
-                        }`}>
-                            {applicationStatus === 'FEE_RECEIPT_UPLOADED' ? 'Fee Receipt Uploaded - Waiting for College Verification' :
-                             applicationStatus === 'FEE_VERIFIED' ? 'Fee Receipt Verified & Forwarded to Principal' :
-                             'Waiting for Fee Receipt'}
-                        </span>
-                    </div>
-
-                    {/* Drag & Drop Upload Zone */}
-                    <div className="bg-white rounded-2xl border-2 border-dashed border-amber-300 p-6 flex flex-col items-center justify-center text-center space-y-4 hover:border-amber-500 transition-colors">
-                        <input
-                            type="file"
-                            id="fee-receipt-input"
-                            accept="image/png, image/jpeg, image/jpg, application/pdf"
-                            className="hidden"
-                            onChange={handleFileChange}
-                            disabled={isUploading || applicationStatus === 'FEE_VERIFIED'}
-                        />
-
-                        {selectedFile ? (
-                            <div className="w-full space-y-4">
-                                <div className="flex items-center justify-between bg-amber-50 p-4 rounded-xl border border-amber-200 text-left">
-                                    <div className="flex items-center gap-3 overflow-hidden">
-                                        <FileText size={32} className="text-amber-600 flex-shrink-0" />
-                                        <div className="truncate">
-                                            <p className="text-xs font-bold text-slate-900 truncate">{selectedFile.name}</p>
-                                            <p className="text-[10px] text-slate-500 font-medium">{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSelectedFile(null)}
-                                        className="text-xs font-bold text-red-600 hover:underline px-2 py-1"
-                                    >
-                                        Change File
-                                    </button>
-                                </div>
-
-                                {isUploading && (
-                                    <div className="space-y-1.5">
-                                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                                            <div className="bg-amber-600 h-full rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-                                        </div>
-                                        <p className="text-[10px] font-bold text-amber-700">Uploading receipt... {uploadProgress}%</p>
-                                    </div>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={handleUploadReceipt}
-                                    disabled={isUploading}
-                                    className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-                                >
-                                    {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                                    {applicationStatus === 'FEE_RECEIPT_UPLOADED' ? 'Replace Receipt' : 'Upload Receipt'}
-                                </button>
-                            </div>
-                        ) : (
-                            <label
-                                htmlFor="fee-receipt-input"
-                                className="cursor-pointer space-y-3 flex flex-col items-center w-full"
-                            >
-                                <div className="size-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-inner">
-                                    <Upload size={28} />
-                                </div>
-                                <div className="space-y-1">
-                                    <p className="text-xs font-bold text-slate-900">
-                                        Drag & Drop official college fee receipt here, or <span className="text-amber-700 underline">browse</span>
-                                    </p>
-                                    <p className="text-[10px] text-slate-500 font-medium">
-                                        Supported Formats: PDF, JPG, PNG (Max file size: 5MB)
-                                    </p>
-                                </div>
-                                <span className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition-colors inline-block mt-2">
-                                    {applicationStatus === 'FEE_RECEIPT_UPLOADED' ? 'Replace Receipt' : 'Upload Fee Receipt'}
-                                </span>
-                            </label>
-                        )}
-                    </div>
-                </div>
-            )}
 
             {/* Correction / Rejection Reason */}
             {isRejected && (stepStatus?.rejectionReason || stepStatus?.adminRemarks) && (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import api from '../../../api/axios';
+import api from '../../../../../../services/api';
 import { Loader2, ChevronRight, CheckCircle2, XCircle, Fingerprint, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SelectDropdown from '../../../components/SelectDropdown';
@@ -324,7 +324,7 @@ const Step1Admission = ({ onNext, data, updateData, applicationStatus, readOnly 
                     type="submit" 
                     id="bottom-submit-btn"
                     disabled={isFormDisabled} 
-                    className={`btn-primary min-h-[44px] h-11 px-8 w-full sm:w-auto flex items-center justify-center ${isFormDisabled ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
+                    className={`btn-primary min-h-[48px] sm:min-h-[44px] h-11 px-8 w-full sm:w-auto flex items-center justify-center ${isFormDisabled ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
                 >
                     {loading ? <Loader2 size={18} className="animate-spin" /> : (
                         <span className="flex items-center gap-2">

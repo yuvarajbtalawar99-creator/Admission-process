@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Loader2, Eye, EyeOff, User, ArrowRight, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../api/axios';
+import authService from '../../../../services/auth.service';
 import { useAuth } from '../context/AuthContext';
-import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [showForgotPassword, setShowForgotPassword] = useState(false);
 
     const { login } = useAuth();
     const navigate = useNavigate();
@@ -37,7 +35,7 @@ const Login = () => {
 
         setLoading(true);
         try {
-            const response = await api.post('/auth/login', formData);
+            const response = await authService.loginDirect(formData);
             if (response.data.success) {
                 const { token, user } = response.data.data;
                 toast.success('Login successful!');
@@ -77,19 +75,10 @@ const Login = () => {
                 </div>
 
                 <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <label className="text-sm font-semibold text-slate-700 flex items-center gap-2" htmlFor="password">
-                            <Lock size={18} className="text-slate-400" />
-                            Password
-                        </label>
-                        <button
-                            type="button"
-                            onClick={() => setShowForgotPassword(true)}
-                            className="text-xs font-semibold text-primary-600 hover:underline"
-                        >
-                            Forgot password?
-                        </button>
-                    </div>
+                    <label className="text-sm font-semibold text-slate-700 flex items-center gap-2" htmlFor="password">
+                        <Lock size={18} className="text-slate-400" />
+                        Password
+                    </label>
                     <div className="relative">
                         <input
                             type={showPassword ? "text" : "password"}
@@ -139,7 +128,7 @@ const Login = () => {
                 </div>
                 <div>
                     <a
-                        href="/api/public/handbook"
+                        href={`${import.meta.env.VITE_API_URL || ''}/public/handbook`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-primary-600 transition-colors"
@@ -148,12 +137,6 @@ const Login = () => {
                     </a>
                 </div>
             </div>
-
-            {/* Forgot Password OTP Modal */}
-            <ForgotPasswordModal
-                isOpen={showForgotPassword}
-                onClose={() => setShowForgotPassword(false)}
-            />
         </div>
     );
 };

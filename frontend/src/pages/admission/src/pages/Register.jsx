@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Phone, Loader2, Eye, EyeOff, GraduationCap, User, ArrowRight, ShieldCheck, KeyRound, RefreshCw, X } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../api/axios';
+import api from '../../../../services/api';
+import authService from '../../../../services/auth.service';
 import { useAuth } from '../context/AuthContext';
 import { registerSchema } from '../../../../utils/validation.util';
 import { getAcademicYear } from '../../../../utils/date.util';
-import OtpInputBox from '../components/OtpInputBox';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -22,13 +22,6 @@ const Register = () => {
     const [phoneError, setPhoneError] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [isCheckingPhone, setIsCheckingPhone] = useState(false);
-
-    // OTP Modal states
-    const [showOtpModal, setShowOtpModal] = useState(false);
-    const [otp, setOtp] = useState('');
-    const [verifyingOtp, setVerifyingOtp] = useState(false);
-    const [resendCooldown, setResendCooldown] = useState(60);
-    const [resendingOtp, setResendingOtp] = useState(false);
 
     const [admissionsClosed, setAdmissionsClosed] = useState(false);
     const [checkingStatus, setCheckingStatus] = useState(true);
@@ -56,34 +49,6 @@ const Register = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Lock background scroll when modal is open & add ESC key listener
-    useEffect(() => {
-        if (showOtpModal) {
-            document.body.style.overflow = 'hidden';
-            const handleKeyDown = (e) => {
-                if (e.key === 'Escape') {
-                    setShowOtpModal(false);
-                }
-            };
-            window.addEventListener('keydown', handleKeyDown);
-            return () => {
-                document.body.style.overflow = '';
-                window.removeEventListener('keydown', handleKeyDown);
-            };
-        }
-    }, [showOtpModal]);
-
-    // Cooldown Timer Effect
-    useEffect(() => {
-        let timer;
-        if (showOtpModal && resendCooldown > 0) {
-            timer = setInterval(() => {
-                setResendCooldown((prev) => prev - 1);
-            }, 1000);
-        }
-        return () => clearInterval(timer);
-    }, [showOtpModal, resendCooldown]);
-
     useEffect(() => {
         const checkPhoneUniqueness = async () => {
             const val = formData.phone;
@@ -101,7 +66,7 @@ const Register = () => {
             setPhoneError('');
 
             try {
-                const res = await api.post('/auth/check-phone', { phone: val });
+                const res = await authService.checkPhone(val);
                 if (res.data.exists) {
                     setPhoneError('This mobile number is already registered.');
                 } else {
@@ -131,7 +96,7 @@ const Register = () => {
         }
     }, [formData.password]);
 
-    // Handle Form Submit -> Sends Registration OTP
+    // Handle Form Submit -> Direct Registration
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -166,19 +131,18 @@ const Register = () => {
 
         setLoading(true);
         try {
-            // Request Registration OTP via Nodemailer
-            const res = await api.post('/auth/send-registration-otp', {
+            const registerRes = await authService.register({
                 firstName: formData.firstName,
                 lastName: formData.lastName,
                 email: formData.email,
                 phone: formData.phone,
+                password: formData.password,
             });
 
-            if (res.data.success) {
-                toast.success('OTP sent to your email address!');
-                setShowOtpModal(true);
-                setResendCooldown(60);
-                setOtp('');
+            if (registerRes.data.success) {
+                toast.success('Account created successfully! 🎉');
+                login(registerRes.data.data.token);
+                navigate('/admission/dashboard');
             }
         } catch (error) {
             const fields = error.response?.data?.fields;
@@ -187,72 +151,10 @@ const Register = () => {
                     toast.error(msg);
                 });
             } else {
-                toast.error(error.response?.data?.error || 'Failed to send OTP. Please try again.');
+                toast.error(error.response?.data?.error || 'Registration failed. Please try again.');
             }
         } finally {
             setLoading(false);
-        }
-    };
-
-    // Resend OTP handler
-    const handleResendOtp = async () => {
-        if (resendCooldown > 0 || resendingOtp) return;
-        setResendingOtp(true);
-        try {
-            const res = await api.post('/auth/send-registration-otp', {
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                phone: formData.phone,
-            });
-            if (res.data.success) {
-                toast.success('A new OTP has been sent to your email address.');
-                setResendCooldown(60);
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.error || 'Failed to resend OTP.');
-        } finally {
-            setResendingOtp(false);
-        }
-    };
-
-    // Verify OTP & Complete Registration
-    const handleVerifyAndRegister = async (e) => {
-        if (e) e.preventDefault();
-        if (!otp || otp.length !== 6 || isNaN(Number(otp))) {
-            toast.error('Please enter a valid 6-digit numeric OTP code.');
-            return;
-        }
-
-        setVerifyingOtp(true);
-        try {
-            // Step 1: Verify OTP
-            const verifyRes = await api.post('/auth/verify-registration-otp', {
-                email: formData.email,
-                otp,
-            });
-
-            if (verifyRes.data.success) {
-                // Step 2: Register Account
-                const registerRes = await api.post('/auth/register', {
-                    firstName: formData.firstName,
-                    lastName: formData.lastName,
-                    email: formData.email,
-                    phone: formData.phone,
-                    password: formData.password,
-                });
-
-                if (registerRes.data.success) {
-                    toast.success('Email verified & Account created successfully! 🎉');
-                    setShowOtpModal(false);
-                    login(registerRes.data.data.token);
-                    navigate('/admission/dashboard');
-                }
-            }
-        } catch (error) {
-            toast.error(error.response?.data?.error || 'OTP verification failed.');
-        } finally {
-            setVerifyingOtp(false);
         }
     };
 
@@ -415,11 +317,11 @@ const Register = () => {
                             {loading ? (
                                 <>
                                     <Loader2 className="w-4 h-4 animate-spin" />
-                                    <span>Sending Email OTP...</span>
+                                    <span>Creating Account...</span>
                                 </>
                             ) : (
                                 <>
-                                    <span>Continue Registration</span>
+                                    <span>Create Account</span>
                                     <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}
@@ -434,82 +336,6 @@ const Register = () => {
                     Log in here
                 </Link>
             </div>
-
-            {/* ═══ EMAIL OTP VERIFICATION MODAL ═══ */}
-            {showOtpModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/35 backdrop-blur-[8px] transition-opacity duration-300">
-                    <div className="bg-white dark:bg-neutral-900 rounded-[24px] w-[92vw] max-w-[380px] sm:w-[480px] sm:max-w-[480px] max-h-[90vh] overflow-y-auto p-6 sm:p-8 shadow-2xl border border-slate-100 dark:border-neutral-800 space-y-6 relative animate-in fade-in zoom-in-95 duration-200">
-                        
-                        <button
-                            onClick={() => setShowOtpModal(false)}
-                            className="absolute right-5 top-5 text-slate-400 hover:text-slate-600 dark:hover:text-white p-2 rounded-full hover:bg-slate-100 dark:hover:bg-neutral-800 transition-colors"
-                            title="Close (Esc)"
-                        >
-                            <X size={20} />
-                        </button>
-
-                        <div className="text-center space-y-3">
-                            <div className="size-14 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mx-auto shadow-sm border border-indigo-100 dark:border-indigo-900/40">
-                                <KeyRound size={26} />
-                            </div>
-                            <div>
-                                <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">Email OTP Verification</h3>
-                                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-xs mx-auto mt-1 break-all px-2">
-                                    We sent a 6-digit verification code to <strong className="text-slate-900 dark:text-white font-bold">{formData.email}</strong>
-                                </p>
-                            </div>
-                        </div>
-
-                        <form onSubmit={handleVerifyAndRegister} className="space-y-6">
-                            <div>
-                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest text-center mb-1">
-                                    Enter 6-Digit Verification Code
-                                </label>
-                                
-                                <OtpInputBox
-                                    value={otp}
-                                    onChange={(val) => setOtp(val)}
-                                    onEnterSubmit={handleVerifyAndRegister}
-                                    disabled={verifyingOtp}
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={verifyingOtp || otp.length !== 6}
-                                className="w-full h-[52px] bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-[14px] text-sm shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                            >
-                                {verifyingOtp ? (
-                                    <>
-                                        <Loader2 size={18} className="animate-spin" />
-                                        <span>Verifying & Registering...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <ShieldCheck size={18} />
-                                        <span>Verify OTP & Create Account</span>
-                                    </>
-                                )}
-                            </button>
-                        </form>
-
-                        <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100 dark:border-neutral-800">
-                            <span className="text-slate-500 font-medium">
-                                Didn't receive the code?
-                            </span>
-
-                            <button
-                                onClick={handleResendOtp}
-                                disabled={resendCooldown > 0 || resendingOtp}
-                                className="font-extrabold text-indigo-600 hover:underline flex items-center gap-1.5 disabled:opacity-50 disabled:no-underline"
-                            >
-                                <RefreshCw size={12} className={resendingOtp ? 'animate-spin' : ''} />
-                                {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend OTP'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
